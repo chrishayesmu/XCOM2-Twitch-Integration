@@ -1,0 +1,103 @@
+[UIPollPanel]
+strTotalVotesPlural="votes"
+strTotalVotesSingular="vote"
+strTurnsRemainingPlural="Turns Remaining"
+strTurnsRemainingSingular="Turn Remaining"
+
+strPollTitleHarbinger="Harbinger"
+strPollSubtitleHarbinger="Something's coming. Something big."
+strPollTitleProvidence="Providence"
+strPollSubtitleProvidence="Squad's getting a little help."
+strPollTitleReinforcement="Reinforcements"
+strPollSubtitleReinforcement="Resistance assets are mobilizing."
+strPollTitleSabotage="Sabotage"
+strPollSubtitleSabotage="ADVENT is forcing our hand."
+strPollTitleSerendipity="Serendipity"
+strPollSubtitleSerendipity="ADVENT's misfortune is our advantage."
+
+
+[UIPollResultsScreen]
+strCloseButton="Close Results"
+strDialogTitle="Poll Ended"
+strTotalVotesPlural="total votes"
+strTotalVotesSingular="total vote"
+
+strSubtitle_Harbinger="ADVENT reinforcements are en route."
+strSubtitle_Providence="This should help turn the tide."
+strSubtitle_Reinforcement="Strike One's position is being reinforced."
+strSubtitle_Sabotage="ADVENT's done some damage."
+strSubtitle_Serendipity="ADVENT seems to be having some sort of.. malfunction."
+
+
+
+[PollEvent_ImpairEnemies_CatchFire X2PollEventTemplate]
+FriendlyName="Ignite 1 Enemy"
+Explanation="1 enemy will catch fire for 2 turns."
+
+[PollEvent_ImpairEnemies_Disorient X2PollEventTemplate]
+FriendlyName="Disorient 1 Enemy"
+Explanation="1 enemy will be disoriented for 2 turns."
+
+[PollEvent_ImpairEnemies_KnockUnconscious X2PollEventTemplate]
+FriendlyName="Knock 1 Enemy Unconscious"
+Explanation="1 enemy will be knocked unconscious."
+
+[PollEvent_ImpairEnemies_Panic X2PollEventTemplate]
+FriendlyName="Panic 1 Enemy"
+Explanation="1 enemy will panic immediately."
+
+[PollEvent_ImpairEnemies_Stun X2PollEventTemplate]
+FriendlyName="Stun 1 Enemy"
+Explanation="1 enemy will be stunned for 2 turns."
+
+
+
+[PollEvent_ImpairXCOM_CatchFire X2PollEventTemplate]
+FriendlyName="Ignite 1 XCOM Soldier"
+Explanation="1 soldier will catch fire for 2 turns."
+
+[PollEvent_ImpairXCOM_Disorient X2PollEventTemplate]
+FriendlyName="Disorient 1 XCOM Soldier"
+Explanation="1 soldier will be disoriented for 2 turns."
+
+[PollEvent_ImpairXCOM_KnockUnconscious X2PollEventTemplate]
+FriendlyName="Knock 1 XCOM Soldier Unconscious"
+Explanation="1 soldier will be knocked unconscious."
+
+[PollEvent_ImpairXCOM_Panic X2PollEventTemplate]
+FriendlyName="Panic 1 XCOM Soldier"
+Explanation="1 soldier will panic immediately."
+
+[PollEvent_ImpairXCOM_Stun X2PollEventTemplate]
+FriendlyName="Stun 1 XCOM Soldier"
+Explanation="1 soldier will be stunned for 2 turns."
+
+
+
+[PollEvent_GiveActionPoints_AllXCOM X2PollEventTemplate]
+FriendlyName="+1 Action Point (All Soldiers)"
+Explanation="Every soldier receives 1 additional action point this turn."
+
+[PollEvent_GiveActionPoints_SomeXCOM X2PollEventTemplate]
+FriendlyName="+1 Action Point (One Soldier)"
+Explanation="One soldier receives 1 additional action point this turn."
+
+[PollEvent_GiveAmmo_AllXCOM X2PollEventTemplate]
+FriendlyName="Ammo Refill (All Soldiers)"
+Explanation="Every soldier's primary weapon is reloaded."
+
+[PollEvent_GiveAmmo_SomeXCOM X2PollEventTemplate]
+FriendlyName="Ammo Refill (One Soldier)"
+Explanation="One soldier's primary weapon is reloaded."
+
+[PollEvent_SpawnEnemies_AdventPurifiers_x4 X2PollEventTemplate]
+FriendlyName="Spawn 4 Advent Purifiers"
+Explanation="Enemies will spawn in 1 turn."
+
+[PollEvent_SpawnEnemies_LostSwarm X2PollEventTemplate]
+FriendlyName="Spawn a Lost Swarm"
+Explanation="Enemies will spawn in 1 turn."
+
+[PollEvent_SpawnEnemies_Sectopod X2PollEventTemplate]
+FriendlyName="Spawn Sectopod"
+Explanation="Enemies will spawn in 1 turn."

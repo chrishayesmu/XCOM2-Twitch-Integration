@@ -7,6 +7,7 @@
     <SteamPublishID>0</SteamPublishID>
     <AssemblyName>Twitch Integration</AssemblyName>
     <RootNamespace>Twitch Integration</RootNamespace>
+    <ProjectGuid>{ab838384-51b5-4216-ba85-8cb7f6ba3bd4}</ProjectGuid>
   </PropertyGroup>
   <ItemGroup>
     <Folder Include="Config\" />
@@ -16,13 +17,75 @@
     <Folder Include="Src\TwitchIntegration\Classes\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Config\XComEncounters.ini">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Config\XComTwitchEvents.ini">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Config\XcomTwitchIntegration.ini">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Localization\TwitchIntegration.int">
+      <SubType>Content</SubType>
+    </Content>
     <Content Include="ReadMe.txt" />
     <Content Include="ModPreview.jpg" />
     <Content Include="Config\XComEditor.ini" />
     <Content Include="Config\XComEngine.ini" />
     <Content Include="Config\XComGame.ini" />
     <Content Include="Localization\XComGame.int" />
+    <Content Include="Src\TwitchIntegration\Classes\ChatCommandProcessor.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\TwitchIntegration\Classes\HttpGetRequest.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\TwitchIntegration\Classes\TwitchCommandHandler.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\TwitchIntegration\Classes\TwitchCommandHandler_Vote.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\TwitchIntegration\Classes\TwitchStateManager.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\TwitchIntegration\Classes\UIPollChoice.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\TwitchIntegration\Classes\UIPollPanel.uc">
+      <SubType>Content</SubType>
+    </Content>
     <Content Include="Src\TwitchIntegration\Classes\X2DownloadableContentInfo_TwitchIntegration.uc" />
+    <Content Include="Src\TwitchIntegration\Classes\X2EventListener_ConnectToTwitch.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\TwitchIntegration\Classes\X2EventListener_TITestListener.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\TwitchIntegration\Classes\TwitchChatTcpLink.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\TwitchIntegration\Classes\X2PollEvent.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\TwitchIntegration\Classes\X2PollEventTemplate.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\TwitchIntegration\Classes\X2TwitchUtils.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\TwitchIntegration\Classes\XComGameState_TwitchEventPoll.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\TwitchIntegration\Classes\XComGameState_TwitchXSay.uc">
+      <SubType>Content</SubType>
+    </Content>
   </ItemGroup>
-  <Import Project="$(MSBuildLocalExtensionPath)\XCOM2.targets" />
+  <PropertyGroup>
+    <SolutionRoot>$(MSBuildProjectDirectory)\..\</SolutionRoot>
+    <ScriptsDir>$(SolutionRoot).scripts\</ScriptsDir>
+    <BuildCommonRoot>$(ScriptsDir)X2ModBuildCommon\</BuildCommonRoot>
+  </PropertyGroup>
+  <Import Project="$(BuildCommonRoot)XCOM2.targets" />
 </Project>

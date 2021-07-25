@@ -3,15 +3,18 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # XCOM ModBuddy Solution File, Format Version 11.00
 VisualStudioVersion = 12.0.21005.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{5DAE07AF-E217-45C1-8DE7-FF99D6011E8A}") = "Twitch Integration", "Twitch Integration\Twitch Integration.x2proj", "{242BAC5A-108D-4E6D-A4D2-A259D3CED9AD}"
+Project("{5DAE07AF-E217-45C1-8DE7-FF99D6011E8A}") = "Twitch Integration", "Twitch Integration\Twitch Integration.x2proj", "{AB838384-51B5-4216-BA85-8CB7F6BA3BD4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|XCOM 2 = Debug|XCOM 2
 		Default|XCOM 2 = Default|XCOM 2
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{242BAC5A-108D-4E6D-A4D2-A259D3CED9AD}.Default|XCOM 2.ActiveCfg = Default|XCOM 2
-		{242BAC5A-108D-4E6D-A4D2-A259D3CED9AD}.Default|XCOM 2.Build.0 = Default|XCOM 2
+		{AB838384-51B5-4216-BA85-8CB7F6BA3BD4}.Debug|XCOM 2.ActiveCfg = Default|XCOM 2
+		{AB838384-51B5-4216-BA85-8CB7F6BA3BD4}.Debug|XCOM 2.Build.0 = Default|XCOM 2
+		{AB838384-51B5-4216-BA85-8CB7F6BA3BD4}.Default|XCOM 2.ActiveCfg = Default|XCOM 2
+		{AB838384-51B5-4216-BA85-8CB7F6BA3BD4}.Default|XCOM 2.Build.0 = Default|XCOM 2
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
