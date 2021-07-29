@@ -1,15 +1,16 @@
 class TwitchCommandHandler_XSay extends TwitchCommandHandler
-    dependson(TwitchStateManager)
-    config (TwitchCommands);
+    dependson(TwitchStateManager);
 
 var config bool bShowToast;
+var config bool bShowFlyover;
 var config float LookAtDuration;
 
 const LookAtDurationMin = 1.5;
 const LookAtDurationMax = 2.75; // after this point the text has faded anyway
 const LookAtDurationPerChar = 0.02; // 1 second per 50 characters
 
-const MaxToastLength = 50;
+const MaxFlyoverLength = 45;
+const MaxToastLength = 40;
 
 function Handle(TwitchStateManager StateMgr, string CommandAlias, string CommandBody, string Sender) {
     local XComGameState NewGameState;
@@ -79,19 +80,22 @@ protected function XSay_BuildVisualization(XComGameState VisualizeGameState) {
 
     // TODO: for ADVENT and Lost a generic talking sound would be cool
     // TODO: the flyover box doesn't get very big; limit characters?
-	SoundAndFlyOver = X2Action_PlaySoundAndFlyOver(class'X2Action_PlaySoundAndFlyOver'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext()));
-	SoundAndFlyOver.SetSoundAndFlyOverParameters(none, XSayGameState.MessageBody, '', MessageColor, /* _FlyOverIcon */, /* _LookAtDuration */ CalcLookAtDuration(XSayGameState.MessageBody), /* _BlockUntilFinished */, /* _VisibleTeam */, class'UIWorldMessageMgr'.const.FXS_MSG_BEHAVIOR_FLOAT);
+    if (bShowFlyover) {
+	    SoundAndFlyOver = X2Action_PlaySoundAndFlyOver(class'X2Action_PlaySoundAndFlyOver'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext()));
+	    SoundAndFlyOver.SetSoundAndFlyOverParameters(none, TruncateMessage(XSayGameState.MessageBody, MaxFlyoverLength), '', MessageColor, /* _FlyOverIcon */,
+                                                     CalcLookAtDuration(XSayGameState.MessageBody), /* _BlockUntilFinished */, /* _VisibleTeam */, class'UIWorldMessageMgr'.const.FXS_MSG_BEHAVIOR_FLOAT);
+    }
 
     class'X2Action_AddToChatLog'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext(), , ActionMetadata.LastActionAdded);
 
     if (bShowToast) {
         MessageAction = X2Action_PlayMessageBanner(class'X2Action_PlayMessageBanner'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext()));
-        MessageAction.AddMessageBanner("Twitch Message", "", XSayGameState.Sender, Left(XSayGameState.MessageBody, MaxToastLength), eUIState_Normal);
+        MessageAction.AddMessageBanner("Twitch Message", "", XSayGameState.Sender, TruncateMessage(XSayGameState.MessageBody, MaxToastLength), eUIState_Normal);
         MessageAction.bDontPlaySoundEvent = true;
     }
 }
 
-protected function float CalcLookAtDuration(string Message) {
+private function float CalcLookAtDuration(string Message) {
     if (default.LookAtDuration > 0) {
         // User-configured value: just use it directly
         return default.LookAtDuration;
@@ -106,7 +110,10 @@ protected function float CalcLookAtDuration(string Message) {
     return Clamp(Len(Message) * LookAtDurationPerChar, LookAtDurationMin, LookAtDurationMax);
 }
 
-defaultproperties
-{
-	CommandAliases=("xsay", "say")
+private function string TruncateMessage(string Message, int MaxLength) {
+    if (Len(Message) > MaxLength) {
+        Message = Left(Message, MaxLength) $ " ...";
+    }
+
+    return Message;
 }

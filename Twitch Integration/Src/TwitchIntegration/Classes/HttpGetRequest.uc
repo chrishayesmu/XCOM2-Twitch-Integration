@@ -34,7 +34,7 @@ function Call(string Url, delegate<OnComplete> CompletionHandler)
 	local int Index;
 
     if (bRequestInProgress) {
-        `LOG("[HttpGetRequest] Same object is being re-used while still in use, which is not allowed");
+        `LOG("[HttpGetRequest] Same object is being re-used while still in use, which is not allowed", , 'TwitchIntegration');
         return;
     }
 
@@ -56,7 +56,7 @@ function Call(string Url, delegate<OnComplete> CompletionHandler)
     Response.Body = "";
     Response.ResponseCode = -1;
 
-    `LOG("[HttpGetRequest] Resolving host: " $ Host);
+    `LOG("[HttpGetRequest] Resolving host: " $ Host, , 'TwitchIntegration');
     resolve(Host);
 }
 
@@ -68,20 +68,20 @@ function int SendText(coerce string str) {
 
 event Resolved(IpAddr Addr)
 {
-    `LOG("[HttpGetRequest] " $ CurrentUrl $ " resolved to " $ IpAddrToString(Addr));
-    `LOG("[HttpGetRequest] Bound to port: " $ BindPort() );
+    `LOG("[HttpGetRequest] " $ CurrentUrl $ " resolved to " $ IpAddrToString(Addr), , 'TwitchIntegration');
+    `LOG("[HttpGetRequest] Bound to port: " $ BindPort(), , 'TwitchIntegration');
 
     Addr.Port = 80;
 
     if (!Open(Addr))
     {
-        `Log("[HttpGetRequest] Open failed");
+        `Log("[HttpGetRequest] Open failed", , 'TwitchIntegration');
     }
 }
 
 event ResolveFailed()
 {
-    `LOG("[HttpGetRequest] Unable to resolve address " $ CurrentUrl);
+    `LOG("[HttpGetRequest] Unable to resolve address " $ CurrentUrl, , 'TwitchIntegration');
 }
 
 event Opened()
@@ -89,7 +89,7 @@ event Opened()
 	local string CRLF;
 	CRLF = chr(13) $ chr(10);
 
-    `LOG("[HttpGetRequest] Sending HTTP request body");
+    `LOG("[HttpGetRequest] Sending HTTP request body", , 'TwitchIntegration');
 
     // Simple HTTP GET request
     SendText("GET " $ RequestPath $ " HTTP/1.1" $ CRLF);
@@ -98,12 +98,12 @@ event Opened()
     SendText("Connection: close" $ CRLF);
 	SendText(CRLF); // indicate request is done
 
-    `LOG("[HttpGetRequest] GET request sent");
+    `LOG("[HttpGetRequest] GET request sent", , 'TwitchIntegration');
 }
 
 event Closed()
 {
-    `LOG("[HttpGetRequest] Connection closed; final response body is " $ Response.Body);
+    `LOG("[HttpGetRequest] Connection closed; final response body is " $ Response.Body, , 'TwitchIntegration');
 
     bRequestInProgress = false;
 
@@ -127,7 +127,7 @@ event ReceivedText(string Text)
         Text = Mid(Text, 2);
     }
 
-    `LOG("[HttpGetRequest] Received text: " $ Text);
+    `LOG("[HttpGetRequest] Received text: " $ Text, , 'TwitchIntegration');
 
     if (bLastChunkReceived) {
         // We might receive headers after the response body, but we don't care about them
@@ -135,7 +135,6 @@ event ReceivedText(string Text)
     }
 
     if (!bFirstChunkReceived) {
-        `LOG("[HttpGetRequest] Processing potential first chunk");
         bFirstChunkReceived = true;
 
         // The headers and body are separated by two CRLFs
@@ -154,8 +153,6 @@ event ReceivedText(string Text)
             Response.Headers[Index - 1].Key = Left(HeaderLine, InStr(HeaderLine, ":"));
             Response.Headers[Index - 1].Value = Split(HeaderLine, ": ", /* bOmitSplitStr */ true);
 
-            `LOG("[HttpGetRequest] Parsed header: key ='" $ Response.Headers[Index - 1].Key $ "' and value='" $ Response.Headers[Index - 1].Value $ "'");
-
             if (Response.Headers[Index - 1].Key == "Transfer-Encoding" && Response.Headers[Index - 1].Value == "chunked") {
                 bIsChunkTransferEncoding = true;
             }
@@ -168,7 +165,6 @@ event ReceivedText(string Text)
             Response.Body = Split(ResponseParts[1], CRLF, /* bOmitSplitStr */ true);
 
             RemainingBytesInChunk = HexToInt(ChunkSizeInHex);
-            `LOG("[HttpGetRequest] First chunk size in hex: " $ ChunkSizeInHex $ " mapped to decimal value " $ RemainingBytesInChunk);
             RemainingBytesInChunk -= Len(Response.Body);
         }
         else {
@@ -186,7 +182,6 @@ event ReceivedText(string Text)
 
         // We might get multiple chunks concatenated thanks to TcpLink buffering, so we need to be able to identify a new chunk mid-stream
         if (Len(Text) > RemainingBytesInChunk) {
-            `LOG("[HttpGetRequest] Incoming text is " $ Len(Text) $ " long, only " $ RemainingBytesInChunk $ " bytes left in chunk");
             Response.Body $= Left(Text, RemainingBytesInChunk);
             Text = Mid(Text, RemainingBytesInChunk + 2); // skip past the CRLF that ends this chunk
 
@@ -197,7 +192,6 @@ event ReceivedText(string Text)
             // Previous chunk is done; we're about to start a new one, or end completely
             ChunkSizeInHex = Left(Text, Instr(Text, CRLF));
             RemainingBytesInChunk = HexToInt(ChunkSizeInHex);
-            `LOG("[HttpGetRequest] Chunk size in hex: " $ ChunkSizeInHex $ " mapped to decimal value " $ RemainingBytesInChunk);
 
             if (RemainingBytesInChunk == 0) {
                 bLastChunkReceived = true;
@@ -215,10 +209,9 @@ event ReceivedText(string Text)
         RemainingBytesInChunk -= Len(ChunkBody);
 
         if (RemainingBytesInChunk < 0) {
-            `LOG("[HttpGetRequest] WARNING: negative number of bytes remaining in chunk: " $ RemainingBytesInChunk);
+            `LOG("[HttpGetRequest] WARNING: negative number of bytes remaining in chunk: " $ RemainingBytesInChunk, , 'TwitchIntegration');
         }
     }
-
 }
 
 private function int HexToInt(string HexVal) {
@@ -243,7 +236,7 @@ private function int HexToInt(string HexVal) {
         }
 
         if (CurrentCharAscii < 0 || CurrentCharAscii > 15) {
-            `LOG("[HttpGetRequest] WARNING: character out of range; adjusted ASCII value is " $ CurrentCharAscii);
+            `LOG("[HttpGetRequest] WARNING: character out of range; adjusted ASCII value is " $ CurrentCharAscii, , 'TwitchIntegration');
             return -1;
         }
 

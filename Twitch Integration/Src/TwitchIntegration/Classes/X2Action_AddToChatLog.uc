@@ -9,7 +9,7 @@ simulated state Executing
             break;
         }
 
-        class'X2TwitchUtils'.static.AddMessageToChatLog(XSayState.Sender, XSayState.MessageBody);
+        class'X2TwitchUtils'.static.AddMessageToChatLog(XSayState.Sender, XSayState.MessageBody, XComGameState_Unit(Metadata.StateObject_NewState));
     }
 
 Begin:

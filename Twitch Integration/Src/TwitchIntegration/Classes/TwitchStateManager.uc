@@ -20,13 +20,15 @@ struct PollTypeWeighting {
 struct TwitchViewer {
 	var string Name;
 	var eTwitchRole Role;
-    var StateObjectReference OwnedObjectRef; // an object (probably a Unit) which this viewer has been raffled into
 };
 
 // ----------------------------------------------
 // Config vars
 
 var config string Channel;
+
+var config(TwitchChatCommands) bool bShowChatLog;
+var config(TwitchChatCommands) array<string> EnabledCommands;
 
 var config(TwitchEvents) int PollDurationInTurns;
 var config(TwitchEvents) int MinTurnsBeforeFirstPoll;
@@ -61,21 +63,30 @@ var private array<TwitchCommandHandler> CommandHandlers;
 // Public functions
 
 function Initialize() {
+    local string CommandHandlerName;
+    local Class CommandHandlerClass;
+    local TwitchCommandHandler CommandHandler;
+
     local Object ThisObj;
     local X2DataTemplate Template;
     local X2EventListenerTemplateManager EventTemplateManager;
     local X2EventManager EventManager;
 	local X2PollEventTemplate PollEventTemplate;
 
-	`LOG("[TwitchIntegration] Initializing state manager");
+	`LOG("Initializing state manager", , 'TwitchIntegration');
 
     ThisObj = self;
 	EventManager = `XEVENTMGR;
 	EventManager.RegisterForEvent(ThisObj, 'PlayerTurnBegun', OnPlayerTurnBegun, ELD_OnStateSubmitted);
 
-    // TODO move this to config
-	CommandHandlers.AddItem(new class'TwitchCommandHandler_Vote');
-	CommandHandlers.AddItem(new class'TwitchCommandHandler_XSay');
+    // Load command handlers from config
+    foreach EnabledCommands(CommandHandlerName) {
+        CommandHandlerClass = class'Engine'.static.FindClassType(CommandHandlerName);
+        CommandHandler = TwitchCommandHandler(new(None, CommandHandlerName) CommandHandlerClass);
+	    CommandHandlers.AddItem(CommandHandler);
+    }
+
+    `LOG("Loaded " $ CommandHandlers.Length $ " command handlers", , 'TwitchIntegration');
 
 	// Find all poll event templates and organize them by type for future use
 	EventTemplateManager = class'X2EventListenerTemplateManager'.static.GetEventListenerTemplateManager();
@@ -103,8 +114,7 @@ function Initialize() {
 	}
 
 	// Connect to Twitch chat servers
-	TwitchChatConn = Spawn(class'TwitchChatTcpLink');
-	TwitchChatConn.Initialize(Channel, OnChatReceived);
+    ConnectToTwitchChat();
 
 	// Retrieve list of viewers from Twitch API
 	HttpGet = Spawn(class'HttpGetRequest');
@@ -112,9 +122,11 @@ function Initialize() {
 
     // TODO: need to go through XCOM's soldiers and figure out which ones are owned by viewers
 
-    // TODO: only make a chat panel if config dictates and we successfully connected to Twitch
-    ChatLog = Spawn(class'UIChatLog', `SCREENSTACK.GetCurrentScreen()).InitChatLog(10, 225, 475, 250);
-    ChatLog.AnchorTopLeft();
+    // TODO: only make a chat panel if we successfully connected to Twitch
+    if (bShowChatLog) {
+        ChatLog = Spawn(class'UIChatLog', `SCREENSTACK.GetCurrentScreen()).InitChatLog(10, 245, 475, 210);
+        ChatLog.AnchorTopLeft();
+    }
 }
 
 function CastVote(string Voter, int OptionIndex) {
@@ -145,6 +157,24 @@ function CastVote(string Voter, int OptionIndex) {
 	`GAMERULES.SubmitGameState(NewGameState);
 
     class'UIPollPanel'.static.UpdateInProgress();
+}
+
+function ConnectToTwitchChat(bool bForceReconnect = false) {
+    if (TwitchChatConn != none && TwitchChatConn.IsConnected() && !bForceReconnect) {
+        return; // already connected
+    }
+
+    if (TwitchChatConn == none) {
+        TwitchChatConn = Spawn(class'TwitchChatTcpLink');
+        TwitchChatConn.Initialize(Channel, OnChatReceived);
+    }
+    else {
+        if (TwitchChatConn.IsConnected()) {
+            TwitchChatConn.Close();
+        }
+
+        TwitchChatConn.Connect();
+    }
 }
 
 /// <summary>
@@ -234,6 +264,10 @@ function StartPoll(ePollType PollType, int DurationInTurns, optional XComGameSta
 	`GAMERULES.SubmitGameState(NewGameState);
 
     class'UIPollPanel'.static.UpdateInProgress();
+}
+
+simulated event PostLoadGame() {
+    `LOG("PostLoadGame for TwitchStateManager");
 }
 
 // ----------------------------------------------

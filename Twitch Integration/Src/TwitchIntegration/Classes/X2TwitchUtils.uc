@@ -1,6 +1,6 @@
 class X2TwitchUtils extends Object;
 
-static function AddMessageToChatLog(string Sender, string Body) {
+static function AddMessageToChatLog(string Sender, string Body, optional XComGameState_Unit FromUnit) {
     local UIChatLog ChatLog;
 
     foreach `XCOMGAME.AllActors(class'UIChatLog', ChatLog) {
@@ -12,7 +12,7 @@ static function AddMessageToChatLog(string Sender, string Body) {
         return;
     }
 
-    ChatLog.AddMessage(Sender, Body);
+    ChatLog.AddMessage(Sender, Body, FromUnit);
 }
 
 static function TwitchStateManager GetStateManager() {
@@ -33,27 +33,15 @@ static function X2TwitchEventActionTemplate GetTwitchEventActionTemplate(Name Te
 }
 
 static function XComGameState_Unit FindUnitOwnedByViewer(string ViewerName) {
-    local int ViewerIndex;
-	local TwitchStateManager StateManager;
-	local TwitchViewer Viewer;
-    local XComGameState_BaseObject GameState;
+    local XComGameState_TwitchObjectOwnership OwnershipState;
 
-    StateManager = GetStateManager();
-    ViewerIndex = StateManager.ConnectedViewers.Find('Name', ViewerName);
+    OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForUser(ViewerName);
 
-    if (ViewerIndex < 0) {
+    if (OwnershipState == none) {
         return none;
     }
 
-    Viewer = StateManager.ConnectedViewers[ViewerIndex];
-
-    if (Viewer.OwnedObjectRef.ObjectID <= 0) {
-        return none;
-    }
-
-    GameState = `XCOMHISTORY.GetGameStateForObjectID(Viewer.OwnedObjectRef.ObjectID);
-
-    return XComGameState_Unit(GameState);
+    return XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID));
 }
 
 static function GiveAbilityToUnit(Name AbilityName, XComGameState_Unit Unit, optional XComGameState NewGameState, optional int TurnsUntilAbilityExpires) {
@@ -101,6 +89,19 @@ static function GiveAbilityToUnit(Name AbilityName, XComGameState_Unit Unit, opt
 			History.CleanupPendingGameState(NewGameState);
 		}
 	}
+}
+
+/// <summary>
+/// Creates and submits a game state with nothing in it. Primary for use with event triggers, which are not processed
+/// until the next game state; base game logic always fires triggers along with a meaningful game state change, but that
+/// isn't always possible for us with inherently transient objects like TCP connections.
+/// </summary>
+static function SubmitEmptyGameState() {
+    local XComGameState NewGameState;
+
+    NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Empty");
+
+	`GAMERULES.SubmitGameState(NewGameState);
 }
 
 // --------------------------

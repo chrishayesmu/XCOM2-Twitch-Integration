@@ -14,10 +14,10 @@ static function X2EventListenerTemplate Create_Listener_Template()
 {
     local X2EventListenerTemplate Template;
 
-    `CREATE_X2TEMPLATE(class'X2EventListenerTemplate', Template, 'X2EventListener_ConnectToTwitchTemplateName');
+    `CREATE_X2TEMPLATE(class'X2EventListenerTemplate', Template, 'X2EventListener_ConnectToTwitch');
 
     Template.RegisterInTactical = true;
-    Template.RegisterInStrategy = true;
+    Template.RegisterInStrategy = false;
     Template.AddEvent('OnTacticalBeginPlay', ConnectToTwitch);
 
     return Template;
@@ -27,7 +27,9 @@ static protected function EventListenerReturn ConnectToTwitch(Object EventData, 
 {
 	`LOG("TwitchIntegration: tactical play begun, event name " $ Event);
 
-	`XCOMGAME.Spawn(class'TwitchStateManager').Initialize();
+    if (class'X2TwitchUtils'.static.GetStateManager() == none) {
+	    `XCOMGAME.Spawn(class'TwitchStateManager').Initialize();
+    }
 
     return ELR_NoInterrupt;
 }

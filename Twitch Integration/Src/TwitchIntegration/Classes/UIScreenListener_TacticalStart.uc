@@ -1,0 +1,20 @@
+// Usually we connect to Twitch by responding to the OnTacticalBeginPlay event, but unfortunately,
+// that event does not fire when loading into the tactical game directly.
+class UIScreenListener_TacticalStart extends UIScreenListener;
+
+event OnInit(UIScreen Screen)
+{
+    if (UITacticalHud(Screen) != none) {
+        `LOG("Tactical HUD loaded");
+        // Wait 10 seconds; when the tactical HUD first loads there may still be a cinematic or loading
+        // screen up, so any temporary things we do (like a 'connection successful' toast) will disappear
+        // without being seen by the player
+        `BATTLE.SetTimer(10.0, /* inBLoop */ false, nameof(SpawnStateManagerIfNeeded), self);
+    }
+}
+
+private function SpawnStateManagerIfNeeded() {
+    if (class'X2TwitchUtils'.static.GetStateManager() == none) {
+        `XCOMGAME.Spawn(class'TwitchStateManager').Initialize();
+    }
+}

@@ -13,13 +13,15 @@ struct TwitchMessage {
 	var ETwitchMessageType MessageType;
 };
 
-var string TargetChannel;
+var private int NumConnectAttempts;
 
+var private string TargetChannel;
 var private string TargetHost;
 var private int TargetPort;
 
-var privatewrite bool bConnected;
 var private delegate<ChatListener> ChatHandler;
+
+const LogMessages = false;
 
 delegate ChatListener(TwitchMessage Chat);
 
@@ -28,48 +30,69 @@ function Initialize(string Channel, delegate<ChatListener> OnChat = none)
 	TargetChannel = Locs(Channel);
 	ChatHandler = OnChat;
 
-    `LOG("[TwitchChatTcpLink] Resolving host: " $ TargetHost);
-    resolve(TargetHost);
+    Connect();
+}
+
+function Connect() {
+    if (TargetChannel == "") {
+        `WARN("No Twitch channel name has been configured! Unable to connect.", , 'TwitchIntegration');
+    }
+
+    if (IsConnected()) {
+        return;
+    }
+
+    NumConnectAttempts++;
+    `LOG("[TwitchChatTcpLink] Beginning connection attempt #" $ NumConnectAttempts, , 'TwitchIntegration');
+
+    `LOG("[TwitchChatTcpLink] Resolving host: " $ TargetHost, , 'TwitchIntegration');
+    Resolve(TargetHost);
 }
 
 event Resolved(IpAddr Addr)
 {
-    `LOG("[TwitchChatTcpLink] " $ TargetHost $ " resolved to " $ IpAddrToString(Addr));
-    `LOG("[TwitchChatTcpLink] Bound to port: " $ BindPort() );
-    
+    `LOG("[TwitchChatTcpLink] " $ TargetHost $ " resolved to " $ IpAddrToString(Addr), , 'TwitchIntegration');
+    `LOG("[TwitchChatTcpLink] Bound to port: " $ BindPort(), , 'TwitchIntegration');
+
     Addr.Port = TargetPort;
-    
+
     if (!Open(Addr))
     {
-        `Log("[TwitchChatTcpLink] Open failed");
+        `LOG("[TwitchChatTcpLink] Open failed", , 'TwitchIntegration');
     }
 }
 
 event ResolveFailed()
 {
-    `LOG("[TwitchChatTcpLink] Unable to resolve address " $ TargetHost);
+    `LOG("[TwitchChatTcpLink] Unable to resolve address " $ TargetHost, , 'TwitchIntegration');
 }
 
 event Opened()
 {
-    `LOG("[TwitchChatTcpLink] Sending IRC connect request");
-    
+    `LOG("[TwitchChatTcpLink] Sending IRC connect request", , 'TwitchIntegration');
+
     // IRC connection request: using a justinfan nickname means we can use a
 	// special password without needing OAuth, and enter chat in read-only mode.
 	// Note that channel name needs to be all lowercase
     SendText("PASS SCHMOOPIIE" $ chr(13) $ chr(10));
     SendText("NICK justinfan19823" $ chr(13) $ chr(10));
     SendText("JOIN #" $ Locs(TargetChannel) $ chr(13) $ chr(10));
-    
-    `LOG("[TwitchChatTcpLink] IRC request sent");
+
+    `LOG("[TwitchChatTcpLink] IRC connect request sent", , 'TwitchIntegration');
 }
 
 event Closed()
 {
-    `LOG("[TwitchChatTcpLink] connection closed");
+    `LOG("[TwitchChatTcpLink] Connection closed", , 'TwitchIntegration');
 
-	bConnected = false;
-	`XEVENTMGR.TriggerEvent('TwitchChatConnectionClosed', , ,);
+    // TODO: attempt to reconnect with exponential backoff
+
+    // We want to notify the player that connection's been lost, but if you have a spotty connection,
+    // you shouldn't get spammed every time it drops. We'll trigger the event on the first failed retry,
+    // since that means you'll probably be disconnected long enough to notice.
+    if (NumConnectAttempts == 2) {
+	    `XEVENTMGR.TriggerEvent('TwitchChatConnectionClosed');
+    }
 }
 
 event ReceivedText(string Text)
@@ -98,13 +121,16 @@ function HandleMessage(TwitchMessage Message) {
 			ChatHandler(Message);
 		}
 	}
-	else if (Message.MessageType == eTwitchMessageType_MOTD && !bConnected) {
-		bConnected = true;
-		`XEVENTMGR.TriggerEvent('TwitchChatConnectionSuccessful', , ,);
+	else if (Message.MessageType == eTwitchMessageType_MOTD) {
+		`LOG("[TwitchChatTcpLink] Successfully connected to Twitch chat on attempt #" $ NumConnectAttempts, , 'TwitchIntegration');
+        NumConnectAttempts = 0;
+
+		`XEVENTMGR.TriggerEvent('TwitchChatConnectionSuccessful');
+        class'X2TwitchUtils'.static.SubmitEmptyGameState();
 	}
 	else if (Message.MessageType == eTwitchMessageType_Ping) {
 		// Need to respond to pings as a connection keep-alive
-		`LOG("[TwitchChatTcpLink] Replying to PING with PONG");
+		`LOG("[TwitchChatTcpLink] Replying to PING with PONG", , 'TwitchIntegration');
 		SendText("PONG :tmi.twitch.tv" $ chr(13) $ chr(10));
 	}
 }
@@ -123,7 +149,7 @@ function TwitchMessage ParseMessage(string Message) {
 	local int index;
 	local TwitchMessage MessageStruct;
 
-	`LOG("[TwitchChatTcpLink] Message: " $ Message);
+	`LOG("[TwitchChatTcpLink] Message: " $ Message, LogMessages, 'TwitchIntegration');
 
 	if (Message == "PING :tmi.twitch.tv") {
 		MessageStruct.MessageType = eTwitchMessageType_Ping;
@@ -169,8 +195,6 @@ function TwitchMessage ParseMessage(string Message) {
 	messageBody = Mid(currentSubstring, index + 1);
 	MessageStruct.Body = messageBody;
 
-	`LOG("[TwitchChatTcpLink] From " $ MessageStruct.Sender $ ": (type " $ MessageStruct.MessageType $ ") " $ MessageStruct.Body);
-
 	return MessageStruct;
 }
 
@@ -188,7 +212,6 @@ function ETwitchMessageType InterpretMessageType(string MessageType) {
 
 defaultproperties
 {
-	bConnected = false
     TargetHost="irc.chat.twitch.tv"
     TargetPort=6667
 }

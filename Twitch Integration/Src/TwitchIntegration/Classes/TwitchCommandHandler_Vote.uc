@@ -10,8 +10,3 @@ function Handle(TwitchStateManager StateMgr, string CommandAlias, string Command
 
 	StateMgr.CastVote(Sender, VoteChoiceIndex);
 }
-
-defaultproperties 
-{
-	CommandAliases[0]="vote"
-}

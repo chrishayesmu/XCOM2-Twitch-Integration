@@ -18,6 +18,7 @@ class X2DownloadableContentInfo_TwitchIntegration extends X2DownloadableContentI
 /// </summary>
 static event OnLoadedSavedGame()
 {
+    `LOG("OnLoadedSavedGame");
 }
 
 /// <summary>
@@ -32,6 +33,11 @@ static event InstallNewCampaign(XComGameState StartState)
 /// </summary>
 static event OnPreMission(XComGameState NewGameState, XComGameState_MissionSite MissionState)
 {
+    `LOG("OnPreMission");
+}
+
+exec function TwitchAssignUnitNames() {
+	`XEVENTMGR.TriggerEvent('TwitchAssignUnitNames');
 }
 
 exec function TwitchCastVote(string Voter, int Option) {
@@ -48,6 +54,10 @@ exec function TwitchQuickPoll(ePollType PollType) {
     TwitchCastVote("user2", 2);
     TwitchCastVote("user3", 2);
     TwitchEndPoll();
+}
+
+exec function TwitchConnect(bool bForceReconnect = false) {
+    class'X2TwitchUtils'.static.GetStateManager().ConnectToTwitchChat(bForceReconnect);
 }
 
 exec function TwitchStartPoll(ePollType PollType, int DurationInTurns) {
