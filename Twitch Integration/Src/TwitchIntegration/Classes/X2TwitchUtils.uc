@@ -63,7 +63,7 @@ static function GiveAbilityToUnit(Name AbilityName, XComGameState_Unit Unit, opt
         TacticalRules = `TACTICALRULES;
 
         if (NewGameState == none) {
-            NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("TwitchIntegration Give Ability '" $ AbilityName $ "'");
+            NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Give Ability '" $ AbilityName $ "'");
             CreatedGameState = true;
         }
 
@@ -89,19 +89,6 @@ static function GiveAbilityToUnit(Name AbilityName, XComGameState_Unit Unit, opt
 			History.CleanupPendingGameState(NewGameState);
 		}
 	}
-}
-
-/// <summary>
-/// Creates and submits a game state with nothing in it. Primary for use with event triggers, which are not processed
-/// until the next game state; base game logic always fires triggers along with a meaningful game state change, but that
-/// isn't always possible for us with inherently transient objects like TCP connections.
-/// </summary>
-static function SubmitEmptyGameState() {
-    local XComGameState NewGameState;
-
-    NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Empty");
-
-	`GAMERULES.SubmitGameState(NewGameState);
 }
 
 // --------------------------

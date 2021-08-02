@@ -21,7 +21,34 @@ simulated function InitFlag(StateObjectReference ObjectRef) {
 }
 
 simulated function OnInit() {
-    Update();
+    local XComGameState_Unit Unit;
+    local Vector Position;
+    local Vector2D ScreenPosition;
+
+    //Update();
+
+    Unit = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(StoredObjectID));
+    Position = `XWORLD.GetPositionFromTileCoordinates(Unit.TileLocation);
+    `LOG("Position: " $ Position.X $ ", " $ Position.Y);
+    Position.X = 0;
+    Position.Y = 0;
+
+    ScreenPosition.x = 6500;
+    ScreenPosition.y = -17000;
+
+    `LOG("Queuing world message for Twitch unit flag", , 'TwitchIntegration');
+    `PRES.QueueWorldMessage("Twitch",
+                            Position,
+                            Unit.GetReference(),
+                            /* _eColor */,
+                            class'UIWorldMessageMgr'.const.FXS_MSG_BEHAVIOR_READY,
+                            /* _sId */ "",
+                            /* _eBroadcastToTeams */,
+                            /* _bUseScreenLocationParam */ true,
+                            ScreenPosition,
+                            /* _displayTime */ -1.0,
+                            /* deprecated */,
+                            "img:///TwitchIntegration_UI.Icon_Twitch"); //, , , , , , , , true);
 
     //SetTimer(1.0, true, 'Update');
 }
@@ -29,7 +56,7 @@ simulated function OnInit() {
 simulated function Update()
 {
     local XComGameStateHistory History;
-	local Vector2d UnitPosition; // Unit position as a percentage of total screen space
+	local Vector2D UnitPosition; // Unit position as a percentage of total screen space
 	local Vector2D UnitScreenPos; // Unit position in pixels within the current resolution
 	local Vector vUnitLoc;
 	local float FlagScale;
@@ -44,7 +71,7 @@ simulated function Update()
 	// If not shown or ready, leave.
 	if (!bIsInited) {
         `LOG("Twitch unit flag is not inited", , 'TwitchIntegration');
-		//return;
+		return;
     }
 
     History = `XCOMHISTORY;

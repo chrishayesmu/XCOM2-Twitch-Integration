@@ -6,10 +6,10 @@ event OnInit(UIScreen Screen)
 {
     if (UITacticalHud(Screen) != none) {
         `LOG("Tactical HUD loaded");
-        // Wait 10 seconds; when the tactical HUD first loads there may still be a cinematic or loading
+        // Wait a few seconds; when the tactical HUD first loads there may still be a cinematic or loading
         // screen up, so any temporary things we do (like a 'connection successful' toast) will disappear
         // without being seen by the player
-        `BATTLE.SetTimer(10.0, /* inBLoop */ false, nameof(SpawnStateManagerIfNeeded), self);
+        `BATTLE.SetTimer(5.0, /* inBLoop */ false, nameof(SpawnStateManagerIfNeeded), self);
     }
 }
 

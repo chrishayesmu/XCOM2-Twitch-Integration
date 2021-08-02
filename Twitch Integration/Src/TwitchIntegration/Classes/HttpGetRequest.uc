@@ -11,8 +11,6 @@ struct HttpResponse {
 	var int ResponseCode;
 };
 
-var int MaxNumRetries;
-
 var private string CurrentUrl;
 var private string Host;
 var private string RequestPath;
@@ -25,21 +23,26 @@ var private bool bRequestInProgress;
 var private int RemainingBytesInChunk;
 var private HttpResponse Response;
 
-var private delegate<OnComplete> OnRequestComplete;
+var private delegate<ResponseHandler> OnRequestComplete;
+var private delegate<ResponseHandler> OnRequestError;
 
-delegate OnComplete(HttpResponse Resp);
+delegate ResponseHandler(HttpResponse Resp);
 
-function Call(string Url, delegate<OnComplete> CompletionHandler)
+const LogRequest = true;
+
+function Call(string Url, delegate<ResponseHandler> CompletionHandler, delegate<ResponseHandler> ErrorHandler = none)
 {
+    local HttpResponse EmptyResponse;
 	local int Index;
 
     if (bRequestInProgress) {
-        `LOG("[HttpGetRequest] Same object is being re-used while still in use, which is not allowed", , 'TwitchIntegration');
+        `WARN("[HttpGetRequest] Same object is being re-used while still in use, which is not allowed", , 'TwitchIntegration');
         return;
     }
 
 	CurrentUrl = Url;
 	OnRequestComplete = CompletionHandler;
+    OnRequestError = ErrorHandler;
 
 	Index = InStr(CurrentUrl, "/");
 	Host = Left(CurrentUrl, Index);
@@ -52,36 +55,46 @@ function Call(string Url, delegate<OnComplete> CompletionHandler)
     bRequestInProgress = true;
     RemainingBytesInChunk = 0;
 
-    Response.Headers.Length = 0;
-    Response.Body = "";
-    Response.ResponseCode = -1;
+    Response = EmptyResponse;
 
-    `LOG("[HttpGetRequest] Resolving host: " $ Host, , 'TwitchIntegration');
+    `LOG("[HttpGetRequest] Resolving host: " $ Host, LogRequest, 'TwitchIntegration');
     resolve(Host);
 }
 
 function int SendText(coerce string str) {
-	`LOG("[HttpGetRequest] [SEND] " $ str);
+	`LOG("[HttpGetRequest] [SEND] " $ str, LogRequest, 'TwitchIntegration');
 
 	return super.SendText(str);
 }
 
 event Resolved(IpAddr Addr)
 {
-    `LOG("[HttpGetRequest] " $ CurrentUrl $ " resolved to " $ IpAddrToString(Addr), , 'TwitchIntegration');
-    `LOG("[HttpGetRequest] Bound to port: " $ BindPort(), , 'TwitchIntegration');
+    `LOG("[HttpGetRequest] " $ CurrentUrl $ " resolved to " $ IpAddrToString(Addr), LogRequest, 'TwitchIntegration');
+    `LOG("[HttpGetRequest] Bound to port: " $ BindPort(), LogRequest, 'TwitchIntegration');
 
     Addr.Port = 80;
 
     if (!Open(Addr))
     {
-        `Log("[HttpGetRequest] Open failed", , 'TwitchIntegration');
+        `WARN("[HttpGetRequest] Failed to open request", , 'TwitchIntegration');
+
+        Response.ResponseCode = 400;
+
+        if (OnRequestError != none) {
+            OnRequestError(Response);
+        }
     }
 }
 
 event ResolveFailed()
 {
-    `LOG("[HttpGetRequest] Unable to resolve address " $ CurrentUrl, , 'TwitchIntegration');
+    `LOG("[HttpGetRequest] Unable to resolve address " $ CurrentUrl, LogRequest, 'TwitchIntegration');
+
+    Response.ResponseCode = 400;
+
+    if (OnRequestError != none) {
+        OnRequestError(Response);
+    }
 }
 
 event Opened()
@@ -89,21 +102,20 @@ event Opened()
 	local string CRLF;
 	CRLF = chr(13) $ chr(10);
 
-    `LOG("[HttpGetRequest] Sending HTTP request body", , 'TwitchIntegration');
+    `LOG("[HttpGetRequest] Sending HTTP request body", LogRequest, 'TwitchIntegration');
 
     // Simple HTTP GET request
     SendText("GET " $ RequestPath $ " HTTP/1.1" $ CRLF);
     SendText("Host: " $ Host $ CRLF);
-    SendText("Transfer-Encoding: identity" $ CRLF); // indicate that we don't want chunked encoding (TBD if this is okay on huge streams) for simplicity
     SendText("Connection: close" $ CRLF);
 	SendText(CRLF); // indicate request is done
 
-    `LOG("[HttpGetRequest] GET request sent", , 'TwitchIntegration');
+    `LOG("[HttpGetRequest] GET request sent", LogRequest, 'TwitchIntegration');
 }
 
 event Closed()
 {
-    `LOG("[HttpGetRequest] Connection closed; final response body is " $ Response.Body, , 'TwitchIntegration');
+    `LOG("[HttpGetRequest] Connection closed; final response body is " $ Response.Body, LogRequest, 'TwitchIntegration');
 
     bRequestInProgress = false;
 
@@ -127,7 +139,7 @@ event ReceivedText(string Text)
         Text = Mid(Text, 2);
     }
 
-    `LOG("[HttpGetRequest] Received text: " $ Text, , 'TwitchIntegration');
+    `LOG("[HttpGetRequest] Received text: " $ Text, LogRequest, 'TwitchIntegration');
 
     if (bLastChunkReceived) {
         // We might receive headers after the response body, but we don't care about them
@@ -156,6 +168,14 @@ event ReceivedText(string Text)
             if (Response.Headers[Index - 1].Key == "Transfer-Encoding" && Response.Headers[Index - 1].Value == "chunked") {
                 bIsChunkTransferEncoding = true;
             }
+        }
+
+        if (Response.ResponseCode < 200 || Response.ResponseCode >= 300) {
+            if (OnRequestError != none) {
+                OnRequestError(Response);
+            }
+
+            return;
         }
 
         // For the body, in a chunked encoding, the first line of the body will be a hex number indicating the number of bytes
@@ -209,7 +229,7 @@ event ReceivedText(string Text)
         RemainingBytesInChunk -= Len(ChunkBody);
 
         if (RemainingBytesInChunk < 0) {
-            `LOG("[HttpGetRequest] WARNING: negative number of bytes remaining in chunk: " $ RemainingBytesInChunk, , 'TwitchIntegration');
+            `WARN("[HttpGetRequest] WARNING: negative number of bytes remaining in chunk: " $ RemainingBytesInChunk, , 'TwitchIntegration');
         }
     }
 }
@@ -245,9 +265,4 @@ private function int HexToInt(string HexVal) {
     }
 
     return IntVal;
-}
-
-defaultproperties
-{
-	MaxNumRetries=0 // TODO
 }

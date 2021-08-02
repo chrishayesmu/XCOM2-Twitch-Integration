@@ -1,6 +1,7 @@
 class TwitchCommandHandler_XSay extends TwitchCommandHandler
     dependson(TwitchStateManager);
 
+var config bool bRequireUnitInLOS;
 var config bool bShowToast;
 var config bool bShowFlyover;
 var config float LookAtDuration;
@@ -13,6 +14,7 @@ const MaxFlyoverLength = 45;
 const MaxToastLength = 40;
 
 function Handle(TwitchStateManager StateMgr, string CommandAlias, string CommandBody, string Sender) {
+    local bool bUnitIsVisibleToSquad;
     local XComGameState NewGameState;
 	local XComGameStateContext_ChangeContainer NewContext;
 	local XComGameState_TwitchXSay XSayGameState;
@@ -21,6 +23,12 @@ function Handle(TwitchStateManager StateMgr, string CommandAlias, string Command
     Unit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(Sender);
 
     if (Unit == none) {
+        return;
+    }
+
+    bUnitIsVisibleToSquad = class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(Unit.ObjectID);
+
+    if (bRequireUnitInLOS && !bUnitIsVisibleToSquad) {
         return;
     }
 
@@ -41,6 +49,7 @@ function Handle(TwitchStateManager StateMgr, string CommandAlias, string Command
 }
 
 protected function XSay_BuildVisualization(XComGameState VisualizeGameState) {
+    local bool bUnitIsVisibleToSquad;
     local EWidgetColor MessageColor;
 	local VisualizationActionMetadata ActionMetadata;
 	local X2Action_PlayMessageBanner MessageAction;
@@ -56,6 +65,7 @@ protected function XSay_BuildVisualization(XComGameState VisualizeGameState) {
 	}
 
     Unit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(XSayGameState.Sender);
+    bUnitIsVisibleToSquad = class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(Unit.ObjectID);
 
     if (Unit.IsDead()) {
         MessageColor = eColor_Gray;
@@ -78,9 +88,11 @@ protected function XSay_BuildVisualization(XComGameState VisualizeGameState) {
 	ActionMetadata.StateObject_NewState = Unit;
 	ActionMetadata.VisualizeActor = History.GetVisualizer(Unit.ObjectID);
 
-    // TODO: for ADVENT and Lost a generic talking sound would be cool
-    // TODO: the flyover box doesn't get very big; limit characters?
-    if (bShowFlyover) {
+    // TODO: sanitize message input
+
+    // Don't do the flyover if we can't see the unit, regardless of settings
+    if (bShowFlyover && bUnitIsVisibleToSquad) {
+        // TODO: for ADVENT and Lost a generic talking sound cue would be cool
 	    SoundAndFlyOver = X2Action_PlaySoundAndFlyOver(class'X2Action_PlaySoundAndFlyOver'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext()));
 	    SoundAndFlyOver.SetSoundAndFlyOverParameters(none, TruncateMessage(XSayGameState.MessageBody, MaxFlyoverLength), '', MessageColor, /* _FlyOverIcon */,
                                                      CalcLookAtDuration(XSayGameState.MessageBody), /* _BlockUntilFinished */, /* _VisibleTeam */, class'UIWorldMessageMgr'.const.FXS_MSG_BEHAVIOR_FLOAT);

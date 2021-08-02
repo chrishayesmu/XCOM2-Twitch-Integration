@@ -27,7 +27,6 @@ struct TwitchViewer {
 
 var config string Channel;
 
-var config(TwitchChatCommands) bool bShowChatLog;
 var config(TwitchChatCommands) array<string> EnabledCommands;
 
 var config(TwitchEvents) int PollDurationInTurns;
@@ -116,17 +115,9 @@ function Initialize() {
 	// Connect to Twitch chat servers
     ConnectToTwitchChat();
 
-	// Retrieve list of viewers from Twitch API
-	HttpGet = Spawn(class'HttpGetRequest');
-	HttpGet.Call("tmi.twitch.tv/group/user/" $ Locs(Channel) $ "/chatters", OnNamesListReceived);
-
-    // TODO: need to go through XCOM's soldiers and figure out which ones are owned by viewers
-
-    // TODO: only make a chat panel if we successfully connected to Twitch
-    if (bShowChatLog) {
-        ChatLog = Spawn(class'UIChatLog', `SCREENSTACK.GetCurrentScreen()).InitChatLog(10, 245, 475, 210);
-        ChatLog.AnchorTopLeft();
-    }
+	// Retrieve list of viewers from Twitch API at startup and periodically
+    LoadViewerList();
+    SetTimer(60.0, /* inBLoop */ true, 'LoadViewerList');
 }
 
 function CastVote(string Voter, int OptionIndex) {
@@ -166,7 +157,7 @@ function ConnectToTwitchChat(bool bForceReconnect = false) {
 
     if (TwitchChatConn == none) {
         TwitchChatConn = Spawn(class'TwitchChatTcpLink');
-        TwitchChatConn.Initialize(Channel, OnChatReceived);
+        TwitchChatConn.Initialize(Channel, OnConnectedToTwitchChat, OnChatReceived);
     }
     else {
         if (TwitchChatConn.IsConnected()) {
@@ -175,6 +166,22 @@ function ConnectToTwitchChat(bool bForceReconnect = false) {
 
         TwitchChatConn.Connect();
     }
+}
+
+function HandleChatCommand(string Command, string ViewerName, string CommandBody) {
+	local TwitchCommandHandler CommandHandler;
+
+	foreach CommandHandlers(CommandHandler) {
+		if (CommandHandler.CommandAliases.Find(Command) != INDEX_NONE) {
+			CommandHandler.Handle(self, Command, CommandBody, ViewerName);
+			break;
+		}
+	}
+}
+
+function LoadViewerList() {
+	HttpGet = Spawn(class'HttpGetRequest');
+	HttpGet.Call("tmi.twitch.tv/group/user/" $ Locs(Channel) $ "/chatters", OnNamesListReceived, OnNamesListReceiveError);
 }
 
 /// <summary>
@@ -300,12 +307,9 @@ private function bool FilterRelevantTemplates(X2DataTemplate Template) {
 }
 
 private function OnChatReceived(TwitchMessage Message) {
-	local TwitchCommandHandler CommandHandler;
 	local string Command;
 	local string CommandBody;
 	local int Index;
-
-	`LOG("[TwitchIntegration] Message from " $ Message.Sender $ ": " $ Message.Body);
 
 	// Only messages we're interested in are chat commands
 	if (Message.MessageType != eTwitchMessageType_Command) {
@@ -316,16 +320,21 @@ private function OnChatReceived(TwitchMessage Message) {
 	Command = Mid(Message.Body, 1, index - 1); // start at 1 to strip the leading exclamation point
 	CommandBody = Mid(Message.Body, index + 1);
 
-	`LOG("[TwitchIntegration] Parsed command as " $ Command $ " with body: " $ CommandBody);
+    HandleChatCommand(Command, Message.Sender, CommandBody);
+}
 
-	foreach CommandHandlers(CommandHandler) {
-		if (CommandHandler.CommandAliases.Find(Command) != INDEX_NONE) {
-			`LOG("[TwitchIntegration] Command is being handled by " $ CommandHandler.Name);
+private function OnConnectedToTwitchChat() {
+    if (ChatLog == none && class'UIChatLog'.default.bShowChatLog) {
+        ChatLog = Spawn(class'UIChatLog', `SCREENSTACK.GetFirstInstanceOf(class'UITacticalHud')).InitChatLog(10, 245, 475, 210);
+        ChatLog.AnchorTopLeft();
+    }
+}
 
-			CommandHandler.Handle(self, Command, CommandBody, Message.Sender);
-			break;
-		}
-	}
+private function OnNamesListReceiveError(HttpResponse Response) {
+    `LOG("[TwitchIntegration] Error occurred when retrieving viewers; response code was " $ Response.ResponseCode);
+
+    HttpGet.Close();
+    HttpGet.Destroy();
 }
 
 private function OnNamesListReceived(HttpResponse Response) {
@@ -335,6 +344,8 @@ private function OnNamesListReceived(HttpResponse Response) {
 		`LOG("[TwitchIntegration] Error occurred when retrieving viewers; response code was " $ Response.ResponseCode);
 		return;
 	}
+
+    `LOG("Received names list, parsing response");
 
     ConnectedViewers.Length = 0;
 
@@ -354,6 +365,10 @@ private function OnNamesListReceived(HttpResponse Response) {
 
     bIsViewerListPopulated = true;
     HttpGet.Destroy();
+
+    `LOG("Received viewer list from Twitch: found " $ ConnectedViewers.Length $ " viewers");
+
+    `XEVENTMGR.TriggerEvent('TwitchAssignUnitNames');
 }
 
 private function EventListenerReturn OnPlayerTurnBegun(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
@@ -407,7 +422,9 @@ private function PopulateViewers(array<string> Viewers, eTwitchRole AssignedRole
         Viewer.Role = AssignedRole;
         ConnectedViewers.AddItem(Viewer);
 
-        AvailableViewers.AddItem(ViewerName);
+        if (class'XComGameState_TwitchObjectOwnership'.static.FindForUser(ViewerName) == none) {
+            AvailableViewers.AddItem(ViewerName);
+        }
     }
 }
 

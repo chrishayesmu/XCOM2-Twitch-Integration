@@ -2,6 +2,7 @@ class UIChatLog extends UIPanel config(TwitchChatCommands);
 
 var localized string ClearButtonLabel;
 
+var config bool bShowChatLog;
 var config bool bColorMessagesByTeam;
 var config bool bShowFullEnemyUnitName;
 var config bool bShowFullFriendlyUnitName;
@@ -42,6 +43,8 @@ function UIChatLog InitChatLog(int InitX, int InitY, int InitWidth, int InitHeig
     m_ExpandCollapseButton.SetPosition(InitX + m_TextContainer.Width + 3, m_TextContainer.Y);
     m_ExpandCollapseButton.SetSize(28, 28);
 
+    Collapse();
+
     return self;
 }
 
@@ -53,10 +56,28 @@ function AddMessage(string Sender, string Body, optional XComGameState_Unit Unit
 
     Messages.AddItem(Message);
 
+    // TODO: don't expand if it was manually collapsed; make expand button flash instead
     UpdateUI();
-    AnimateIn();
-    ClearTimer('AnimateOut');
-    SetTimer(TimeToShowOnMessageReceived, /* inBLoop */ false, 'AnimateOut');
+    Expand();
+    ClearTimer('Collapse');
+
+    if (TimeToShowOnMessageReceived > 0) {
+        SetTimer(TimeToShowOnMessageReceived, /* inBLoop */ false, 'Collapse');
+    }
+}
+
+function Collapse() {
+    XPos = X;
+
+    // animate off screen
+    AnimateX(-m_TextContainer.width);
+    m_ExpandCollapseButton.SetText("&gt;");
+}
+
+function Expand() {
+    // animate back on screen
+    AnimateX(XPos);
+    m_ExpandCollapseButton.SetText("&lt;");
 }
 
 function bool IsCollapsed() {
@@ -102,18 +123,11 @@ private function OnClearButtonClicked(UIButton Button) {
 }
 
 private function OnExpandCollapseButtonClicked(UIButton Button) {
-    if (!IsCollapsed()) {
-        XPos = X;
-
-        // animate off screen
-        AnimateX(-m_TextContainer.width);
-        m_ExpandCollapseButton.SetText("&gt;");
-
+    if (IsCollapsed()) {
+        Expand();
     }
     else {
-        // animate back on screen
-        AnimateX(XPos);
-        m_ExpandCollapseButton.SetText("&lt;");
+        Collapse();
     }
 }
 
@@ -145,4 +159,5 @@ private function UpdateUI() {
     FullChat = FullChat $ "\n\n";
 
     m_TextContainer.SetHTMLText(FullChat);
+    m_TextContainer.Scrollbar.SetThumbAtPercent(1.0);
 }

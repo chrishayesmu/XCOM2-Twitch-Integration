@@ -11,14 +11,14 @@ static function array<X2DataTemplate> CreateTemplates()
 
 static function X2EventListenerTemplate Create_Listener_Template()
 {
-    local X2EventListenerTemplate Template;
+    local CHEventListenerTemplate Template;
 
-    `CREATE_X2TEMPLATE(class'X2EventListenerTemplate', Template, 'UniqueEventListenerTemplateName');
+    `CREATE_X2TEMPLATE(class'CHEventListenerTemplate', Template, 'UniqueEventListenerTemplateName');
 
     Template.RegisterInTactical = true;
     Template.RegisterInStrategy = true;
-    Template.AddEvent('TwitchChatConnectionSuccessful', OnConnectedToTwitch);
-    Template.AddEvent('TwitchChatConnectionClosed', OnTwitchChatConnectionLost);
+    Template.AddCHEvent('TwitchChatConnectionSuccessful', OnConnectedToTwitch, ELD_Immediate);
+    Template.AddCHEvent('TwitchChatConnectionClosed', OnTwitchChatConnectionLost, ELD_Immediate);
 
     return Template;
 }

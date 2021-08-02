@@ -138,7 +138,7 @@ static function UpdateInProgress() {
             SelectedEventNames.AddItem(PollEventTemplate.FriendlyName);
         }
 
-        PollPanel = `XCOMGAME.Spawn(class'UIPollPanel', `SCREENSTACK.GetCurrentScreen());
+        PollPanel = `XCOMGAME.Spawn(class'UIPollPanel', `SCREENSTACK.GetFirstInstanceOf(class'UITacticalHud'));
         PollPanel.InitPollPanel(PollGameState.PollType, SelectedEventNames, PollGameState.DurationInTurns);
     }
     else {

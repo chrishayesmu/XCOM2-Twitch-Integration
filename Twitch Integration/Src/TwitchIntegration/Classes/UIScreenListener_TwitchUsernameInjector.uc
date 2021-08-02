@@ -14,7 +14,7 @@ var private delegate<OnItemSelectedCallback> OriginalOnSelectionChanged;
 var private UIListItemString TwitchListItem;
 var private UIImage TwitchIcon;
 
-const LogScreenNames = true;
+const LogScreenNames = false;
 
 delegate OnItemSelectedCallback(UIList ContainerList, int ItemIndex);
 
