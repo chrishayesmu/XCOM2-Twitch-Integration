@@ -9,6 +9,23 @@ enum eTwitch_UnitSelectionCriteria {
     eTwitchUSC_Random
 };
 
+struct TwitchActionFlyoverParams {
+    var string Icon;
+    var string Text;
+    var float Duration;
+    var SoundCue Sound;
+    var EWidgetColor Color;
+
+    structdefaultproperties
+    {
+        Icon=""
+        Text=""
+        Duration=1.0
+        Sound=none
+        Color=eColor_XCom
+    }
+};
+
 var config array<eTeam> UnitTeams;
 var config eTwitch_UnitSelectionCriteria SelectBasedOn;
 var config bool IncludeCivilians;
@@ -17,10 +34,43 @@ var config bool IncludeDead;
 var config bool IncludeLiving;
 var config int NumTargets;
 
+var protectedwrite bool bHasPerUnitFlyover; // Set to true in subclasses to have flyovers automatically created
+
 function bool IsValid(optional XComGameState_Unit InvokingUnit) {
     local array<XComGameState_Unit> Targets;
     Targets = FindTargets(InvokingUnit);
     return Targets.Length > 0;
+}
+
+protected function BuildDefaultVisualization(XComGameState VisualizeGameState) {
+    local TwitchActionFlyoverParams FlyoverParams;
+    local VisualizationActionMetadata ActionMetadata, EmptyMetadata;
+	local X2Action_PlaySoundAndFlyOver SoundAndFlyover;
+    local XComGameStateContext Context;
+	local XComGameStateHistory History;
+    local XComGameState_Unit UnitCurrentState, UnitPreviousState;
+
+    History = `XCOMHISTORY;
+	Context = VisualizeGameState.GetContext();
+
+	foreach VisualizeGameState.IterateByClassType(class'XComGameState_Unit', UnitCurrentState) {
+        UnitPreviousState = XComGameState_Unit(History.GetGameStateForObjectID(UnitCurrentState.ObjectID, eReturnType_Reference, VisualizeGameState.HistoryIndex - 1));
+
+        ActionMetadata = EmptyMetaData;
+
+        ActionMetadata.StateObject_OldState = UnitPreviousState;
+        ActionMetadata.StateObject_NewState = UnitCurrentState;
+        ActionMetadata.VisualizeActor = History.GetVisualizer(UnitCurrentState.ObjectID);
+
+        if (bHasPerUnitFlyover) {
+            GetFlyoverParams(UnitPreviousState, UnitCurrentState, FlyoverParams);
+
+            if (FlyoverParams.Text != "") {
+                SoundAndFlyOver = X2Action_PlaySoundAndFlyOver(class'X2Action_PlaySoundAndFlyOver'.static.AddToVisualizationTree(ActionMetadata, Context));
+                SoundAndFlyOver.SetSoundAndFlyOverParameters(FlyoverParams.Sound, FlyoverParams.Text, '', FlyoverParams.Color, FlyoverParams.Icon, FlyoverParams.Duration);
+            }
+        }
+    }
 }
 
 protected function array<XComGameState_Unit> FindTargets(XComGameState_Unit InvokingUnit) {
@@ -58,6 +108,9 @@ protected function array<XComGameState_Unit> FindTargets(XComGameState_Unit Invo
     }
 
     return Targets;
+}
+
+protected function GetFlyoverParams(XComGameState_Unit PreviousUnitState, XComGameState_Unit CurrentUnitState, out TwitchActionFlyoverParams FlyoverParams) {
 }
 
 protected function bool GiveAndActivateAbility(Name AbilityName, XComGameState_Unit TargetUnit) {
