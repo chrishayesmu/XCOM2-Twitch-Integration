@@ -113,3 +113,18 @@ Explanation="Enemies will spawn in 1 turn."
 [PollEvent_SpawnEnemies_Sectopod X2PollEventTemplate]
 FriendlyName="Spawn Sectopod"
 Explanation="Enemies will spawn in 1 turn."
+
+
+
+
+[X2TwitchEventActionTemplate_ModifyActionPoints]
+strPointsAddedSingular="Gained 1 Action"
+strPointsAddedPlural="Gained <Points/> Actions"
+strPointsRemovedSingular="Lost 1 Action"
+strPointsRemovedPlural="Lost <Points/> Actions"
+
+[X2TwitchEventActionTemplate_ModifyAmmo]
+strAmmoAddedSingular="Gained 1 Ammo"
+strAmmoAddedPlural="Gained <Ammo/> Ammo"
+strAmmoRemovedSingular="Lost 1 Ammo"
+strAmmoRemovedPlural="Lost <Ammo/> Ammo"

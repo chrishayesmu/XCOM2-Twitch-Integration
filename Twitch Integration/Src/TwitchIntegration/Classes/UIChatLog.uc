@@ -4,6 +4,7 @@ var localized string ClearButtonLabel;
 
 var config bool bShowChatLog;
 var config bool bColorMessagesByTeam;
+var config bool bColorMessagesSameAsTwitch;    // takes priority over bColorMessagesByTeam
 var config bool bShowFullEnemyUnitName;
 var config bool bShowFullFriendlyUnitName;
 var config float TimeToShowOnMessageReceived;
@@ -51,7 +52,7 @@ function UIChatLog InitChatLog(int InitX, int InitY, int InitWidth, int InitHeig
 function AddMessage(string Sender, string Body, optional XComGameState_Unit Unit) {
     local ChatMessage Message;
 
-    Message.Body = SanitizeText(Body);
+    Message.Body = class'TextUtilities_Twitch'.static.SanitizeText(Body);
     Message.Sender = FormatSenderName(Sender, Unit);
 
     Messages.AddItem(Message);
@@ -123,19 +124,14 @@ private function OnClearButtonClicked(UIButton Button) {
 }
 
 private function OnExpandCollapseButtonClicked(UIButton Button) {
+    ClearTimer('Collapse');
+
     if (IsCollapsed()) {
         Expand();
     }
     else {
         Collapse();
     }
-}
-
-private function string SanitizeText(string Text) {
-	local string SanitizedText;
-	SanitizedText = Repl(Text, "<", "&lt;");
-	SanitizedText = Repl(SanitizedText, ">", "&gt;");
-	return SanitizedText;
 }
 
 private function UpdateUI() {

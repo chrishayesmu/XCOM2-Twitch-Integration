@@ -69,10 +69,10 @@ function int SendText(coerce string str) {
 
 event Resolved(IpAddr Addr)
 {
-    `LOG("[HttpGetRequest] " $ CurrentUrl $ " resolved to " $ IpAddrToString(Addr), LogRequest, 'TwitchIntegration');
-    `LOG("[HttpGetRequest] Bound to port: " $ BindPort(), LogRequest, 'TwitchIntegration');
-
     Addr.Port = 80;
+
+    `LOG("[HttpGetRequest] " $ CurrentUrl $ " resolved to " $ IpAddrToString(Addr), LogRequest, 'TwitchIntegration');
+    `LOG("[HttpGetRequest] Bound to local port: " $ BindPort(), LogRequest, 'TwitchIntegration');
 
     if (!Open(Addr))
     {

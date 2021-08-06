@@ -50,6 +50,7 @@ function Handle(TwitchStateManager StateMgr, string CommandAlias, string Command
 
 protected function XSay_BuildVisualization(XComGameState VisualizeGameState) {
     local bool bUnitIsVisibleToSquad;
+    local string SanitizedMessageBody;
     local EWidgetColor MessageColor;
 	local VisualizationActionMetadata ActionMetadata;
 	local X2Action_PlayMessageBanner MessageAction;
@@ -88,21 +89,23 @@ protected function XSay_BuildVisualization(XComGameState VisualizeGameState) {
 	ActionMetadata.StateObject_NewState = Unit;
 	ActionMetadata.VisualizeActor = History.GetVisualizer(Unit.ObjectID);
 
-    // TODO: sanitize message input
-
     // Don't do the flyover if we can't see the unit, regardless of settings
     if (bShowFlyover && bUnitIsVisibleToSquad) {
+        SanitizedMessageBody = class'TextUtilities_Twitch'.static.SanitizeText(TruncateMessage(XSayGameState.MessageBody, MaxFlyoverLength));
+
         // TODO: for ADVENT and Lost a generic talking sound cue would be cool
 	    SoundAndFlyOver = X2Action_PlaySoundAndFlyOver(class'X2Action_PlaySoundAndFlyOver'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext()));
-	    SoundAndFlyOver.SetSoundAndFlyOverParameters(none, TruncateMessage(XSayGameState.MessageBody, MaxFlyoverLength), '', MessageColor, /* _FlyOverIcon */,
-                                                     CalcLookAtDuration(XSayGameState.MessageBody), /* _BlockUntilFinished */, /* _VisibleTeam */, class'UIWorldMessageMgr'.const.FXS_MSG_BEHAVIOR_FLOAT);
+	    SoundAndFlyOver.SetSoundAndFlyOverParameters(none, SanitizedMessageBody, '', MessageColor, /* _FlyOverIcon */,
+                                                     CalcLookAtDuration(SanitizedMessageBody), /* _BlockUntilFinished */, /* _VisibleTeam */, class'UIWorldMessageMgr'.const.FXS_MSG_BEHAVIOR_FLOAT);
     }
 
     class'X2Action_AddToChatLog'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext(), , ActionMetadata.LastActionAdded);
 
     if (bShowToast) {
+        SanitizedMessageBody = class'TextUtilities_Twitch'.static.SanitizeText(TruncateMessage(XSayGameState.MessageBody, MaxToastLength));
+
         MessageAction = X2Action_PlayMessageBanner(class'X2Action_PlayMessageBanner'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext()));
-        MessageAction.AddMessageBanner("Twitch Message", "", XSayGameState.Sender, TruncateMessage(XSayGameState.MessageBody, MaxToastLength), eUIState_Normal);
+        MessageAction.AddMessageBanner("Twitch Message", "", XSayGameState.Sender, SanitizedMessageBody, eUIState_Normal);
         MessageAction.bDontPlaySoundEvent = true;
     }
 }

@@ -1,12 +1,16 @@
 class X2EventListener_TwitchNames extends X2EventListener
     config(TwitchIntegration);
 
-var config bool bAssignNames;
+var config bool bAssignUnitNames;
+
+var config bool bAssignChosenNames;
+var config bool bChosenNamesArePersistent;
+//var config eTwitchRole MinRoleForChosen;
 
 static function array<X2DataTemplate> CreateTemplates() {
 	local array<X2DataTemplate> Templates;
 
-    if (default.bAssignNames) {
+    if (default.bAssignUnitNames) {
 	    Templates.AddItem(UnitAssignName());
 	    Templates.AddItem(UnitShowName());
     }
@@ -45,8 +49,6 @@ static protected function EventListenerReturn AssignNamesToUnits(Object EventDat
     local XComGameState_TwitchObjectOwnership OwnershipState;
 	local XComGameState_Unit Unit;
 
-    `LOG("In AssignNamesToUnits");
-
     foreach `XCOMHISTORY.IterateByClassType(class'XComGameState_Unit', Unit) {
         // Make sure someone doesn't already own this unit
         OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Unit.ObjectID);
@@ -64,7 +66,6 @@ static protected function EventListenerReturn AssignNamesToUnits(Object EventDat
 static protected function EventListenerReturn ChooseViewerName(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
     local int ViewerIndex;
     local TwitchStateManager TwitchMgr;
-	local UnitValue SpawnedUnitValue;
     local XComGameState NewGameState;
 	local XComGameState_Unit Unit;
     local XComGameState_TwitchObjectOwnership OwnershipState;
@@ -79,7 +80,6 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
 
     // UnitBeginPlay events can fire before we have a chance to initialize the TwitchStateManager
 	if (Pres == none || TwitchMgr == none || Unit == none) {
-        `LOG("Skipping ChooseViewerName: Pres == none: " $ (Pres == none) $ "; TwitchMgr == none: " $ (TwitchMgr == none) $ "; Unit == none: " $ (Unit == none));
 		return ELR_NoInterrupt;
     }
 
@@ -114,7 +114,7 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
 
     // TODO: maybe we can make this game state transient if it's a non-Chosen enemy who will never be seen again
 	OwnershipState = XComGameState_TwitchObjectOwnership(NewGameState.CreateStateObject(class'XComGameState_TwitchObjectOwnership'));
-    OwnershipState.TwitchUsername = TwitchMgr.ConnectedViewers[ViewerIndex].Name;
+//    OwnershipState.TwitchUsername = TwitchMgr.ConnectedViewers[ViewerIndex].Name;
     OwnershipState.OwnedObjectRef = Unit.GetReference();
     `LOG("Assigning viewer " $ OwnershipState.TwitchUsername $ " at index " $ ViewerIndex $ " to unit " $ Unit.GetFullName(), , 'TwitchIntegration');
 
@@ -156,17 +156,54 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
 }
 
 static protected function EventListenerReturn OnEnemyGroupSighted(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
+	local VisualizationActionMetadata EmptyMetadata;
+	local VisualizationActionMetadata Metadata;
+	local Array<X2Action> arrActions;
+    local X2Action_RevealAIBegin RevealAIAction;
+	local X2Action_PlaySoundAndFlyOver SoundAndFlyover;
+	local XComGameStateContext Context;
+	local XComGameStateHistory History;
+	local XComGameStateVisualizationMgr VisMgr;
     local XComGameState_AIGroup AIGroupState;
+    local XComGameState_TwitchObjectOwnership OwnershipState;
+    local XComGameState_BaseObject OwnedObject;
     local StateObjectReference UnitRef;
 
-    `LOG("OnEnemyGroupSighted; Event name: " $ Event, , 'TwitchIntegration');
     AIGroupState = XComGameState_AIGroup(EventData);
+	History = `XCOMHISTORY;
+	VisMgr = `XCOMVISUALIZATIONMGR;
+
+    VisMgr.GetNodesOfType(VisMgr.VisualizationTree, class'X2Action_RevealAIBegin', arrActions);
+    `LOG("OnEnemyGroupSighted: there are " $ arrActions.Length $ " RevealAIBegin actions in current vis tree");
+
+    // TODO: sometimes there are no RevealAIBegin actions in the vis tree for some reason (esp. spawning from psi gate?)
+    if (arrActions.Length == 0) {
+        return ELR_NoInterrupt;
+    }
+
+    RevealAIAction = X2Action_RevealAIBegin(arrActions[0]);
+    Context = RevealAIAction.StateChangeContext;
 
     foreach AIGroupState.m_arrMembers(UnitRef) {
         `LOG("Sighted unit ID " $ UnitRef.ObjectID, , 'TwitchIntegration');
 
-        // TODO: need to interrupt the scamper visualization to show our messages
-        class'UIUtilities_Twitch'.static.ShowTwitchName(UnitRef.ObjectID, GameState);
+        OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(UnitRef.ObjectID);
+
+        if (OwnershipState == none) {
+            continue;
+        }
+
+        OwnedObject = `XCOMHISTORY.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID, eReturnType_Reference);
+
+	    Metadata = EmptyMetadata;
+	    Metadata.StateObject_OldState = OwnedObject;
+	    Metadata.StateObject_NewState = OwnedObject;
+	    Metadata.VisualizeActor = History.GetVisualizer(OwnedObject.ObjectID);
+
+        // TODO: might have to make our own action in order to show the flyover longer; this one's pretty short
+	    SoundAndFlyOver = X2Action_PlaySoundAndFlyOver(class'X2Action_PlaySoundAndFlyOver'.static.AddToVisualizationTree(Metadata, Context, false, RevealAIAction));
+	    SoundAndFlyOver.SetSoundAndFlyOverParameters(none, OwnershipState.TwitchUsername, '', eColor_Purple, class'UIUtilities_Twitch'.const.TwitchIcon_3D,
+                                                     0, /* _BlockUntilFinished */, /* _VisibleTeam */, class'UIWorldMessageMgr'.const.FXS_MSG_BEHAVIOR_READY);
     }
 
     return ELR_InterruptEvent;

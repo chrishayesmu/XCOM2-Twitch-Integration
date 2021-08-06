@@ -1,41 +1,171 @@
-class TwitchChatTcpLink extends TcpLink;
+class TwitchChatTcpLink extends TcpLink
+    config(TwitchIntegration);
+
+`define SENDLINE(msg) SendText(`msg $ chr(13) $ chr(10));
+
+// ------------------------------------------
+// Enums and struct definitions
 
 enum eTwitchMessageType {
-	eTwitchMessageType_Command,     // someone has sent a message in the chat starting with !
-	eTwitchMessageType_Irrelevant,  // any message type that we aren't concerned with
-	eTwitchMessageType_MOTD,        // MOTD is sent when first connecting to chat
-	eTwitchMessageType_Ping         // ping is sent periodically and requires a pong response to stay connected
+	eTwitchMessageType_ClearMessage, // A mod has deleted a single chat message
+	eTwitchMessageType_Chat,         // Someone has sent a message in the channel's chat
+	eTwitchMessageType_Irrelevant,   // Any message type that we aren't concerned with
+	eTwitchMessageType_MOTD,         // MOTD is sent when first connecting to chat
+	eTwitchMessageType_Ping,         // Ping is sent periodically and requires a pong response to stay connected
+	eTwitchMessageType_UserJoin,     // User has joined the stream chat
+	eTwitchMessageType_UserPart,     // User has left the stream chat
+	eTwitchMessageType_Whisper,      // Someone has sent a whisper to the logged-in account
+};
+
+struct MessageTag {
+    var string Key;
+    var string Value;
 };
 
 struct TwitchMessage {
-	var string Body;
-	var string Sender;
 	var ETwitchMessageType MessageType;
+
+    var string Body;                   // Parsed body of the message; will be blank for many message types
+    var string MsgId;                  // Unique GUID for the message, needed in case the message is deleted later; if MessageType is ClearMessage, this is the ID of the target message
+    var string SenderLogin;            // Unique ID of the individual sending the message
+    var int NumBits;                   // How many bits the viewer spent in this message
 };
+
+struct TwitchViewer {
+    var string ChatColor;    // The hex color this viewer uses for their chat messages (includes the leading #)
+    var string Login;        // The login of the viewer (should be same as Name but all lowercase)
+	var string DisplayName;  // The name the viewer uses in chat
+    var int LastSeenTime;    // Unix timestamp (seconds) of when this viewer was last seen to be active
+
+    var bool bIsMod;         // Is this user a moderator?
+    var bool bIsSub;         // Is this user subbed to the channel?
+    var bool bIsVip;         // Is this user a channel VIP?
+};
+
+struct QueuedOutboundMessage {
+    var string ViewerNameToWhisper;     // If empty, this message is not a whisper
+    var string Message;
+    var float TimeoutInSeconds;         // How long to keep this message valid in the queue
+    var float SubmittedRealTimeSeconds; // WorldInfo.RealTimeSeconds when this message was queued
+
+    // TODO support message priority
+};
+
+// ------------------------------------------
+// Config vars
+
+var config string TwitchChannel;
+var config string TwitchUsername;
+var config string OAuthToken;
+var config int ViewerTTLInMinutes;
+
+var config(TwitchDebug) bool LogTraffic;
+
+// ------------------------------------------
+// Publicly visible state
+
+var privatewrite bool bConnectedAsBroadcaster;
+var privatewrite bool bConnectedAsMod;
+var privatewrite array<TwitchViewer> Viewers;
+
+// ------------------------------------------
+// Private state
 
 var private int NumConnectAttempts;
 
 var private string TargetChannel;
 var private string TargetHost;
 var private int TargetPort;
+var private string Username;
 
-var private delegate<ChatListener> ChatHandler;
-var private delegate<ConnectionListener> ConnectionHandler;
+var private string MessagePrefix;
+var private array<QueuedOutboundMessage> MessageQueue;
+
+var private delegate<MessageListener> OnMessageReceived;
+var private delegate<ConnectionListener> OnConnectSuccessful;
 
 const BaseReconnectWaitInSeconds = 1;
-const LogMessages = false;
+
+const MessageQueueProcessingFrequencySeconds = 1.0;
+const RateLimit_MessagesPer30s_Normal = 20;
+const RateLimit_MessagesPer30s_ModOrBroadcaster = 100;
+const RateLimit_WhispersPerSecond = 3;
+const RateLimit_WhispersPerMinute = 100;
+const ViewerPurgeFrequencySeconds = 120.0;
 
 delegate ConnectionListener();
-delegate ChatListener(TwitchMessage Chat);
+delegate MessageListener(TwitchMessage Chat, TwitchViewer FromViewer);
 
-function Initialize(string Channel, delegate<ConnectionListener> OnConnect = none, delegate<ChatListener> OnChat = none)
-{
-	TargetChannel = Locs(Channel);
-	ChatHandler = OnChat;
-    ConnectionHandler = OnConnect;
+function Initialize(delegate<ConnectionListener> OnConnect = none, delegate<MessageListener> OnMessage = none) {
+	TargetChannel = Locs(TwitchChannel);
+    Username = Locs(TwitchUsername);
+	OnMessageReceived = OnMessage;
+    OnConnectSuccessful = OnConnect;
 
+    bConnectedAsBroadcaster = (TargetChannel == Username);
+
+    if (Left(default.OAuthToken, 6) != "oauth:") {
+        default.OAuthToken = "oauth:" $ default.OAuthToken;
+    }
+
+    MessagePrefix = ":" $ Username $ "!" $ Username $ "@" $ Username $ ".tmi.twitch.tv ";
+
+    LinkMode = MODE_Line;
     Connect();
 }
+
+// DEBUG USE ONLY - sends a message to Twitch's IRC endpoint exactly as it is sent to this method, plus a CRLF.
+function DebugSendRawIrc(string IrcMessage) {
+    `LOG("[TwitchChatTcpLink] Sending debug IRC message with text: " $ IrcMessage, , 'TwitchIntegration');
+    `SENDLINE(IrcMessage);
+}
+
+// Retrieves the viewer with the given login, if connected. Returns their index in the
+// Viewers array if found, or INDEX_NONE if not.
+function int GetViewer(string Login, out TwitchViewer Viewer) {
+    local int Index;
+
+    Index = Viewers.Find('Login', Login);
+
+    if (Index == INDEX_NONE) {
+        return INDEX_NONE;
+    }
+
+    Viewer = Viewers[Index];
+    return Index;
+}
+
+// Queues a chat message to be sent to the channel. Due to rate limiting, it may take
+// some time for the message to be sent; if it is not sent before the specified timeout,
+// the message will be unqueued and never sent. Messages will also not be sent if they
+// are still in queue when the current mission ends.
+function QueueChat(string Message, float TimeoutInSeconds) {
+    local QueuedOutboundMessage QueueMsg;
+
+    QueueMsg.Message = Message;
+    QueueMsg.TimeoutInSeconds = TimeoutInSeconds;
+    QueueMsg.SubmittedRealTimeSeconds = WorldInfo.RealTimeSeconds;
+
+    MessageQueue.AddItem(QueueMsg);
+}
+
+// Queues a whisper to be sent to the target viewer. Due to rate limiting, it may take
+// some time for the whisper to be sent; if it is not sent before the specified timeout,
+// the message will be unqueued and never sent. Messages will also not be sent if they
+// are still in queue when the current mission ends.
+function QueueWhisper(string TargetViewerName, string Message, float TimeoutInSeconds) {
+    local QueuedOutboundMessage QueueMsg;
+
+    QueueMsg.Message = Message;
+    QueueMsg.TimeoutInSeconds = TimeoutInSeconds;
+    QueueMsg.ViewerNameToWhisper = TargetViewerName;
+    QueueMsg.SubmittedRealTimeSeconds = WorldInfo.RealTimeSeconds;
+
+    MessageQueue.AddItem(QueueMsg);
+}
+
+// ------------------------------------------
+// Functions for maintaining internal state and handling messages
 
 function Connect() {
     if (TargetChannel == "") {
@@ -48,16 +178,15 @@ function Connect() {
     }
 
     NumConnectAttempts++;
-    `LOG("[TwitchChatTcpLink] Beginning connection attempt #" $ NumConnectAttempts, LogMessages, 'TwitchIntegration');
+    `LOG("[TwitchChatTcpLink] Beginning connection attempt #" $ NumConnectAttempts, LogTraffic, 'TwitchIntegration');
 
-    `LOG("[TwitchChatTcpLink] Resolving host: " $ TargetHost, LogMessages, 'TwitchIntegration');
+    `LOG("[TwitchChatTcpLink] Resolving host: " $ TargetHost, LogTraffic, 'TwitchIntegration');
     Resolve(TargetHost);
 }
 
-event Resolved(IpAddr Addr)
-{
-    `LOG("[TwitchChatTcpLink] " $ TargetHost $ " resolved to " $ IpAddrToString(Addr), LogMessages, 'TwitchIntegration');
-    `LOG("[TwitchChatTcpLink] Bound to port: " $ BindPort(), LogMessages, 'TwitchIntegration');
+event Resolved(IpAddr Addr) {
+    `LOG("[TwitchChatTcpLink] " $ TargetHost $ " resolved to " $ IpAddrToString(Addr), LogTraffic, 'TwitchIntegration');
+    `LOG("[TwitchChatTcpLink] Bound to port: " $ BindPort(), LogTraffic, 'TwitchIntegration');
 
     Addr.Port = TargetPort;
 
@@ -67,32 +196,35 @@ event Resolved(IpAddr Addr)
     }
 }
 
-event ResolveFailed()
-{
+event ResolveFailed() {
     `LOG("[TwitchChatTcpLink] Unable to resolve address " $ TargetHost, , 'TwitchIntegration');
 }
 
-event Opened()
-{
-    `LOG("[TwitchChatTcpLink] Sending IRC connect request", LogMessages, 'TwitchIntegration');
+event Opened() {
+    `LOG("[TwitchChatTcpLink] Sending IRC connect request", LogTraffic, 'TwitchIntegration');
 
     // IRC connection request: using a justinfan nickname means we can use a
 	// special password without needing OAuth, and enter chat in read-only mode.
 	// Note that channel name needs to be all lowercase
-    SendText("PASS SCHMOOPIIE" $ chr(13) $ chr(10));
-    SendText("NICK justinfan19823" $ chr(13) $ chr(10));
-    SendText("JOIN #" $ Locs(TargetChannel) $ chr(13) $ chr(10));
+    `SENDLINE("CAP REQ :twitch.tv/commands");
+    `SENDLINE("CAP REQ :twitch.tv/membership");
+    `SENDLINE("CAP REQ :twitch.tv/tags");
+    `SENDLINE("PASS " $ OAuthToken);
+    `SENDLINE("NICK " $ TwitchUsername);
+    `SENDLINE("JOIN #" $ Locs(TargetChannel));
 
-    `LOG("[TwitchChatTcpLink] IRC connect request sent", LogMessages, 'TwitchIntegration');
+    `LOG("[TwitchChatTcpLink] IRC connect request sent", LogTraffic, 'TwitchIntegration');
 }
 
-event Closed()
-{
+event Closed() {
     local int Index;
     local int ReconnectExponent;
     local float ReconnectWaitTime;
 
-    `LOG("[TwitchChatTcpLink] Connection closed", LogMessages, 'TwitchIntegration');
+    `LOG("[TwitchChatTcpLink] Connection closed", LogTraffic, 'TwitchIntegration');
+
+    ClearTimer(nameof(ProcessMessageQueue));
+    ClearTimer(nameof(PurgeStaleViewers));
 
     // Attempt to reconnect with exponential backoff
     ReconnectExponent = Clamp(NumConnectAttempts - 1, 0, 5);
@@ -113,124 +245,299 @@ event Closed()
     }
 }
 
-event ReceivedText(string Text)
-{
-	local array<string> messages;
-	local string messageStr;
-	local TwitchMessage message;
+event ReceivedLine(string MessageStr) {
+	local TwitchMessage Message;
+	local TwitchViewer Viewer;
 
-	// Split the text by newline into individual messages
-	messages = SplitString(Text, chr(13) $ chr(10), true);
+    `LOG("[TwitchChatTcpLink] Received message: " $ MessageStr, LogTraffic, 'TwitchIntegration');
 
-	foreach messages(messageStr) {
-		 message = ParseMessage(messageStr);
-
-		 HandleMessage(message);
-	}
+    Message = ParseMessage(MessageStr, Viewer);
+    HandleMessage(Message, Viewer);
 }
 
-function HandleMessage(TwitchMessage Message) {
+private function HandleMessage(TwitchMessage Message, TwitchViewer FromViewer) {
 	if (Message.MessageType == eTwitchMessageType_Irrelevant) {
 		return;
 	}
 
-	if (Message.MessageType == eTwitchMessageType_Command) {
-		if (ChatHandler != none) {
-			ChatHandler(Message);
-		}
-	}
-	else if (Message.MessageType == eTwitchMessageType_MOTD) {
-		`LOG("[TwitchChatTcpLink] Successfully connected to Twitch chat on attempt #" $ NumConnectAttempts, LogMessages, 'TwitchIntegration');
+	if (Message.MessageType == eTwitchMessageType_MOTD) {
+		`LOG("[TwitchChatTcpLink] Successfully connected to Twitch chat on attempt #" $ NumConnectAttempts, LogTraffic, 'TwitchIntegration');
         NumConnectAttempts = 0;
+
+        SetTimer(MessageQueueProcessingFrequencySeconds, /* inbLoop */ true, nameof(ProcessMessageQueue));
+        SetTimer(ViewerPurgeFrequencySeconds, /* inbLoop */ true, nameof(PurgeStaleViewers));
 
 		`XEVENTMGR.TriggerEvent('TwitchChatConnectionSuccessful');
 
-        if (ConnectionHandler != none) {
-            ConnectionHandler();
+        if (OnConnectSuccessful != none) {
+            OnConnectSuccessful();
         }
 	}
 	else if (Message.MessageType == eTwitchMessageType_Ping) {
 		// Need to respond to pings as a connection keep-alive
-		`LOG("[TwitchChatTcpLink] Replying to PING with PONG", LogMessages, 'TwitchIntegration');
-		SendText("PONG :tmi.twitch.tv" $ chr(13) $ chr(10));
+		`LOG("[TwitchChatTcpLink] Replying to PING with PONG", LogTraffic, 'TwitchIntegration');
+		`SENDLINE("PONG :tmi.twitch.tv");
 	}
+
+    if (OnMessageReceived != none) {
+        OnMessageReceived(Message, FromViewer);
+    }
 }
 
-function TwitchMessage ParseMessage(string Message) {
+private function ETwitchMessageType MapMessageType(string MessageType) {
+    switch (MessageType) {
+        case "001":
+            return eTwitchMessageType_MOTD;
+        case "CLEARMSG":
+            return eTwitchMessageType_ClearMessage;
+        case "JOIN":
+            return eTwitchMessageType_UserJoin;
+        case "PART":
+            return eTwitchMessageType_UserPart;
+        case "PING":
+            return eTwitchMessageType_Ping;
+        case "PRIVMSG":
+            return eTwitchMessageType_Chat;
+        case "WHISPER":
+            return eTwitchMessageType_Whisper;
+        default:
+        	return eTwitchMessageType_Irrelevant;
+    }
+}
+
+private function TwitchMessage ParseMessage(string Message, out TwitchViewer Viewer) {
 	// ----------------------------
 	// Message examples:
 	//
-	//     :tmi.twitch.tv 001 justinfan19823 :Welcome, GLHF!
-	//     :swfdelicious!swfdelicious@swfdelicious.tmi.twitch.tv PRIVMSG #gamesdonequick :gdqClap gdqClap gdqClap
+	//     :tmi.twitch.tv 001 swfdelicious :Welcome, GLHF!
+    //     @badges=;color=;display-name=swfDelicious;emotes=;message-id=1;thread-id=112511437_714298636;turbo=0;user-id=112511437;user-type= :swfdelicious!swfdelicious@swfdelicious.tmi.twitch.tv WHISPER swfdeliciousbot :sup
 	// ----------------------------
-	local string currentSubstring;
-	local string messageBody;
-	local string messageType;
-	local string sender;
+	local string MessageType;
+    local string RoomString;
+	local string Sender;
 	local int index;
 	local TwitchMessage MessageStruct;
+    local array<MessageTag> DataTags;
 
+    // Special message: indicates a connection keep-alive from Twitch's end
 	if (Message == "PING :tmi.twitch.tv") {
 		MessageStruct.MessageType = eTwitchMessageType_Ping;
 		return MessageStruct;
 	}
 
-	// Everything up until the first space tells us who this message is from
-	// Also, every message starts with :, so just dump it here
-	index = InStr(Message, " ");
-	sender = Mid(Message, 1, index - 1);
-	currentSubstring = Mid(Message, index + 1);
+    // ParseTags handles removing the data tag string if it's present
+    DataTags = ParseTags(Message);
 
-	if (sender != "tmi.twitch.tv") {
-		// Non-system messages have a lot of redundancy to fit the IRC protocol; we just strip that out
-		index = InStr(Message, "!");
-		sender = Mid(Message, 1, index - 1);
+    Index = Instr(Message, " ");
+    Sender = Left(Message, Index); // raw sender field, e.g. :tmi.twitch.tv or :swfdelicious!swfdelicious@swfdelicious.tmi.twitch.tv
+    Message = Mid(Message, Index + 1);
 
-		// The only messages we care about from chatters have an exclamation point in front, and the message
-		// body starts with a colon, so check for that combo before we bother with more parsing
-		if (InStr(Message, ":!") < 0) {
-			MessageStruct.Body = currentSubstring;
-			MessageStruct.MessageType = eTwitchMessageType_Irrelevant;
-			MessageStruct.Sender = sender;
-			return MessageStruct;
-		}
+    // Pull out message type field next
+    Index = Instr(Message, " ");
+    MessageType = Left(Message, Index);
+    Message = Mid(Message, Index + 1);
+
+    // Next is the room ID
+    Index = Instr(Message, " ");
+    RoomString = Left(Message, Index);
+    Message = Mid(Message, Index + 2); // +2 because the message body starts with a colon that we don't want
+
+    // All that's left now should be the message body
+    `LOG("SENDER=" $ Sender $ "   MessageType=" $ MessageType $ "   Room=" $ RoomString $ "   Body=" $ Message);
+
+	MessageStruct.MessageType = MapMessageType(MessageType);
+    PopulateMessageMetadataFromTags(MessageStruct, DataTags);
+
+    if (MessageStruct.MessageType == eTwitchMessageType_Irrelevant) {
+        // Stop processing here; if it's irrelevant then the message isn't from a real person and we don't
+        // want to upsert a system user
+        `LOG("Final message struct (irrelevant): " $ MessageToString(MessageStruct));
+        return MessageStruct;
+    }
+
+    if (MessageStruct.MessageType == eTwitchMessageType_ClearMessage) {
+        // Stop processing these because they don't have proper user info for UpsertViewer
+        `LOG("Final message struct (ClearMessage): " $ MessageToString(MessageStruct));
+        return MessageStruct;
+    }
+
+    Viewer = UpsertViewer(Sender, DataTags);
+    MessageStruct.SenderLogin = Viewer.Login;
+
+    // Need to do this after UpsertViewer since that sets the viewer's login
+    if (MessageStruct.MessageType == eTwitchMessageType_UserPart) {
+        Index = Viewers.Find('Login', Viewer.Login);
+
+        if (Index != INDEX_NONE) {
+            `LOG("Removing viewer " $ Viewer.Login $ " due to PART message");
+            Viewers.Remove(Index, 1);
+        }
+    }
+
+    // Only store the body for messages where it matters, to save on memory
+	if (MessageStruct.MessageType == eTwitchMessageType_Chat || MessageStruct.MessageType == eTwitchMessageType_Whisper) {
+    	MessageStruct.Body = Message;
 	}
 
-	MessageStruct.Sender = sender;
-
-	// Between the first and second space is the message type
-	index = InStr(currentSubstring, " ");
-	messageType = Left(currentSubstring, index);
-	MessageStruct.MessageType = InterpretMessageType(messageType);
-
-	if (MessageStruct.MessageType == eTwitchMessageType_Irrelevant) {
-		// We don't care about this message so don't bother parsing more
-		return MessageStruct;
-	}
-
-	// After the message type is the channel name, but we only ever connect to one channel at a time, so
-	// we can just skip over that and get the message body, which starts with another colon
-	index = InStr(currentSubstring, ":");
-	messageBody = Mid(currentSubstring, index + 1);
-	MessageStruct.Body = messageBody;
+    `LOG("Final message struct: " $ MessageToString(MessageStruct));
 
 	return MessageStruct;
 }
 
-function ETwitchMessageType InterpretMessageType(string MessageType) {
-	if (MessageType == "PRIVMSG") {
-		return eTwitchMessageType_Command;
-	}
+// Parses the tags from the beginning of the message (if any) and returns the remaining part of the message.
+private function array<MessageTag> ParseTags(out string Message) {
+    local int Index;
+    local array<string> Parts;
+    local string AllTags;
+    local string TagString, Key, Value;
+    local MessageTag TagStruct;
+    local array<MessageTag> TagStructs;
 
-	if (MessageType == "372") {
-		return eTwitchMessageType_MOTD;
-	}
+    // Messages containing tags will always start with @
+    if (Left(Message, 1) != "@") {
+        return TagStructs;
+    }
 
-	return eTwitchMessageType_Irrelevant;
+    // Tag string runs up until the first space, and individual tags are separated by semicolons
+    Index = InStr(Message, " ");
+    AllTags = Mid(Message, 1, Index - 1);
+    Message = Mid(Message, Index + 1);
+
+    Parts = SplitString(AllTags, ";", /* bCullEmpty */ true);
+
+    foreach Parts(TagString) {
+        Index = Instr(TagString, "=");
+        Key = Locs(Left(TagString, Index));
+        Value = Mid(TagString, Index + 1);
+
+        TagStruct.Key = Key;
+        TagStruct.Value = Value;
+
+        TagStructs.AddItem(TagStruct);
+    }
+
+    return TagStructs;
+}
+
+private function PopulateMessageMetadataFromTags(out TwitchMessage Message, out array<MessageTag> tags) {
+    local MessageTag MsgTag;
+
+    foreach Tags(MsgTag) {
+        switch (MsgTag.Key) {
+            case "bits":
+                Message.NumBits = int(MsgTag.Value);
+                break;
+            case "id":
+                Message.MsgId = MsgTag.Value;
+                break;
+            case "target-msg-id":
+                Message.MsgId = MsgTag.Value; // this is the message being deleted
+                break;
+            default: // bunch of keys we don't care about
+                break;
+        }
+    }
+}
+
+private function ProcessMessageQueue() {
+    local int NumChatMessagesSent, NumWhispersSent;
+
+    // TODO: implement
+    `LOG("Processing message queue. There are currently " $ MessageQueue.Length $ " messages pending");
+}
+
+private function PurgeStaleViewers() {
+    local int Index;
+    local int EarliestValidTime;
+
+    EarliestValidTime = class'XComGameState_TimerData'.static.GetUTCTimeInSeconds() - ViewerTTLInMinutes * 60;
+
+    for (Index = 0; Index < Viewers.Length; Index++) {
+        if (Viewers[Index].LastSeenTime < EarliestValidTime) {
+            `LOG("Purging viewer " $ Viewers[Index].Login $ " due to stale connection data");
+
+            Viewers.Remove(Index, 1);
+            Index--;
+        }
+    }
+}
+
+private function TwitchViewer UpsertViewer(string SenderField, out array<MessageTag> Tags) {
+    local int Index;
+    local string Login;
+    local TwitchViewer Viewer;
+    local MessageTag MsgTag;
+
+    // SenderField looks like this:
+    //
+    //    :swfdelicious!swfdelicious@swfdelicious.tmi.twitch.tv
+    //
+    // We just want to pull the viewer's login and then upsert based on the tags.
+
+    Index = Instr(SenderField, "!");
+    Login = Mid(SenderField, 1, Index - 1);
+
+    Index = GetViewer(Login, Viewer);
+    Viewer.Login = Login;
+    Viewer.LastSeenTime = class'XComGameState_TimerData'.static.GetUTCTimeInSeconds();
+
+    foreach Tags(MsgTag) {
+        switch (MsgTag.Key) {
+            case "badges":
+                Viewer.bIsVip = (Instr(MsgTag.Value, "vip/1") >= 0);
+                break;
+            case "color":
+                Viewer.ChatColor = MsgTag.Value;
+                break;
+            case "display-name":
+                Viewer.DisplayName = MsgTag.Value;
+                break;
+            case "mod":
+                Viewer.bIsMod = (MsgTag.Value == "1");
+                break;
+            case "subscriber":
+                Viewer.bIsSub = (MsgTag.Value == "1");
+                break;
+            default: // bunch of keys we don't care about
+                break;
+        }
+    }
+
+    if (Index == INDEX_NONE) {
+        Viewers.AddItem(Viewer);
+    }
+    else {
+        Viewers[Index] = Viewer;
+    }
+
+    `LOG("Upserted viewer (previous index " $ Index $ "). " $ ViewerToString(Viewer));
+
+    return Viewer;
+}
+
+private function string MessageToString(TwitchMessage Message) {
+    return "Message: ("       $
+           "Type="            $ Message.MessageType     $
+         ", MsgId="           $ Message.MsgId           $
+         ", SenderLogin="     $ Message.SenderLogin     $
+         ", NumBits="         $ Message.NumBits         $
+         ")";
+}
+
+private function string ViewerToString(TwitchViewer Viewer) {
+    return "Viewer: ("    $
+           "DisplayName=" $ Viewer.DisplayName $
+         ", Login="       $ Viewer.Login       $
+         ", ChatColor="   $ Viewer.ChatColor   $
+         ", bIsMod="      $ Viewer.bIsMod      $
+         ", bIsSub="      $ Viewer.bIsSub      $
+         ", bIsVip="      $ Viewer.bIsVip      $
+         ")";
 }
 
 defaultproperties
 {
     TargetHost="irc.chat.twitch.tv"
     TargetPort=6667
+    LinkMode=MODE_Line
 }

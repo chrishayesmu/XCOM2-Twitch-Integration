@@ -5,27 +5,17 @@ class TwitchStateManager extends Actor
 // ----------------------------------------------
 // Structs/enums
 
-enum eTwitchRole {
-	eTwitchRole_None,
-	eTwitchRole_Broadcaster,
-	eTwitchRole_Moderator,
-	eTwitchRole_VIP
-};
-
 struct PollTypeWeighting {
     var ePollType PollType;
     var int Weight;
-};
-
-struct TwitchViewer {
-	var string Name;
-	var eTwitchRole Role;
 };
 
 // ----------------------------------------------
 // Config vars
 
 var config string Channel;
+var config bool bBlacklistBroadcaster;
+var config array<string> BlacklistedViewerNames;
 
 var config(TwitchChatCommands) array<string> EnabledCommands;
 
@@ -47,8 +37,8 @@ var private array<string> RaffledViewers;
 var private array<string> VotersInCurrentPoll;
 
 var private HttpGetRequest HttpGet;
-var private TwitchChatTcpLink TwitchChatConn;
-var private UIChatLog ChatLog;
+var privatewrite TwitchChatTcpLink TwitchChatConn;
+var privatewrite UIChatLog ChatLog;
 
 var private array<X2PollEventTemplate> HarbingerEventTemplates;
 var private array<X2PollEventTemplate> ProvidenceEventTemplates;
@@ -115,9 +105,10 @@ function Initialize() {
 	// Connect to Twitch chat servers
     ConnectToTwitchChat();
 
-	// Retrieve list of viewers from Twitch API at startup and periodically
+	// Retrieve list of viewers from Twitch API at startup and periodically. It's heavily cached,
+    // so we don't need to retrieve it very often.
     LoadViewerList();
-    SetTimer(60.0, /* inBLoop */ true, 'LoadViewerList');
+    SetTimer(180.0, /* inBLoop */ true, 'LoadViewerList');
 }
 
 function CastVote(string Voter, int OptionIndex) {
@@ -157,7 +148,7 @@ function ConnectToTwitchChat(bool bForceReconnect = false) {
 
     if (TwitchChatConn == none) {
         TwitchChatConn = Spawn(class'TwitchChatTcpLink');
-        TwitchChatConn.Initialize(Channel, OnConnectedToTwitchChat, OnChatReceived);
+        TwitchChatConn.Initialize(OnConnectedToTwitchChat, OnTwitchMessageReceived);
     }
     else {
         if (TwitchChatConn.IsConnected()) {
@@ -181,7 +172,7 @@ function HandleChatCommand(string Command, string ViewerName, string CommandBody
 
 function LoadViewerList() {
 	HttpGet = Spawn(class'HttpGetRequest');
-	HttpGet.Call("tmi.twitch.tv/group/user/" $ Locs(Channel) $ "/chatters", OnNamesListReceived, OnNamesListReceiveError);
+	HttpGet.Call("tmi.twitch.tv/group/user/" $ Locs(class'TwitchChatTcpLink'.default.TwitchChannel) $ "/chatters", OnNamesListReceived, OnNamesListReceiveError);
 }
 
 /// <summary>
@@ -199,7 +190,7 @@ function int RaffleViewer() {
     }
 
     ViewerName = AvailableViewers[`SYNC_RAND(AvailableViewers.Length)];
-    Index = ConnectedViewers.Find('Name', ViewerName);
+//    Index = ConnectedViewers.Find('Name', ViewerName);
 
     AvailableViewers.RemoveItem(ViewerName);
     RaffledViewers.AddItem(ViewerName);
@@ -306,24 +297,9 @@ private function bool FilterRelevantTemplates(X2DataTemplate Template) {
 	return true;
 }
 
-private function OnChatReceived(TwitchMessage Message) {
-	local string Command;
-	local string CommandBody;
-	local int Index;
-
-	// Only messages we're interested in are chat commands
-	if (Message.MessageType != eTwitchMessageType_Command) {
-		return;
-	}
-
-	Index = InStr(Message.Body, " ");
-	Command = Mid(Message.Body, 1, index - 1); // start at 1 to strip the leading exclamation point
-	CommandBody = Mid(Message.Body, index + 1);
-
-    HandleChatCommand(Command, Message.Sender, CommandBody);
-}
-
 private function OnConnectedToTwitchChat() {
+    `LOG("OnConnectedToTwitchChat");
+
     if (ChatLog == none && class'UIChatLog'.default.bShowChatLog) {
         ChatLog = Spawn(class'UIChatLog', `SCREENSTACK.GetFirstInstanceOf(class'UITacticalHud')).InitChatLog(10, 245, 475, 210);
         ChatLog.AnchorTopLeft();
@@ -349,10 +325,13 @@ private function OnNamesListReceived(HttpResponse Response) {
 
     ConnectedViewers.Length = 0;
 
-	JsonObj = class'JsonObject'.static.DecodeJson(Response.Body);
-	JsonObj = JsonObj.GetObject("chatters");
+    // TODO: rewrite this without JsonObject because it crashes on large payloads
+
+	//JsonObj = class'JsonObject'.static.DecodeJson(Response.Body);
+	//JsonObj = JsonObj.GetObject("chatters");
 
     // Start with the highest roles and work down to the lowest, since viewers will not be added multiple times
+    /*
     PopulateViewers(JsonObj.GetObject("broadcaster").ValueArray, eTwitchRole_Broadcaster);
     PopulateViewers(JsonObj.GetObject("moderators").ValueArray, eTwitchRole_Moderator);
     PopulateViewers(JsonObj.GetObject("vips").ValueArray, eTwitchRole_VIP);
@@ -362,7 +341,7 @@ private function OnNamesListReceived(HttpResponse Response) {
     PopulateViewers(JsonObj.GetObject("global_mods").ValueArray, eTwitchRole_None);
     PopulateViewers(JsonObj.GetObject("staff").ValueArray, eTwitchRole_None);
     PopulateViewers(JsonObj.GetObject("viewers").ValueArray, eTwitchRole_None);
-
+*/
     bIsViewerListPopulated = true;
     HttpGet.Destroy();
 
@@ -409,24 +388,59 @@ private function EventListenerReturn OnPlayerTurnBegun(Object EventData, Object 
     return ELR_NoInterrupt;
 }
 
+private function OnTwitchMessageReceived(TwitchMessage Message, TwitchViewer FromViewer) {
+	local string Command;
+	local string CommandBody;
+	local int Index;
+
+	// Only messages we're interested in are chat commands
+	if (Message.MessageType != eTwitchMessageType_Chat && Message.MessageType != eTwitchMessageType_Whisper) {
+		return;
+	}
+
+    // Only care about commands starting with "!" at the moment
+    // TODO: maybe do some minimal processing, especially for commands that cost bits since they'll often
+    // start with the bit cheer
+    if (Left(Message.Body, 1) != "!") {
+        return;
+    }
+
+	Index = InStr(Message.Body, " ");
+	Command = Mid(Message.Body, 1, index - 1); // start at 1 to strip the leading exclamation point
+	CommandBody = Mid(Message.Body, index + 1);
+
+//    HandleChatCommand(Command, Message.Sender, CommandBody);
+}
+
+/*
 private function PopulateViewers(array<string> Viewers, eTwitchRole AssignedRole) {
-    local string ViewerName;
+    local string Id;
     local TwitchViewer Viewer;
 
-    foreach Viewers(ViewerName) {
-        if (ConnectedViewers.Find('Name', ViewerName) != INDEX_NONE) {
+    foreach Viewers(Id) {
+        if (ConnectedViewers.Find('Id', Id) != INDEX_NONE) {
             continue;
         }
 
-        Viewer.Name = ViewerName;
+        if (BlacklistedViewerNames.Find(Id) != INDEX_NONE) {
+            continue;
+        }
+
+        if (bBlacklistBroadcaster && AssignedRole == eTwitchRole_Broadcaster) {
+            continue;
+        }
+
+        Viewer.Id = Locs(Id);
+        Viewer.Name = Id;
         Viewer.Role = AssignedRole;
         ConnectedViewers.AddItem(Viewer);
 
-        if (class'XComGameState_TwitchObjectOwnership'.static.FindForUser(ViewerName) == none) {
-            AvailableViewers.AddItem(ViewerName);
+        if (class'XComGameState_TwitchObjectOwnership'.static.FindForUser(Id) == none) {
+            AvailableViewers.AddItem(Id);
         }
     }
 }
+*/
 
 private function array<X2PollEventTemplate> SelectEventsForPoll(ePollType PollType) {
     local X2PollEventTemplate EventTemplate;

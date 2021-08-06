@@ -48,11 +48,31 @@ exec function TwitchConnect(bool bForceReconnect = false) {
     class'X2TwitchUtils'.static.GetStateManager().ConnectToTwitchChat(bForceReconnect);
 }
 
+exec function TwitchDebugSendRawIrc(string RawIrcMessage) {
+    class'X2TwitchUtils'.static.GetStateManager().TwitchChatConn.DebugSendRawIrc(RawIrcMessage);
+}
+
 /// <summary>
 /// Ends the currently running poll, if any.
 /// </summary>
 exec function TwitchEndPoll() {
 	class'X2TwitchUtils'.static.GetStateManager().ResolveCurrentPoll();
+}
+
+/// <summary>
+/// Immediately executes the action with the given name (as specified in config).
+/// </summary>
+exec function TwitchExecuteAction(name ActionName) {
+    local X2TwitchEventActionTemplate Action;
+
+    Action = class'X2TwitchUtils'.static.GetTwitchEventActionTemplate(ActionName);
+
+    if (Action == none) {
+        class'Helpers'.static.OutputMsg("Did not find an Action template called " $ ActionName);
+        return;
+    }
+
+    Action.Apply();
 }
 
 /// <summary>
@@ -120,6 +140,8 @@ exec function TwitchReassignUnitUnderMouse(string ViewerName) {
 	if (Unit == none) {
         return;
     }
+
+    // TODO: need to make sure the given viewer doesn't already own something
 
     OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Unit.ObjectID);
 
