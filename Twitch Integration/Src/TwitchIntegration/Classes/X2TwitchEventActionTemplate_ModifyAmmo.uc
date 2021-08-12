@@ -91,7 +91,7 @@ protected function bool IsValidTarget(XComGameState_Unit Unit) {
 
     Weapon = Unit.GetItemInSlot(eInvSlot_PrimaryWeapon);
 
-    `LOG("Weapon " $ Weapon.Name $ " currently has ammo: " $ Weapon.Ammo $ " for clip size: " $ Weapon.GetItemClipSize());
+    `LOG("Weapon " $ Weapon.Name $ " currently has ammo: " $ Weapon.Ammo $ " for clip size: " $ Weapon.GetItemClipSize(), , 'TwitchIntegration');
 
     if (AmmoToGive > 0 && Weapon.Ammo >= Weapon.GetItemClipSize()) {
         return false; // no ammo missing to refill

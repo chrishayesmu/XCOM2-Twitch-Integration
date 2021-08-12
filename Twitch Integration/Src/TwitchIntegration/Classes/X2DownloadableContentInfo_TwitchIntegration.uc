@@ -31,32 +31,51 @@ static event InstallNewCampaign(XComGameState StartState)
 /// Casts a vote in the current poll as though it was cast by the specified viewer.
 /// </summary>
 exec function TwitchCastVote(string ViewerName, int Option) {
-	class'X2TwitchUtils'.static.GetStateManager().CastVote(ViewerName, Option - 1);
+    local TwitchViewer Viewer;
+    Viewer.Login = ViewerName;
+
+	`TISTATEMGR.CastVote(Viewer, Option - 1);
 }
 
 /// <summary>
 /// Executes a Twitch command as though it were coming from the specified viewer.
 /// </summary>
-exec function TwitchChatCommand(string Command, string ViewerName, string CommandBody) {
-    class'X2TwitchUtils'.static.GetStateManager().HandleChatCommand(Command, ViewerName, CommandBody);
+exec function TwitchChatCommand(string Command, string ViewerLogin, string CommandBody) {
+    local TwitchMessage Message;
+    local TwitchViewer Viewer;
+    local TwitchStateManager StateMgr;
+
+    StateMgr = `TISTATEMGR;
+    Message.Body = "!" $ Command @ CommandBody;
+
+    if (StateMgr.TwitchChatConn.GetViewer(ViewerLogin, Viewer) == INDEX_NONE) {
+        `LOG("Viewer " $ ViewerLogin $ " not found, supplying fake viewer");
+        Viewer.Login = ViewerLogin;
+    }
+
+    StateMgr.HandleChatCommand(Message, Viewer);
 }
 
 /// <summary>
 /// Connects to Twitch chat, forcibly disconnecting first if bForceReconnect is true.
 /// </summary>
 exec function TwitchConnect(bool bForceReconnect = false) {
-    class'X2TwitchUtils'.static.GetStateManager().ConnectToTwitchChat(bForceReconnect);
+    `TISTATEMGR.ConnectToTwitchChat(bForceReconnect);
 }
 
 exec function TwitchDebugSendRawIrc(string RawIrcMessage) {
-    class'X2TwitchUtils'.static.GetStateManager().TwitchChatConn.DebugSendRawIrc(RawIrcMessage);
+    `TISTATEMGR.TwitchChatConn.DebugSendRawIrc(RawIrcMessage);
+}
+
+exec function TwitchDebugSendWhisper(string Recipient, string Message) {
+    `TISTATEMGR.TwitchChatConn.QueueWhisper(Recipient, Message, 5.0);
 }
 
 /// <summary>
 /// Ends the currently running poll, if any.
 /// </summary>
 exec function TwitchEndPoll() {
-	class'X2TwitchUtils'.static.GetStateManager().ResolveCurrentPoll();
+	`TISTATEMGR.ResolveCurrentPoll();
 }
 
 /// <summary>
@@ -81,9 +100,11 @@ exec function TwitchExecuteAction(name ActionName) {
 /// </summary>
 exec function TwitchListRaffledViewers() {
     local XComGameState_TwitchObjectOwnership OwnershipState;
+    local XComGameState_Unit Unit;
 
     foreach `XCOMHISTORY.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState) {
-        class'Helpers'.static.OutputMsg("Object ID " $ OwnershipState.OwnedObjectRef.ObjectID $ " owned by viewer " $ OwnershipState.TwitchUsername);
+        Unit = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID, eReturnType_Reference));
+        class'Helpers'.static.OutputMsg("Object ID " $ OwnershipState.OwnedObjectRef.ObjectID $ " owned by viewer " $ OwnershipState.TwitchLogin $ ". Unit's full name is " $ Unit.GetFullName());
     }
 }
 
@@ -131,7 +152,7 @@ exec function TwitchRaffleUnitUnderMouse() {
 /// Reassigns ownership of the unit closest to the mouse cursor to the given viewer. This method does not
 /// use any raffling, and does work on XCOM soldiers. It also works on dead units.
 /// </summary>
-exec function TwitchReassignUnitUnderMouse(string ViewerName) {
+exec function TwitchReassignUnitUnderMouse(string ViewerLogin) {
 	local XComGameState NewGameState;
 	local XComGameState_TwitchObjectOwnership OwnershipState;
 	local XComGameState_Unit Unit;
@@ -146,20 +167,20 @@ exec function TwitchReassignUnitUnderMouse(string ViewerName) {
     OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Unit.ObjectID);
 
     // Don't submit a game state if we aren't changing anything
-    if (OwnershipState != none && OwnershipState.TwitchUsername == ViewerName) {
+    if (OwnershipState != none && OwnershipState.TwitchLogin == ViewerLogin) {
         return;
     }
 
-    if (OwnershipState == none && ViewerName == "") {
+    if (OwnershipState == none && ViewerLogin == "") {
         return;
     }
 
-    class'Helpers'.static.OutputMsg("Reassigning owner of '" $ Unit.GetFullName() $ "' to viewer '" $ ViewerName $ "'");
+    class'Helpers'.static.OutputMsg("Reassigning owner of '" $ Unit.GetFullName() $ "' to viewer '" $ ViewerLogin $ "'");
 
     NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Console: Reassign Owner");
 
     // TODO: this isn't following the rules to change the unit name or other side effects of ownership
-    if (ViewerName == "") {
+    if (ViewerLogin == "") {
         // We're unsetting ownership without setting new ownership
         NewGameState.RemoveStateObject(OwnershipState.ObjectID);
     }
@@ -171,7 +192,7 @@ exec function TwitchReassignUnitUnderMouse(string ViewerName) {
             OwnershipState = XComGameState_TwitchObjectOwnership(NewGameState.ModifyStateObject(class'XComGameState_TwitchObjectOwnership', OwnershipState.ObjectID));
         }
 
-        OwnershipState.TwitchUsername = ViewerName;
+        OwnershipState.TwitchLogin = ViewerLogin;
     }
 
     `TACTICALRULES.SubmitGameState(NewGameState);
@@ -181,5 +202,5 @@ exec function TwitchReassignUnitUnderMouse(string ViewerName) {
 /// Starts a new poll with randomly-selected events from the given poll type.
 /// </summary>
 exec function TwitchStartPoll(ePollType PollType, int DurationInTurns) {
-	class'X2TwitchUtils'.static.GetStateManager().StartPoll(PollType, DurationInTurns);
+	`TISTATEMGR.StartPoll(PollType, DurationInTurns);
 }

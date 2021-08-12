@@ -6,4 +6,14 @@ class TwitchCommandHandler extends Object
 // (i.e. "xsay" rather than "!xsay")
 var config array<string> CommandAliases;
 
-function Handle(TwitchStateManager StateMgr, string CommandAlias, string CommandBody, string Sender);
+function Initialize(TwitchStateManager StateMgr) {
+}
+
+function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer Viewer);
+
+protected function string GetCommandBody(TwitchMessage Command) {
+    local int Index;
+    Index = Instr(Command.Body, " ");
+
+    return Mid(Command.Body, Index + 1);
+}

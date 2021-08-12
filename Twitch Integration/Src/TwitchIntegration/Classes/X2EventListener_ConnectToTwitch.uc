@@ -27,7 +27,7 @@ static protected function EventListenerReturn ConnectToTwitch(Object EventData, 
 {
 	`LOG("TwitchIntegration: tactical play begun, event name " $ Event);
 
-    if (class'X2TwitchUtils'.static.GetStateManager() == none) {
+    if (`TISTATEMGR == none) {
 	    `XCOMGAME.Spawn(class'TwitchStateManager').Initialize();
     }
 

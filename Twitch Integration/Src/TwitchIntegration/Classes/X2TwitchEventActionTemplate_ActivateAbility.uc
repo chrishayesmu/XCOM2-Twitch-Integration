@@ -8,6 +8,7 @@ function Apply(optional XComGameState_Unit InvokingUnit, optional XComGameState_
 
     Targets = FindTargets(InvokingUnit);
 
+    `LOG("Applying ActivateAbility action " $ self.Class.Name $ " to " $ Targets.Length $ " targets");
     foreach Targets(Unit) {
         class'X2TwitchUtils'.static.GiveAbilityToUnit(AbilityName, Unit, /* NewGameState */, /* TurnsUntilAbilityExpires */ 1);
         class'XComGameStateContext_Ability'.static.ActivateAbilityByTemplateName(Unit.GetReference(), AbilityName, Unit.GetReference());

@@ -1,7 +1,7 @@
 class TwitchChatTcpLink extends TcpLink
     config(TwitchIntegration);
 
-`define SENDLINE(msg) SendText(`msg $ chr(13) $ chr(10));
+`define SENDLINE(msg) SendText(`msg $ chr(13) $ chr(10)); `LOG("SENDING:    " $ `msg, LogTraffic, 'TwitchIntegration');
 
 // ------------------------------------------
 // Enums and struct definitions
@@ -36,6 +36,7 @@ struct TwitchViewer {
     var string Login;        // The login of the viewer (should be same as Name but all lowercase)
 	var string DisplayName;  // The name the viewer uses in chat
     var int LastSeenTime;    // Unix timestamp (seconds) of when this viewer was last seen to be active
+    var int OwnedObjectID;   // If > 0, the ID of an object this viewer has raffled as owner of
 
     var bool bIsMod;         // Is this user a moderator?
     var bool bIsSub;         // Is this user subbed to the channel?
@@ -64,19 +65,17 @@ var config(TwitchDebug) bool LogTraffic;
 // ------------------------------------------
 // Publicly visible state
 
+var array<TwitchViewer> Viewers;
 var privatewrite bool bConnectedAsBroadcaster;
 var privatewrite bool bConnectedAsMod;
-var privatewrite array<TwitchViewer> Viewers;
 
 // ------------------------------------------
 // Private state
 
 var private int NumConnectAttempts;
 
-var private string TargetChannel;
 var private string TargetHost;
 var private int TargetPort;
-var private string Username;
 
 var private string MessagePrefix;
 var private array<QueuedOutboundMessage> MessageQueue;
@@ -97,18 +96,18 @@ delegate ConnectionListener();
 delegate MessageListener(TwitchMessage Chat, TwitchViewer FromViewer);
 
 function Initialize(delegate<ConnectionListener> OnConnect = none, delegate<MessageListener> OnMessage = none) {
-	TargetChannel = Locs(TwitchChannel);
-    Username = Locs(TwitchUsername);
+	default.TwitchChannel = Locs(TwitchChannel);
+    default.TwitchUsername = Locs(TwitchUsername);
 	OnMessageReceived = OnMessage;
     OnConnectSuccessful = OnConnect;
 
-    bConnectedAsBroadcaster = (TargetChannel == Username);
+    bConnectedAsBroadcaster = (TwitchChannel == TwitchUsername);
 
     if (Left(default.OAuthToken, 6) != "oauth:") {
         default.OAuthToken = "oauth:" $ default.OAuthToken;
     }
 
-    MessagePrefix = ":" $ Username $ "!" $ Username $ "@" $ Username $ ".tmi.twitch.tv ";
+    MessagePrefix = ":" $ TwitchUsername $ "!" $ TwitchUsername $ "@" $ TwitchUsername $ ".tmi.twitch.tv ";
 
     LinkMode = MODE_Line;
     Connect();
@@ -168,7 +167,7 @@ function QueueWhisper(string TargetViewerName, string Message, float TimeoutInSe
 // Functions for maintaining internal state and handling messages
 
 function Connect() {
-    if (TargetChannel == "") {
+    if (TwitchChannel == "") {
         `WARN("No Twitch channel name has been configured! Unable to connect.", , 'TwitchIntegration');
         return;
     }
@@ -211,7 +210,7 @@ event Opened() {
     `SENDLINE("CAP REQ :twitch.tv/tags");
     `SENDLINE("PASS " $ OAuthToken);
     `SENDLINE("NICK " $ TwitchUsername);
-    `SENDLINE("JOIN #" $ Locs(TargetChannel));
+    `SENDLINE("JOIN #" $ TwitchChannel);
 
     `LOG("[TwitchChatTcpLink] IRC connect request sent", LogTraffic, 'TwitchIntegration');
 }
@@ -440,10 +439,40 @@ private function PopulateMessageMetadataFromTags(out TwitchMessage Message, out 
 }
 
 private function ProcessMessageQueue() {
+    local bool bIsWhisper;
+    local QueuedOutboundMessage Message;
     local int NumChatMessagesSent, NumWhispersSent;
+    local int Index;
+    local string IrcCommand;
 
-    // TODO: implement
+    if (MessageQueue.Length == 0) {
+        return;
+    }
+
+    // TODO: implement rate limiting
     `LOG("Processing message queue. There are currently " $ MessageQueue.Length $ " messages pending");
+
+    for (Index = 0; Index < MessageQueue.Length; Index++) {
+        Message = MessageQueue[Index];
+
+        bIsWhisper = (Message.ViewerNameToWhisper != "");
+
+        IrcCommand = MessagePrefix $ "PRIVMSG #" $ TwitchChannel;
+
+        if (bIsWhisper) {
+            IrcCommand $= " :/w " $ Message.ViewerNameToWhisper @ Message.Message;
+            NumWhispersSent++;
+        }
+        else {
+            IrcCommand $= " :" $ Message.Message;
+            NumChatMessagesSent++;
+        }
+
+        `SENDLINE(IrcCommand);
+
+        MessageQueue.Remove(Index, 1);
+        Index--;
+    }
 }
 
 private function PurgeStaleViewers() {
@@ -453,9 +482,8 @@ private function PurgeStaleViewers() {
     EarliestValidTime = class'XComGameState_TimerData'.static.GetUTCTimeInSeconds() - ViewerTTLInMinutes * 60;
 
     for (Index = 0; Index < Viewers.Length; Index++) {
-        if (Viewers[Index].LastSeenTime < EarliestValidTime) {
-            `LOG("Purging viewer " $ Viewers[Index].Login $ " due to stale connection data");
-
+        // Remove this viewer if they're stale, but never remove the user we're connected as
+        if (Viewers[Index].LastSeenTime < EarliestValidTime && Viewers[Index].Login != TwitchUsername) {
             Viewers.Remove(Index, 1);
             Index--;
         }
@@ -465,8 +493,9 @@ private function PurgeStaleViewers() {
 private function TwitchViewer UpsertViewer(string SenderField, out array<MessageTag> Tags) {
     local int Index;
     local string Login;
-    local TwitchViewer Viewer;
     local MessageTag MsgTag;
+    local TwitchViewer Viewer;
+    local XComGameState_TwitchObjectOwnership Ownership;
 
     // SenderField looks like this:
     //
@@ -476,6 +505,11 @@ private function TwitchViewer UpsertViewer(string SenderField, out array<Message
 
     Index = Instr(SenderField, "!");
     Login = Mid(SenderField, 1, Index - 1);
+
+    // Real accounts can't have periods but system accounts can; don't insert those
+    if (Instr(Login, ".") >= 0) {
+        return Viewer;
+    }
 
     Index = GetViewer(Login, Viewer);
     Viewer.Login = Login;
@@ -504,6 +538,13 @@ private function TwitchViewer UpsertViewer(string SenderField, out array<Message
     }
 
     if (Index == INDEX_NONE) {
+        // For inserting viewers for the first time, find out if they own an object
+        Ownership = class'XComGameState_TwitchObjectOwnership'.static.FindForUser(Viewer.Login);
+
+        if (Ownership != none) {
+            Viewer.OwnedObjectID = Ownership.OwnedObjectRef.ObjectID;
+        }
+
         Viewers.AddItem(Viewer);
     }
     else {
@@ -525,13 +566,14 @@ private function string MessageToString(TwitchMessage Message) {
 }
 
 private function string ViewerToString(TwitchViewer Viewer) {
-    return "Viewer: ("    $
-           "DisplayName=" $ Viewer.DisplayName $
-         ", Login="       $ Viewer.Login       $
-         ", ChatColor="   $ Viewer.ChatColor   $
-         ", bIsMod="      $ Viewer.bIsMod      $
-         ", bIsSub="      $ Viewer.bIsSub      $
-         ", bIsVip="      $ Viewer.bIsVip      $
+    return "Viewer: ("     $
+           "DisplayName="  $ Viewer.DisplayName    $
+         ", Login="        $ Viewer.Login          $
+         ", ChatColor="    $ Viewer.ChatColor      $
+         ", LastSeenTime=" $ Viewer.LastSeenTime   $
+         ", bIsMod="       $ Viewer.bIsMod         $
+         ", bIsSub="       $ Viewer.bIsSub         $
+         ", bIsVip="       $ Viewer.bIsVip         $
          ")";
 }
 

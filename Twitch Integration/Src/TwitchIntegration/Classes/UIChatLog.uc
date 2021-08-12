@@ -112,7 +112,6 @@ private function string FormatSenderName(string Sender, optional XComGameState_U
         }
 
         Sender = "<font color='#" $ SenderColor $ "'>" $ Sender $ "</font>";
-
     }
 
     return Sender;

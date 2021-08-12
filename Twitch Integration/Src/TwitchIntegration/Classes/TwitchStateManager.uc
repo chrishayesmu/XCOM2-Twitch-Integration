@@ -30,8 +30,9 @@ var private int OptionsPerPoll;
 // ----------------------------------------------
 // State variables
 
-var array<TwitchViewer> ConnectedViewers;
+var bool bUnraffledUnitsExist;
 var privatewrite bool bIsViewerListPopulated;
+var array<TwitchViewer> ConnectedViewers;
 var private array<string> AvailableViewers;
 var private array<string> RaffledViewers;
 var private array<string> VotersInCurrentPoll;
@@ -49,6 +50,19 @@ var private array<X2PollEventTemplate> SerendipityEventTemplates;
 var private array<TwitchCommandHandler> CommandHandlers;
 
 // ----------------------------------------------
+// Static functions
+
+static function TwitchStateManager GetStateManager() {
+	local TwitchStateManager mgr;
+
+	foreach `XCOMGAME.AllActors(class'TwitchStateManager', mgr) {
+		break;
+	}
+
+	return mgr;
+}
+
+// ----------------------------------------------
 // Public functions
 
 function Initialize() {
@@ -56,6 +70,7 @@ function Initialize() {
     local Class CommandHandlerClass;
     local TwitchCommandHandler CommandHandler;
 
+    local int Index;
     local Object ThisObj;
     local X2DataTemplate Template;
     local X2EventListenerTemplateManager EventTemplateManager;
@@ -72,6 +87,7 @@ function Initialize() {
     foreach EnabledCommands(CommandHandlerName) {
         CommandHandlerClass = class'Engine'.static.FindClassType(CommandHandlerName);
         CommandHandler = TwitchCommandHandler(new(None, CommandHandlerName) CommandHandlerClass);
+        CommandHandler.Initialize(self);
 	    CommandHandlers.AddItem(CommandHandler);
     }
 
@@ -102,20 +118,29 @@ function Initialize() {
 		}
 	}
 
+    // Make sure blacklisted viewers are all lowercase, since Twitch logins are lowercase
+    for (Index = 0; Index < default.BlacklistedViewerNames.Length; Index++) {
+        default.BlacklistedViewerNames[Index] = Locs(default.BlacklistedViewerNames[Index]);
+    }
+
 	// Connect to Twitch chat servers
     ConnectToTwitchChat();
 
 	// Retrieve list of viewers from Twitch API at startup and periodically. It's heavily cached,
     // so we don't need to retrieve it very often.
     LoadViewerList();
-    SetTimer(180.0, /* inBLoop */ true, 'LoadViewerList');
+    SetTimer(180.0, /* inBLoop */ true, nameof(LoadViewerList));
+
+    // Periodically raffle any unraffled units. This covers us if there are more units than there are
+    // viewers; every time our viewer pool increases, we can clear out some of the unraffled units.
+    SetTimer(3.0, /* inBLoop */ true, nameof(RaffleUnitsIfNeeded));
 }
 
-function CastVote(string Voter, int OptionIndex) {
+function CastVote(TwitchViewer Viewer, int OptionIndex) {
 	local XComGameState NewGameState;
     local XComGameState_TwitchEventPoll PollGameState;
 
-	if (VotersInCurrentPoll.Find(Voter) != INDEX_NONE) {
+	if (VotersInCurrentPoll.Find(Viewer.Login) != INDEX_NONE) {
 		// No changing votes at this time
 		return;
 	}
@@ -130,7 +155,7 @@ function CastVote(string Voter, int OptionIndex) {
 		return;
 	}
 
-	VotersInCurrentPoll.AddItem(Voter);
+	VotersInCurrentPoll.AddItem(Viewer.Login);
 
 	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Poll Vote");
     PollGameState = XComGameState_TwitchEventPoll(NewGameState.ModifyStateObject(class'XComGameState_TwitchEventPoll', PollGameState.ObjectID));
@@ -159,12 +184,17 @@ function ConnectToTwitchChat(bool bForceReconnect = false) {
     }
 }
 
-function HandleChatCommand(string Command, string ViewerName, string CommandBody) {
+function HandleChatCommand(TwitchMessage Command, TwitchViewer Viewer) {
+    local int Index;
+    local string CommandAlias;
 	local TwitchCommandHandler CommandHandler;
 
+    Index = Instr(Command.Body, " ");
+    CommandAlias = Mid(Command.Body, 1, Index - 1);
+
 	foreach CommandHandlers(CommandHandler) {
-		if (CommandHandler.CommandAliases.Find(Command) != INDEX_NONE) {
-			CommandHandler.Handle(self, Command, CommandBody, ViewerName);
+		if (CommandHandler.CommandAliases.Find(CommandAlias) != INDEX_NONE) {
+			CommandHandler.Handle(self, Command, Viewer);
 			break;
 		}
 	}
@@ -176,24 +206,43 @@ function LoadViewerList() {
 }
 
 /// <summary>
-/// Selects a viewer who has not previously been raffled and marks them as raffled. Make sure not
-/// to call this function if you may not ultimately use the viewer for anything, as the viewer
-/// will become ineligible for future raffles in this mission.
+/// Selects a viewer who does not currently own any object. Do not call this multiple times without assigning
+/// ownership first, or you may get the same viewer repeatedly.
 /// </summary>
 /// <returns>The index of the viewer in the ConnectedViewers array, or -1 if no viewers are available.</returns>
 function int RaffleViewer() {
-    local int Index;
-    local string ViewerName;
+    local int AvailableIndex, Index, RaffledIndex;
+    local int NumAvailableViewers;
 
-    if (!bIsViewerListPopulated || AvailableViewers.Length == 0) {
-        return -1;
+    for (Index = 0; Index < TwitchChatConn.Viewers.Length; Index++) {
+        if (TwitchChatConn.Viewers[Index].OwnedObjectID <= 0) {
+            NumAvailableViewers++;
+        }
     }
 
-    ViewerName = AvailableViewers[`SYNC_RAND(AvailableViewers.Length)];
-//    Index = ConnectedViewers.Find('Name', ViewerName);
+    if (NumAvailableViewers == 0) {
+        return INDEX_NONE;
+    }
 
-    AvailableViewers.RemoveItem(ViewerName);
-    RaffledViewers.AddItem(ViewerName);
+    RaffledIndex = `SYNC_RAND(NumAvailableViewers);
+    `LOG("Out of " $ NumAvailableViewers $ " available viewers, rolled for #" $ RaffledIndex);
+
+    for (Index = 0; Index < TwitchChatConn.Viewers.Length; Index++) {
+        // We've raffled an index into a virtual array of only available viewers, so now we
+        // need to count through it by only incrementing at available viewers
+        if (TwitchChatConn.Viewers[Index].OwnedObjectID > 0) {
+            continue;
+        }
+
+        if (AvailableIndex == RaffledIndex) {
+            break;
+        }
+        else {
+            AvailableIndex++;
+        }
+    }
+
+    `LOG("Raffled available viewer at index " $ Index, , 'TwitchIntegration');
 
     return Index;
 }
@@ -298,8 +347,6 @@ private function bool FilterRelevantTemplates(X2DataTemplate Template) {
 }
 
 private function OnConnectedToTwitchChat() {
-    `LOG("OnConnectedToTwitchChat");
-
     if (ChatLog == none && class'UIChatLog'.default.bShowChatLog) {
         ChatLog = Spawn(class'UIChatLog', `SCREENSTACK.GetFirstInstanceOf(class'UITacticalHud')).InitChatLog(10, 245, 475, 210);
         ChatLog.AnchorTopLeft();
@@ -327,21 +374,17 @@ private function OnNamesListReceived(HttpResponse Response) {
 
     // TODO: rewrite this without JsonObject because it crashes on large payloads
 
-	//JsonObj = class'JsonObject'.static.DecodeJson(Response.Body);
-	//JsonObj = JsonObj.GetObject("chatters");
+	JsonObj = class'JsonObject'.static.DecodeJson(Response.Body);
+	JsonObj = JsonObj.GetObject("chatters");
 
-    // Start with the highest roles and work down to the lowest, since viewers will not be added multiple times
-    /*
-    PopulateViewers(JsonObj.GetObject("broadcaster").ValueArray, eTwitchRole_Broadcaster);
-    PopulateViewers(JsonObj.GetObject("moderators").ValueArray, eTwitchRole_Moderator);
-    PopulateViewers(JsonObj.GetObject("vips").ValueArray, eTwitchRole_VIP);
+    PopulateViewers(JsonObj.GetObject("broadcaster").ValueArray);
+    PopulateViewers(JsonObj.GetObject("moderators").ValueArray);
+    PopulateViewers(JsonObj.GetObject("vips").ValueArray);
+    PopulateViewers(JsonObj.GetObject("admins").ValueArray);
+    PopulateViewers(JsonObj.GetObject("global_mods").ValueArray);
+    PopulateViewers(JsonObj.GetObject("staff").ValueArray);
+    PopulateViewers(JsonObj.GetObject("viewers").ValueArray);
 
-    // A bunch of these roles could be considered special, but we only really care about roles the streamer can control
-    PopulateViewers(JsonObj.GetObject("admins").ValueArray, eTwitchRole_None);
-    PopulateViewers(JsonObj.GetObject("global_mods").ValueArray, eTwitchRole_None);
-    PopulateViewers(JsonObj.GetObject("staff").ValueArray, eTwitchRole_None);
-    PopulateViewers(JsonObj.GetObject("viewers").ValueArray, eTwitchRole_None);
-*/
     bIsViewerListPopulated = true;
     HttpGet.Destroy();
 
@@ -405,42 +448,51 @@ private function OnTwitchMessageReceived(TwitchMessage Message, TwitchViewer Fro
         return;
     }
 
-	Index = InStr(Message.Body, " ");
-	Command = Mid(Message.Body, 1, index - 1); // start at 1 to strip the leading exclamation point
-	CommandBody = Mid(Message.Body, index + 1);
-
-//    HandleChatCommand(Command, Message.Sender, CommandBody);
+    HandleChatCommand(Message, FromViewer);
 }
 
-/*
-private function PopulateViewers(array<string> Viewers, eTwitchRole AssignedRole) {
-    local string Id;
+
+private function PopulateViewers(array<string> ViewerLogins) {
+    local string Login;
     local TwitchViewer Viewer;
+    local int ViewerIndex;
+    local XComGameState_TwitchObjectOwnership Ownership;
 
-    foreach Viewers(Id) {
-        if (ConnectedViewers.Find('Id', Id) != INDEX_NONE) {
+    foreach ViewerLogins(Login) {
+        ViewerIndex = TwitchChatConn.GetViewer(Login, Viewer);
+
+        // If viewer is already recorded, just update their TTL
+        if (ViewerIndex != INDEX_NONE) {
+            Viewer.LastSeenTime = class'XComGameState_TimerData'.static.GetUTCTimeInSeconds();
+            TwitchChatConn.Viewers[ViewerIndex] = Viewer;
             continue;
         }
 
-        if (BlacklistedViewerNames.Find(Id) != INDEX_NONE) {
+        if (BlacklistedViewerNames.Find(Login) != INDEX_NONE) {
             continue;
         }
 
-        if (bBlacklistBroadcaster && AssignedRole == eTwitchRole_Broadcaster) {
+        if (bBlacklistBroadcaster && Login == TwitchChatConn.TwitchChannel) {
             continue;
         }
 
-        Viewer.Id = Locs(Id);
-        Viewer.Name = Id;
-        Viewer.Role = AssignedRole;
-        ConnectedViewers.AddItem(Viewer);
+        Viewer.Login = Login;
 
-        if (class'XComGameState_TwitchObjectOwnership'.static.FindForUser(Id) == none) {
-            AvailableViewers.AddItem(Id);
+        Ownership = class'XComGameState_TwitchObjectOwnership'.static.FindForUser(Login);
+        if (Ownership != none) {
+            Viewer.OwnedObjectID = Ownership.OwnedObjectRef.ObjectID;
         }
+
+        TwitchChatConn.Viewers.AddItem(Viewer);
     }
 }
-*/
+
+private function RaffleUnitsIfNeeded() {
+    if (bUnraffledUnitsExist) {
+        bUnraffledUnitsExist = false;
+        `XEVENTMGR.TriggerEvent('TwitchAssignUnitNames');
+    }
+}
 
 private function array<X2PollEventTemplate> SelectEventsForPoll(ePollType PollType) {
     local X2PollEventTemplate EventTemplate;

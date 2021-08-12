@@ -1,6 +1,6 @@
 class XComGameState_TwitchObjectOwnership extends XComGameState_BaseObject;
 
-var string TwitchUsername;
+var string TwitchLogin;
 var StateObjectReference OwnedObjectRef;
 
 static function XComGameState_TwitchObjectOwnership FindForObject(int ObjID) {
@@ -15,11 +15,11 @@ static function XComGameState_TwitchObjectOwnership FindForObject(int ObjID) {
     return none;
 }
 
-static function XComGameState_TwitchObjectOwnership FindForUser(string Username) {
+static function XComGameState_TwitchObjectOwnership FindForUser(string Login) {
     local XComGameState_TwitchObjectOwnership OwnershipState;
 
     foreach `XCOMHISTORY.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState) {
-        if (OwnershipState.TwitchUsername == Username) {
+        if (OwnershipState.TwitchLogin == Login) {
             return OwnershipState;
         }
     }

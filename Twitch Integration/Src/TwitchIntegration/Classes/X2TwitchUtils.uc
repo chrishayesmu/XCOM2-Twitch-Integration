@@ -15,16 +15,6 @@ static function AddMessageToChatLog(string Sender, string Body, optional XComGam
     ChatLog.AddMessage(Sender, Body, FromUnit);
 }
 
-static function TwitchStateManager GetStateManager() {
-	local TwitchStateManager mgr;
-
-	foreach `XCOMGAME.AllActors(class'TwitchStateManager', mgr) {
-		break;
-	}
-
-	return mgr;
-}
-
 static function X2TwitchEventActionTemplate GetTwitchEventActionTemplate(Name TemplateName) {
     local X2EventListenerTemplateManager TemplateMgr;
 
@@ -32,10 +22,10 @@ static function X2TwitchEventActionTemplate GetTwitchEventActionTemplate(Name Te
     return X2TwitchEventActionTemplate(TemplateMgr.FindEventListenerTemplate(TemplateName));
 }
 
-static function XComGameState_Unit FindUnitOwnedByViewer(string ViewerName) {
+static function XComGameState_Unit FindUnitOwnedByViewer(string ViewerLogin) {
     local XComGameState_TwitchObjectOwnership OwnershipState;
 
-    OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForUser(ViewerName);
+    OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForUser(ViewerLogin);
 
     if (OwnershipState == none) {
         return none;

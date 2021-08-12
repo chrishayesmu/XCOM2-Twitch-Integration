@@ -13,14 +13,14 @@ const LookAtDurationPerChar = 0.02; // 1 second per 50 characters
 const MaxFlyoverLength = 45;
 const MaxToastLength = 40;
 
-function Handle(TwitchStateManager StateMgr, string CommandAlias, string CommandBody, string Sender) {
+function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer Viewer) {
     local bool bUnitIsVisibleToSquad;
     local XComGameState NewGameState;
 	local XComGameStateContext_ChangeContainer NewContext;
 	local XComGameState_TwitchXSay XSayGameState;
 	local XComGameState_Unit Unit;
 
-    Unit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(Sender);
+    Unit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(Viewer.Login);
 
     if (Unit == none) {
         return;
@@ -32,11 +32,11 @@ function Handle(TwitchStateManager StateMgr, string CommandAlias, string Command
         return;
     }
 
-	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("XSay From " $ Sender);
+	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("XSay From " $ Viewer.Login);
 
 	XSayGameState = XComGameState_TwitchXSay(NewGameState.CreateStateObject(class'XComGameState_TwitchXSay'));
-	XSayGameState.MessageBody = commandBody;
-	XSayGameState.Sender = Sender;
+	XSayGameState.MessageBody = GetCommandBody(Command);
+	XSayGameState.Sender = Viewer.Login;
 
     // Need to include a new game state for the unit or else the visualizer may think it's still
     // visualizing an old ability and fail to do the flyover
@@ -51,13 +51,18 @@ function Handle(TwitchStateManager StateMgr, string CommandAlias, string Command
 protected function XSay_BuildVisualization(XComGameState VisualizeGameState) {
     local bool bUnitIsVisibleToSquad;
     local string SanitizedMessageBody;
+    local string ViewerName;
     local EWidgetColor MessageColor;
+    local TwitchViewer Viewer;
 	local VisualizationActionMetadata ActionMetadata;
+    local X2Action_AddToChatLog ChatLogAction;
 	local X2Action_PlayMessageBanner MessageAction;
 	local X2Action_PlaySoundAndFlyOver SoundAndFlyover;
 	local XComGameState_TwitchXSay XSayGameState;
 	local XComGameState_Unit Unit;
 	local XComGameStateHistory History;
+	local XComTacticalController LocalController;
+
 
 	History = `XCOMHISTORY;
 
@@ -65,7 +70,9 @@ protected function XSay_BuildVisualization(XComGameState VisualizeGameState) {
 		break;
 	}
 
-    Unit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(XSayGameState.Sender);
+    `TISTATEMGR.TwitchChatConn.GetViewer(XSayGameState.Sender, Viewer);
+    ViewerName = `TIVIEWERNAME(Viewer);
+    Unit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(Viewer.Login);
     bUnitIsVisibleToSquad = class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(Unit.ObjectID);
 
     if (Unit.IsDead()) {
@@ -85,6 +92,7 @@ protected function XSay_BuildVisualization(XComGameState VisualizeGameState) {
         }
     }
 
+
 	ActionMetadata.StateObject_OldState = Unit;
 	ActionMetadata.StateObject_NewState = Unit;
 	ActionMetadata.VisualizeActor = History.GetVisualizer(Unit.ObjectID);
@@ -94,18 +102,26 @@ protected function XSay_BuildVisualization(XComGameState VisualizeGameState) {
         SanitizedMessageBody = class'TextUtilities_Twitch'.static.SanitizeText(TruncateMessage(XSayGameState.MessageBody, MaxFlyoverLength));
 
         // TODO: for ADVENT and Lost a generic talking sound cue would be cool
-	    SoundAndFlyOver = X2Action_PlaySoundAndFlyOver(class'X2Action_PlaySoundAndFlyOver'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext()));
+	    SoundAndFlyOver = X2Action_PlaySoundAndFlyOver(class'X2Action_PlaySoundAndFlyOver'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext(), false, ActionMetadata.LastActionAdded));
 	    SoundAndFlyOver.SetSoundAndFlyOverParameters(none, SanitizedMessageBody, '', MessageColor, /* _FlyOverIcon */,
                                                      CalcLookAtDuration(SanitizedMessageBody), /* _BlockUntilFinished */, /* _VisibleTeam */, class'UIWorldMessageMgr'.const.FXS_MSG_BEHAVIOR_FLOAT);
     }
+    else {
+        // If we aren't doing a flyover, we need to prevent the tactical controller from automatically panning back to the selected unit.
+        // The only way to do that is to make it think the player selected a different unit while
+        LocalController = XComTacticalController(class'WorldInfo'.static.GetWorldInfo().GetALocalPlayerController());
+        LocalController.bManuallySwitchedUnitsWhileVisualizerBusy = true;
+    }
 
-    class'X2Action_AddToChatLog'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext(), , ActionMetadata.LastActionAdded);
+    ChatLogAction = X2Action_AddToChatLog(class'X2Action_AddToChatLog'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext(), , ActionMetadata.LastActionAdded));
+    ChatLogAction.Sender = ViewerName;
+    ChatLogAction.Message = XSayGameState.MessageBody; // no need to sanitize, chat log will do it
 
     if (bShowToast) {
         SanitizedMessageBody = class'TextUtilities_Twitch'.static.SanitizeText(TruncateMessage(XSayGameState.MessageBody, MaxToastLength));
 
         MessageAction = X2Action_PlayMessageBanner(class'X2Action_PlayMessageBanner'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext()));
-        MessageAction.AddMessageBanner("Twitch Message", "", XSayGameState.Sender, SanitizedMessageBody, eUIState_Normal);
+        MessageAction.AddMessageBanner("Twitch Message", "", ViewerName, SanitizedMessageBody, eUIState_Normal);
         MessageAction.bDontPlaySoundEvent = true;
     }
 }

@@ -32,7 +32,7 @@ static function ShowTwitchName(int ObjectID, optional XComGameState NewGameState
 		VisMgr.ConnectAction(RevealAIAction, VisMgr.BuildVisTree, true, ShowNamesAction);
     }
 
-    `PRES.QueueWorldMessage(OwnershipState.TwitchUsername,
+    `PRES.QueueWorldMessage(OwnershipState.TwitchLogin,
                             Position,
                             OwnershipState.OwnedObjectRef,
                             eColor_Purple,

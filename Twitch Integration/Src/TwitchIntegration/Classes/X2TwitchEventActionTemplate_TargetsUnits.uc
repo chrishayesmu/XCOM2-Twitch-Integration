@@ -4,8 +4,13 @@ class X2TwitchEventActionTemplate_TargetsUnits extends X2TwitchEventActionTempla
 enum eTwitch_UnitSelectionCriteria {
     //eTwitchUSC_ClosestToObjective,
     //eTwitchUSC_FurthestFromObjective,
+
     eTwitchUSC_HighestHP,
     eTwitchUSC_LowestHP,
+
+    eTwitchUSC_LeastHPMissing,
+    eTwitchUSC_MostHPMissing,
+
     eTwitchUSC_Random
 };
 
@@ -122,22 +127,27 @@ protected function bool GiveAndActivateAbility(Name AbilityName, XComGameState_U
 // Override this function in child classes for custom targeting logic
 protected function bool IsValidTarget(XComGameState_Unit Unit) {
     if (!MatchesTeams(Unit)) {
+        `LOG("Unit team does not match: " $ `SHOWVAR(Unit.GetTeam()));
         return false;
     }
 
     if (Unit.IsCivilian() && !IncludeCivilians) {
+        `LOG("Unit civilian status does not match: " $ `SHOWVAR(Unit.IsCivilian()));
         return false;
     }
 
     if (Unit.IsDead() && !IncludeDead) {
+        `LOG("Unit IsDead does not match: " $ `SHOWVAR(Unit.IsDead()) $ ", " $ `SHOWVAR(IncludeDead));
         return false;
     }
 
     if (!Unit.IsDead() && !IncludeLiving) {
+        `LOG("Unit IsDead does not match: " $ `SHOWVAR(Unit.IsDead()) $ ", " $ `SHOWVAR(IncludeLiving));
         return false;
     }
 
-    if (Unit.IsConcealed() != IncludeConcealed) {
+    if (Unit.IsConcealed() && !IncludeConcealed) {
+        `LOG("Unit IsConcealed does not match: " $ `SHOWVAR(Unit.IsConcealed()) $ ", " $ `SHOWVAR(IncludeConcealed));
         return false;
     }
 

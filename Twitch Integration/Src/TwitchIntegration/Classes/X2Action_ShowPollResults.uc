@@ -1,5 +1,9 @@
 class X2Action_ShowPollResults extends X2Action;
 
+event bool BlocksAbilityActivation() {
+    return true;
+}
+
 simulated state Executing
 {
     function DestroyPollPanel() {

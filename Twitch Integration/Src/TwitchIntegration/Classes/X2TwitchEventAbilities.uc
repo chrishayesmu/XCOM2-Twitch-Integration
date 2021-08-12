@@ -5,8 +5,10 @@ class X2TwitchEventAbilities extends X2Ability;
 
 var privatewrite name BurnSelfAbilityName;
 var privatewrite name DisorientSelfAbilityName;
+var privatewrite name InvincibleAbilityName;
 var privatewrite name KnockSelfUnconsciousAbilityName;
 var privatewrite name PanicSelfAbilityName;
+var privatewrite name ScaleSelfAbilityName;
 var privatewrite name StunSelfAbilityName;
 
 static function array<X2DataTemplate> CreateTemplates()
@@ -16,7 +18,9 @@ static function array<X2DataTemplate> CreateTemplates()
     Templates.AddItem(CreateBurnSelfAbility());
     Templates.AddItem(CreateDisorientSelfAbility());
     Templates.AddItem(CreateKnockSelfUnconsciousAbility());
+    Templates.AddItem(CreateInvincibleAbility());
     Templates.AddItem(CreatePanicSelfAbility());
+    Templates.AddItem(CreateScaleSelfAbility());
     Templates.AddItem(CreateStunSelfAbility());
 
     return Templates;
@@ -70,6 +74,18 @@ static function X2DataTemplate CreatePanicSelfAbility() {
     return Template;
 }
 
+static function X2DataTemplate CreateScaleSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_Twitch_ScaleUnit ScaleEffect;
+
+    Template = CreateSelfTargetingAbility(default.ScaleSelfAbilityName);
+
+    ScaleEffect = class'X2Effect_Twitch_ScaleUnit'.static.CreateScaleUnitEffect(0.5); // TODO use config value
+    Template.AddTargetEffect(ScaleEffect);
+
+    return Template;
+}
+
 static function X2DataTemplate CreateStunSelfAbility() {
     local X2AbilityTemplate Template;
 	local X2Effect_Stunned StunnedEffect;
@@ -78,6 +94,18 @@ static function X2DataTemplate CreateStunSelfAbility() {
 
     StunnedEffect = class'X2StatusEffects'.static.CreateStunnedStatusEffect(2, 100, false);
     Template.AddTargetEffect(StunnedEffect);
+
+    return Template;
+}
+
+static function X2DataTemplate CreateInvincibleAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_Twitch_Invincible InvincibleEffect;
+
+    Template = CreateSelfTargetingAbility(default.InvincibleAbilityName);
+
+    InvincibleEffect = class'X2Effect_Twitch_Invincible'.static.CreateInvincibleStatusEffect();
+    Template.AddTargetEffect(InvincibleEffect);
 
     return Template;
 }
@@ -113,9 +141,11 @@ static function X2AbilityTemplate CreateSelfTargetingAbility(Name AbilityName)
 
 defaultproperties
 {
-    BurnSelfAbilityName = "Twitch_BurnSelf"
-    DisorientSelfAbilityName = "Twitch_DisorientSelf"
-    KnockSelfUnconsciousAbilityName = "Twitch_KnockSelfUnconscious"
-    PanicSelfAbilityName = "Twitch_PanicSelf"
-    StunSelfAbilityName = "Twitch_StunSelf"
+    BurnSelfAbilityName="Twitch_BurnSelf"
+    DisorientSelfAbilityName="Twitch_DisorientSelf"
+    InvincibleAbilityName="Twitch_BecomeInvincible"
+    KnockSelfUnconsciousAbilityName="Twitch_KnockSelfUnconscious"
+    PanicSelfAbilityName="Twitch_PanicSelf"
+    ScaleSelfAbilityName="Twitch_ScaleSelf"
+    StunSelfAbilityName="Twitch_StunSelf"
 }

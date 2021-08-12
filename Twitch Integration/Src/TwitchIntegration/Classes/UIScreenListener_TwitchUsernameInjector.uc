@@ -126,7 +126,7 @@ private function CheckForUISoldierHeader(UIScreen Screen) {
     Image.SetPosition(ImageX, ImageY);
     Image.SetSize(28, 28);
 
-    Text = Screen.Spawn(class'UIText', Screen).InitText(, OwnershipState.TwitchUsername);
+    Text = Screen.Spawn(class'UIText', Screen).InitText(, OwnershipState.TwitchLogin);
     Text.SetPosition(Image.X + 34, ImageY - 5);
 }
 
@@ -144,7 +144,7 @@ private simulated function OpenTwitchNameInputBox() {
 
     OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(ArmoryMainMenu.UnitReference.ObjectID);
     if (OwnershipState != none) {
-        kData.strInputBoxText = OwnershipState.TwitchUsername;
+        kData.strInputBoxText = OwnershipState.TwitchLogin;
     }
 
     `PRESBASE.UIInputDialog(kData);
@@ -156,7 +156,7 @@ private function OnNameInputBoxClosed(string Text) {
 
     OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(ArmoryMainMenu.UnitReference.ObjectID);
 
-    if (OwnershipState != none && OwnershipState.TwitchUsername == Text) {
+    if (OwnershipState != none && OwnershipState.TwitchLogin == Text) {
         // Player didn't change anything
         return;
     }
@@ -181,7 +181,7 @@ private function OnNameInputBoxClosed(string Text) {
         }
 
         OwnershipState.OwnedObjectRef = ArmoryMainMenu.UnitReference;
-        OwnershipState.TwitchUsername = Text;
+        OwnershipState.TwitchLogin = Text;
     }
 
     `GAMERULES.SubmitGameState(NewGameState);

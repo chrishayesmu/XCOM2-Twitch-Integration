@@ -25,6 +25,7 @@ static function X2EventListenerTemplate UnitAssignName() {
 
 	Template.RegisterInTactical = true;
 	Template.AddEvent('OnUnitBeginPlay', ChooseViewerName);
+    Template.AddEvent('UnitRemovedFromPlay', OnUnitRemovedFromPlay);
 	Template.AddEvent('UnitSpawned', ChooseViewerName);
 	Template.AddCHEvent('TwitchAssignUnitNames', AssignNamesToUnits, ELD_Immediate);
 
@@ -65,7 +66,9 @@ static protected function EventListenerReturn AssignNamesToUnits(Object EventDat
 
 static protected function EventListenerReturn ChooseViewerName(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
     local int ViewerIndex;
+    local TwitchChatTcpLink TwitchConn;
     local TwitchStateManager TwitchMgr;
+    local TwitchViewer Viewer;
     local XComGameState NewGameState;
 	local XComGameState_Unit Unit;
     local XComGameState_TwitchObjectOwnership OwnershipState;
@@ -75,12 +78,19 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
 	local UIUnitFlag UnitFlag;
 
 	Pres = `PRES;
-    TwitchMgr = class'X2TwitchUtils'.static.GetStateManager();
+    TwitchMgr = `TISTATEMGR;
+    TwitchConn = TwitchMgr.TwitchChatConn;
 	Unit = XComGameState_Unit(EventSource);
 
     // UnitBeginPlay events can fire before we have a chance to initialize the TwitchStateManager
 	if (Pres == none || TwitchMgr == none || Unit == none) {
 		return ELR_NoInterrupt;
+    }
+
+    // Don't assign names until we've processed the full viewer list, or else names will be
+    // biased towards people who chat the most
+    if (!TwitchMgr.bIsViewerListPopulated) {
+        return ELR_NoInterrupt;
     }
 
     OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Unit.ObjectID);
@@ -107,22 +117,28 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
     ViewerIndex = TwitchMgr.RaffleViewer();
 
     if (ViewerIndex < 0) {
+        // We'll have to try again later when there might be more viewers in the pool
+        TwitchMgr.bUnraffledUnitsExist = true;
         return ELR_NoInterrupt;
     }
+
+    Viewer = TwitchConn.Viewers[ViewerIndex];
 
 	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Assign Twitch Owner");
 
     // TODO: maybe we can make this game state transient if it's a non-Chosen enemy who will never be seen again
 	OwnershipState = XComGameState_TwitchObjectOwnership(NewGameState.CreateStateObject(class'XComGameState_TwitchObjectOwnership'));
-//    OwnershipState.TwitchUsername = TwitchMgr.ConnectedViewers[ViewerIndex].Name;
+    OwnershipState.TwitchLogin = Viewer.Login;
     OwnershipState.OwnedObjectRef = Unit.GetReference();
-    `LOG("Assigning viewer " $ OwnershipState.TwitchUsername $ " at index " $ ViewerIndex $ " to unit " $ Unit.GetFullName(), , 'TwitchIntegration');
+
+    // Mark ownership in the viewer pool as well
+    Viewer.OwnedObjectID = OwnershipState.OwnedObjectRef.ObjectID;
+    TwitchConn.Viewers[ViewerIndex] = Viewer;
+
+    `LOG("Assigning viewer " $ OwnershipState.TwitchLogin $ " at index " $ ViewerIndex $ " to unit " $ Unit.GetFullName(), , 'TwitchIntegration');
 
     if (Unit.IsCivilian() && Unit.IsAlien()) {
         `LOG("WARNING: This unit is a Faceless!", , 'TwitchIntegration');
-
-	    //Unit.GetUnitValue(class'X2Effect_SpawnUnit'.default.SpawnedUnitValueName, SpawnedUnitValue);
-        //`LOG("fValue: " $ SpawnedUnitValue.fValue);
     }
 
     if (Unit.IsCivilian() || Unit.IsSoldier()) {
@@ -130,10 +146,10 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
         // in the LastName slot, because the name shows as "First Last", so if LastName is empty there's
         // two spaces in a row, which is noticeable.
         FirstName = "";
-        LastName = OwnershipState.TwitchUsername;
+        LastName = `TIVIEWERNAME(Viewer);
     }
     else {
-        FirstName = OwnershipState.TwitchUsername;
+        FirstName = `TIVIEWERNAME(Viewer);
         LastName = "(" $ Unit.GetName(eNameType_Full) $ ")";
     }
 
@@ -146,9 +162,6 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
     else {
         Pres.m_kUnitFlagManager.AddFlag(Unit.GetReference());
     }
-
-    //TwitchFlag = `XCOMGAME.Spawn(class'UIUnitFlag_Twitch', Pres.m_kUnitFlagManager);
-    //TwitchFlag.InitFlag(Unit.GetReference());
 
     `GAMERULES.SubmitGameState(NewGameState);
 
@@ -201,10 +214,43 @@ static protected function EventListenerReturn OnEnemyGroupSighted(Object EventDa
 	    Metadata.VisualizeActor = History.GetVisualizer(OwnedObject.ObjectID);
 
         // TODO: might have to make our own action in order to show the flyover longer; this one's pretty short
+        // TODO: pull Twitch display name instead of login
 	    SoundAndFlyOver = X2Action_PlaySoundAndFlyOver(class'X2Action_PlaySoundAndFlyOver'.static.AddToVisualizationTree(Metadata, Context, false, RevealAIAction));
-	    SoundAndFlyOver.SetSoundAndFlyOverParameters(none, OwnershipState.TwitchUsername, '', eColor_Purple, class'UIUtilities_Twitch'.const.TwitchIcon_3D,
+	    SoundAndFlyOver.SetSoundAndFlyOverParameters(none, OwnershipState.TwitchLogin, '', eColor_Purple, class'UIUtilities_Twitch'.const.TwitchIcon_3D,
                                                      0, /* _BlockUntilFinished */, /* _VisibleTeam */, class'UIWorldMessageMgr'.const.FXS_MSG_BEHAVIOR_READY);
     }
 
     return ELR_InterruptEvent;
+}
+
+static protected function EventListenerReturn OnUnitRemovedFromPlay(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
+    local StateObjectReference EffectRef;
+	local XComGameStateHistory History;
+	local XComGameState_Effect EffectState;
+    local XComGameState_Unit CivUnitState;
+
+    `LOG("OnUnitRemovedFromPlay triggered");
+
+    CivUnitState = XComGameState_Unit(EventData);
+
+    `LOG("Unit's object ID: " $ CivUnitState.ObjectID);
+    `LOG(`SHOWVAR(CivUnitState.IsCivilian()));
+    `LOG(`SHOWVAR(CivUnitState.IsAlien()));
+
+    if (!CivUnitState.IsCivilian() || !CivUnitState.IsAlien()) {
+        return ELR_NoInterrupt;
+    }
+
+    History = `XCOMHISTORY;
+
+    foreach CivUnitState.AffectedByEffects(EffectRef) {
+        EffectState = XComGameState_Effect(History.GetGameStateForObjectID(EffectRef.ObjectID));
+
+        if (!EffectState.GetX2Effect().IsA('X2Effect_SpawnFaceless')) {
+            `LOG("Found effect but it's not SpawnFaceless, moving on");
+            continue;
+        }
+
+        `LOG(`SHOWVAR(EffectState.ApplyEffectParameters.SourceStateObjectRef.ObjectID));
+    }
 }

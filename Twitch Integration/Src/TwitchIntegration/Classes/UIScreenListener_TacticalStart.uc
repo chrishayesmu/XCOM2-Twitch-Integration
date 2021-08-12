@@ -14,7 +14,7 @@ event OnInit(UIScreen Screen)
 }
 
 private function SpawnStateManagerIfNeeded() {
-    if (class'X2TwitchUtils'.static.GetStateManager() == none) {
+    if (`TISTATEMGR == none) {
         `XCOMGAME.Spawn(class'TwitchStateManager').Initialize();
     }
 }
