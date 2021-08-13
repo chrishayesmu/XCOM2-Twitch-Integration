@@ -99,12 +99,28 @@ exec function TwitchExecuteAction(name ActionName) {
 /// on the current mission if any (such as Chosen or XCOM soldiers).
 /// </summary>
 exec function TwitchListRaffledViewers() {
+    local string Message;
     local XComGameState_TwitchObjectOwnership OwnershipState;
     local XComGameState_Unit Unit;
 
+    // Column headers
+    class'Helpers'.static.OutputMsg("");
+    Message =  `TI_RPAD("Object ID", " ", 12);
+    Message $= `TI_RPAD("Viewer", " ", 35);
+    Message $= "Unit Name";
+
+    class'Helpers'.static.OutputMsg(Message);
+    class'Helpers'.static.OutputMsg("-------------------------------------------------------");
+
     foreach `XCOMHISTORY.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState) {
         Unit = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID, eReturnType_Reference));
-        class'Helpers'.static.OutputMsg("Object ID " $ OwnershipState.OwnedObjectRef.ObjectID $ " owned by viewer " $ OwnershipState.TwitchLogin $ ". Unit's full name is " $ Unit.GetFullName());
+
+        // First column is deliberately wider than its header due to non-fixed-width font
+        Message =  `TI_RPAD(OwnershipState.OwnedObjectRef.ObjectID, " ", 14);
+        Message $= `TI_RPAD(OwnershipState.TwitchLogin, " ", 35);
+        Message $= Unit.GetFullName();
+
+        class'Helpers'.static.OutputMsg(Message);
     }
 }
 

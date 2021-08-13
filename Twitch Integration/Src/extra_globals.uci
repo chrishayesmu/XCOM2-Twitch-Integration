@@ -3,3 +3,5 @@
 `define TISTATEMGR class'TwitchStateManager'.static.GetStateManager()
 
 `define TIVIEWERNAME(Viewer) (`Viewer.DisplayName != "" ? `Viewer.DisplayName : `Viewer.Login)
+
+`define TI_RPAD(S, padding, length) class'UIUtilities_Twitch'.static.RPad(`S, `padding, `length)

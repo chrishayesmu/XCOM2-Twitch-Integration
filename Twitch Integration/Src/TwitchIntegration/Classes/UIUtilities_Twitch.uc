@@ -2,6 +2,14 @@ class UIUtilities_Twitch extends Object;
 
 const TwitchIcon_3D = "img:///TwitchIntegration_UI.Icon_Twitch";
 
+static function string RPad(coerce string S, string Padding, int Length) {
+    while (Len(S) < Length) {
+        S $= Padding;
+    }
+
+    return S;
+}
+
 static function ShowTwitchName(int ObjectID, optional XComGameState NewGameState, optional bool bPermanent = false) {
 	local Array<X2Action> arrActions;
     local X2Action_RevealAIBegin RevealAIAction;
