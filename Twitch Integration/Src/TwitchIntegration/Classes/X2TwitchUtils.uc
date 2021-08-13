@@ -68,7 +68,7 @@ static function GiveAbilityToUnit(Name AbilityName, XComGameState_Unit Unit, opt
 
             if (AbilityRef.ObjectID != 0) {
                 AbilityState = XComGameState_Ability(NewGameState.ModifyStateObject(class'XComGameState_Ability', AbilityRef.ObjectID));
-                AbilityState.TurnsUntilAbilityExpires = TurnsUntilAbilityExpires > 0 ? TurnsUntilAbilityExpires : 10000;
+                AbilityState.TurnsUntilAbilityExpires = TurnsUntilAbilityExpires > 0 ? TurnsUntilAbilityExpires : 100000;
             }
 
             if (CreatedGameState) {
@@ -79,6 +79,21 @@ static function GiveAbilityToUnit(Name AbilityName, XComGameState_Unit Unit, opt
 			History.CleanupPendingGameState(NewGameState);
 		}
 	}
+}
+
+static function SyncUnitFlag(XComGameState_Unit Unit) {
+    local XComPresentationLayer Pres;
+	local UIUnitFlag UnitFlag;
+
+    Pres = `PRES;
+    UnitFlag = Pres.m_kUnitFlagManager.GetFlagForObjectID(Unit.GetReference().ObjectID);
+
+    if (UnitFlag != none) {
+        UnitFlag.UpdateFromUnitState(Unit, true);
+    }
+    else {
+        Pres.m_kUnitFlagManager.AddFlag(Unit.GetReference());
+    }
 }
 
 // --------------------------

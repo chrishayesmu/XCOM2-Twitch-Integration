@@ -58,8 +58,6 @@ static function XComGameState_TwitchObjectOwnership AssignOwnership(string Viewe
     local TwitchViewer Viewer;
     local XComGameState_TwitchObjectOwnership OwnershipState;
 	local XComGameState_Unit Unit;
-	local XComPresentationLayer Pres;
-	local UIUnitFlag UnitFlag;
 
 // #region Check if either unit or viewer already has associated ownership
     OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForUser(ViewerLogin);
@@ -76,7 +74,6 @@ static function XComGameState_TwitchObjectOwnership AssignOwnership(string Viewe
     }
 // #endregion
 
-	Pres = `PRES;
     StateMgr = `TISTATEMGR;
     ViewerIndex = StateMgr.TwitchChatConn.GetViewer(ViewerLogin, Viewer);
     Unit = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(ObjID));
@@ -130,14 +127,7 @@ if (ViewerIndex != INDEX_NONE) {
         Unit.SetUnitName(FirstName, LastName, "");
 
         // Update the unit flag so it reflects the new name
-        UnitFlag = Pres.m_kUnitFlagManager.GetFlagForObjectID(Unit.GetReference().ObjectID);
-
-        if (UnitFlag != none) {
-            UnitFlag.UpdateFromUnitState(Unit, true);
-        }
-        else {
-            Pres.m_kUnitFlagManager.AddFlag(Unit.GetReference());
-        }
+        class'X2TwitchUtils'.static.SyncUnitFlag(Unit);
     }
 // #endregion
 
@@ -172,21 +162,15 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
     local TwitchChatTcpLink TwitchConn;
     local TwitchStateManager TwitchMgr;
     local TwitchViewer Viewer;
-    local XComGameState NewGameState;
 	local XComGameState_Unit Unit;
     local XComGameState_TwitchObjectOwnership OwnershipState;
-	local string FirstName, LastName;
 
-	local XComPresentationLayer Pres;
-	local UIUnitFlag UnitFlag;
-
-	Pres = `PRES;
     TwitchMgr = `TISTATEMGR;
     TwitchConn = TwitchMgr.TwitchChatConn;
 	Unit = XComGameState_Unit(EventSource);
 
     // UnitBeginPlay events can fire before we have a chance to initialize the TwitchStateManager
-	if (Pres == none || TwitchMgr == none || Unit == none) {
+	if (TwitchMgr == none || Unit == none) {
 		return ELR_NoInterrupt;
     }
 

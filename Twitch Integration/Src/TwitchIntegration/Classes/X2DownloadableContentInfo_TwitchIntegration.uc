@@ -152,7 +152,7 @@ exec function TwitchRaffleUnitUnderMouse() {
 /// Reassigns ownership of the unit closest to the mouse cursor to the given viewer. This method does not
 /// use any raffling, and does work on XCOM soldiers. It also works on dead units.
 /// </summary>
-exec function TwitchReassignUnitUnderMouse(string ViewerLogin) {
+exec function TwitchReassignUnitUnderMouse(optional string ViewerLogin) {
 	local XComGameState NewGameState;
 	local XComGameState_TwitchObjectOwnership OwnershipState;
 	local XComGameState_Unit Unit;
@@ -181,9 +181,20 @@ exec function TwitchReassignUnitUnderMouse(string ViewerLogin) {
         return;
     }
 
-    class'Helpers'.static.OutputMsg("Reassigning owner of '" $ Unit.GetFullName() $ "' to viewer '" $ ViewerLogin $ "'");
+    if (ViewerLogin == "") {
+        if (Unit.IsCivilian()) {
+            class'Helpers'.static.OutputMsg("WARNING: Civilian's original name is unknown");
+        }
 
-    class'X2EventListener_TwitchNames'.static.AssignOwnership(ViewerLogin, Unit.GetReference().ObjectID, , /* OverridePreviousOwnership */ true);
+        class'XComGameState_TwitchObjectOwnership'.static.DeleteOwnership(OwnershipState);
+
+        Unit = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID));
+        class'Helpers'.static.OutputMsg("Deleted ownership of unit and renamed it to '" $ Unit.GetFullName() $ "'");
+    }
+    else {
+        class'X2EventListener_TwitchNames'.static.AssignOwnership(ViewerLogin, Unit.GetReference().ObjectID, , /* OverridePreviousOwnership */ true);
+        class'Helpers'.static.OutputMsg("Reassigned owner of '" $ Unit.GetFullName() $ "' to viewer '" $ ViewerLogin $ "'");
+    }
 }
 
 /// <summary>
