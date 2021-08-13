@@ -209,7 +209,7 @@ function LoadViewerList() {
 /// Selects a viewer who does not currently own any object. Do not call this multiple times without assigning
 /// ownership first, or you may get the same viewer repeatedly.
 /// </summary>
-/// <returns>The index of the viewer in the ConnectedViewers array, or -1 if no viewers are available.</returns>
+/// <returns>The index of the viewer in the ConnectedViewers array, or INDEX_NONE if no viewers are available.</returns>
 function int RaffleViewer() {
     local int AvailableIndex, Index, RaffledIndex;
     local int NumAvailableViewers;

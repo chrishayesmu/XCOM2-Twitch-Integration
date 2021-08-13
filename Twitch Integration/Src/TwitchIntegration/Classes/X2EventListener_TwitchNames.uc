@@ -43,6 +43,109 @@ static function X2EventListenerTemplate UnitShowName() {
 	return Template;
 }
 
+// Assigns ownership of an object (currently assumed to be an XComGameState_Unit) to a Twitch viewer. Will modify the
+// unit as necessary to update its name or other attributes to match the viewer. If AllowMultipleOwnership is true,
+// this will bypass the normal check to make sure each viewer doesn't own more than one unit. DO NOT DO THIS UNLESS
+// YOU ARE ABOUT TO DELETE THE PREVIOUS OWNERSHIP.
+//
+// Returns the ownership state of the unit after this operation, which may not match the provided viewer if the object was
+// already owned by somebody else. The return value will be none if the viewer already owns a different object.
+static function XComGameState_TwitchObjectOwnership AssignOwnership(string ViewerLogin, int ObjID, optional XComGameState NewGameState, optional bool OverridePreviousOwnership = false, optional bool AllowMultipleOwnership = false) {
+    local bool bCreatedGameState;
+    local int ViewerIndex;
+	local string FirstName, LastName;
+    local TwitchStateManager StateMgr;
+    local TwitchViewer Viewer;
+    local XComGameState_TwitchObjectOwnership OwnershipState;
+	local XComGameState_Unit Unit;
+	local XComPresentationLayer Pres;
+	local UIUnitFlag UnitFlag;
+
+// #region Check if either unit or viewer already has associated ownership
+    OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForUser(ViewerLogin);
+
+    if (OwnershipState != none && !AllowMultipleOwnership) {
+        `LOG("Viewer " $ ViewerLogin $ " already owns something: " $ `SHOWVAR(OwnershipState.OwnedObjectRef.ObjectID));
+        return OwnershipState.OwnedObjectRef.ObjectID == ObjID ? OwnershipState : none;
+    }
+
+    OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(ObjID);
+
+    if (OwnershipState != none && !OverridePreviousOwnership) {
+        return OwnershipState;
+    }
+// #endregion
+
+	Pres = `PRES;
+    StateMgr = `TISTATEMGR;
+    ViewerIndex = StateMgr.TwitchChatConn.GetViewer(ViewerLogin, Viewer);
+    Unit = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(ObjID));
+
+    if (NewGameState == none) {
+    	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Assign Twitch Owner");
+        bCreatedGameState = true;
+    }
+
+    `TILOG("Assigning viewer " $ ViewerLogin $ " at index " $ ViewerIndex $ " to unit " $ Unit.GetFullName());
+
+// #region Create or update ownership state
+    if (OwnershipState == none) {
+        // TODO: maybe we can make this game state transient if it's a non-Chosen enemy who will never be seen again
+        OwnershipState = XComGameState_TwitchObjectOwnership(NewGameState.CreateStateObject(class'XComGameState_TwitchObjectOwnership'));
+    }
+    else {
+        OwnershipState = XComGameState_TwitchObjectOwnership(NewGameState.ModifyStateObject(class'XComGameState_TwitchObjectOwnership', OwnershipState.ObjectID));
+    }
+
+    OwnershipState.TwitchLogin = Viewer.Login;
+    OwnershipState.OwnedObjectRef = Unit.GetReference();
+// #endregion
+
+// #region Mark the viewer as owning something so they don't get raffled again
+if (ViewerIndex != INDEX_NONE) {
+    Viewer.OwnedObjectID = ObjID;
+    StateMgr.TwitchChatConn.Viewers[ViewerIndex] = Viewer;
+}
+// #endregion
+
+// #region Modify unit attributes as needed
+    if (Unit.GetTeam() == eTeam_XCom && Unit.IsSoldier()) {
+        // Don't do anything in this case; we don't modify soldiers because the player has full agency to do that
+    }
+    else {
+        Unit = XComGameState_Unit(NewGameState.ModifyStateObject(class'XComGameState_Unit', Unit.GetReference().ObjectID));
+
+        if (Unit.IsCivilian() || Unit.IsSoldier()) {
+            // For civilians and Resistance soldiers, we only show the viewer name. We want to make sure it's
+            // in the LastName slot, because the name shows as "First Last", so if LastName is empty there's
+            // two spaces in a row, which is noticeable.
+            FirstName = "";
+            LastName = `TIVIEWERNAME(Viewer);
+        }
+        else {
+            FirstName = `TIVIEWERNAME(Viewer);
+            LastName = "(" $ Unit.GetName(eNameType_Full) $ ")";
+        }
+
+        Unit.SetUnitName(FirstName, LastName, "");
+
+        // Update the unit flag so it reflects the new name
+        UnitFlag = Pres.m_kUnitFlagManager.GetFlagForObjectID(Unit.GetReference().ObjectID);
+
+        if (UnitFlag != none) {
+            UnitFlag.UpdateFromUnitState(Unit, true);
+        }
+        else {
+            Pres.m_kUnitFlagManager.AddFlag(Unit.GetReference());
+        }
+    }
+// #endregion
+
+    if (bCreatedGameState) {
+        `GAMERULES.SubmitGameState(NewGameState);
+    }
+}
+
 /// <summary>
 /// Assigns viewer names to any units in the current mission that don't already have names.
 /// </summary>
@@ -116,54 +219,18 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
     // Pick a viewer at random, if any available
     ViewerIndex = TwitchMgr.RaffleViewer();
 
-    if (ViewerIndex < 0) {
+    if (ViewerIndex == INDEX_NONE) {
         // We'll have to try again later when there might be more viewers in the pool
         TwitchMgr.bUnraffledUnitsExist = true;
         return ELR_NoInterrupt;
     }
 
     Viewer = TwitchConn.Viewers[ViewerIndex];
-
-	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Assign Twitch Owner");
-
-    // TODO: maybe we can make this game state transient if it's a non-Chosen enemy who will never be seen again
-	OwnershipState = XComGameState_TwitchObjectOwnership(NewGameState.CreateStateObject(class'XComGameState_TwitchObjectOwnership'));
-    OwnershipState.TwitchLogin = Viewer.Login;
-    OwnershipState.OwnedObjectRef = Unit.GetReference();
-
-    // Mark ownership in the viewer pool as well
-    Viewer.OwnedObjectID = OwnershipState.OwnedObjectRef.ObjectID;
-    TwitchConn.Viewers[ViewerIndex] = Viewer;
-
-    `LOG("Assigning viewer " $ OwnershipState.TwitchLogin $ " at index " $ ViewerIndex $ " to unit " $ Unit.GetFullName(), , 'TwitchIntegration');
+    AssignOwnership(Viewer.Login, Unit.GetReference().ObjectID);
 
     if (Unit.IsCivilian() && Unit.IsAlien()) {
         `LOG("WARNING: This unit is a Faceless!", , 'TwitchIntegration');
     }
-
-    if (Unit.IsCivilian() || Unit.IsSoldier()) {
-        // For civilians and Resistance soldiers, we only show the viewer name. We want to make sure it's
-        // in the LastName slot, because the name shows as "First Last", so if LastName is empty there's
-        // two spaces in a row, which is noticeable.
-        FirstName = "";
-        LastName = `TIVIEWERNAME(Viewer);
-    }
-    else {
-        FirstName = `TIVIEWERNAME(Viewer);
-        LastName = "(" $ Unit.GetName(eNameType_Full) $ ")";
-    }
-
-    Unit.SetUnitName(FirstName, LastName, "");
-    UnitFlag = Pres.m_kUnitFlagManager.GetFlagForObjectID(Unit.GetReference().ObjectID);
-
-    if (UnitFlag != none) {
-        UnitFlag.UpdateFromUnitState(Unit, true);
-    }
-    else {
-        Pres.m_kUnitFlagManager.AddFlag(Unit.GetReference());
-    }
-
-    `GAMERULES.SubmitGameState(NewGameState);
 
 	return ELR_NoInterrupt;
 }
@@ -226,31 +293,38 @@ static protected function EventListenerReturn OnEnemyGroupSighted(Object EventDa
 static protected function EventListenerReturn OnUnitRemovedFromPlay(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
     local StateObjectReference EffectRef;
 	local XComGameStateHistory History;
+    local XComGameState NewGameState;
 	local XComGameState_Effect EffectState;
+    local XComGameState_TwitchObjectOwnership Ownership;
     local XComGameState_Unit CivUnitState;
-
-    `LOG("OnUnitRemovedFromPlay triggered");
 
     CivUnitState = XComGameState_Unit(EventData);
 
-    `LOG("Unit's object ID: " $ CivUnitState.ObjectID);
-    `LOG(`SHOWVAR(CivUnitState.IsCivilian()));
-    `LOG(`SHOWVAR(CivUnitState.IsAlien()));
-
+    // Check that this civilian is a Faceless
     if (!CivUnitState.IsCivilian() || !CivUnitState.IsAlien()) {
         return ELR_NoInterrupt;
     }
 
     History = `XCOMHISTORY;
+    Ownership = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(CivUnitState.GetReference().ObjectID);
 
     foreach CivUnitState.AffectedByEffects(EffectRef) {
         EffectState = XComGameState_Effect(History.GetGameStateForObjectID(EffectRef.ObjectID));
 
         if (!EffectState.GetX2Effect().IsA('X2Effect_SpawnFaceless')) {
-            `LOG("Found effect but it's not SpawnFaceless, moving on");
             continue;
         }
 
-        `LOG(`SHOWVAR(EffectState.ApplyEffectParameters.SourceStateObjectRef.ObjectID));
+    	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Faceless Owner Swap");
+        AssignOwnership(Ownership.TwitchLogin, EffectState.CreatedObjectReference.ObjectID, NewGameState, , true);
+
+        // Need to delete ownership of the original civilian unit
+        NewGameState.RemoveStateObject(Ownership.ObjectID);
+
+        `GAMERULES.SubmitGameState(NewGameState);
+
+        break;
     }
+
+    return ELR_NoInterrupt;
 }
