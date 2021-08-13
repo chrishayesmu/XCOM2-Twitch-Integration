@@ -162,7 +162,13 @@ exec function TwitchReassignUnitUnderMouse(string ViewerLogin) {
         return;
     }
 
-    // TODO: need to make sure the given viewer doesn't already own something
+    // Make sure the given viewer doesn't already own something
+    OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForUser(ViewerLogin);
+
+    if (OwnershipState != none) {
+        class'Helpers'.static.OutputMsg("Viewer already owns a unit. Owning multiple units is not allowed.");
+        return;
+    }
 
     OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Unit.ObjectID);
 
@@ -177,25 +183,7 @@ exec function TwitchReassignUnitUnderMouse(string ViewerLogin) {
 
     class'Helpers'.static.OutputMsg("Reassigning owner of '" $ Unit.GetFullName() $ "' to viewer '" $ ViewerLogin $ "'");
 
-    NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Console: Reassign Owner");
-
-    // TODO: this isn't following the rules to change the unit name or other side effects of ownership
-    if (ViewerLogin == "") {
-        // We're unsetting ownership without setting new ownership
-        NewGameState.RemoveStateObject(OwnershipState.ObjectID);
-    }
-    else {
-        if (OwnershipState == none) {
-            OwnershipState = XComGameState_TwitchObjectOwnership(NewGameState.CreateStateObject(class'XComGameState_TwitchObjectOwnership'));
-        }
-        else {
-            OwnershipState = XComGameState_TwitchObjectOwnership(NewGameState.ModifyStateObject(class'XComGameState_TwitchObjectOwnership', OwnershipState.ObjectID));
-        }
-
-        OwnershipState.TwitchLogin = ViewerLogin;
-    }
-
-    `TACTICALRULES.SubmitGameState(NewGameState);
+    class'X2EventListener_TwitchNames'.static.AssignOwnership(ViewerLogin, Unit.GetReference().ObjectID, , /* OverridePreviousOwnership */ true);
 }
 
 /// <summary>
