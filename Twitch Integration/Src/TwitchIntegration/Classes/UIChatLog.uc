@@ -87,18 +87,29 @@ function bool IsCollapsed() {
 
 private function string FormatSenderName(string Sender, optional XComGameState_Unit Unit) {
     local string SenderColor;
+    local TwitchViewer Viewer;
+    local XComGameState_TwitchObjectOwnership Ownership;
 
     if (Unit == none) {
         return Sender;
     }
 
+    Ownership = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Unit.GetReference().ObjectID);
+
+
     if (bShowFullEnemyUnitName && (Unit.GetTeam() == eTeam_Alien || Unit.GetTeam() == eTeam_TheLost)) {
         Sender = Sender $ " " $ Unit.GetLastName(); // original unit name is kept in the last name
     }
+    else if (bShowFullFriendlyUnitName && Unit.GetTeam() == eTeam_XCom) {
+        Sender = Unit.GetFullName();
+    }
 
-    // TODO add full name for friendly units
-
-    if (bColorMessagesByTeam) {
+    if (bColorMessagesSameAsTwitch) {
+        if (`TISTATEMGR.TwitchChatConn.GetViewer(Ownership.TwitchLogin, Viewer) != INDEX_NONE) {
+            SenderColor = Mid(Viewer.ChatColor, 1); // strip leading # from color
+        }
+    }
+    else if (bColorMessagesByTeam) {
         switch (Unit.GetTeam()) {
             case eTeam_Alien:
                 SenderColor = class'UIUtilities_Colors'.const.BAD_HTML_COLOR;
@@ -110,7 +121,9 @@ private function string FormatSenderName(string Sender, optional XComGameState_U
                 SenderColor = class'UIUtilities_Colors'.const.NORMAL_HTML_COLOR;
                 break;
         }
+    }
 
+    if (SenderColor != "") {
         Sender = "<font color='#" $ SenderColor $ "'>" $ Sender $ "</font>";
     }
 

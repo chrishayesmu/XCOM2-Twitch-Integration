@@ -63,7 +63,6 @@ protected function XSay_BuildVisualization(XComGameState VisualizeGameState) {
 	local XComGameStateHistory History;
 	local XComTacticalController LocalController;
 
-
 	History = `XCOMHISTORY;
 
 	foreach VisualizeGameState.IterateByClassType(class'XComGameState_TwitchXSay', XSayGameState) {
@@ -91,7 +90,6 @@ protected function XSay_BuildVisualization(XComGameState VisualizeGameState) {
                 break;
         }
     }
-
 
 	ActionMetadata.StateObject_OldState = Unit;
 	ActionMetadata.StateObject_NewState = Unit;
