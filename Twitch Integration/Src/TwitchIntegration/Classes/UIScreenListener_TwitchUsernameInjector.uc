@@ -20,14 +20,14 @@ delegate OnItemSelectedCallback(UIList ContainerList, int ItemIndex);
 
 event OnInit(UIScreen Screen)
 {
-    `LOG("Init screen: " $ Screen.Class.Name, LogScreenNames, 'TwitchIntegration');
+    `TILOGCLS("Init screen: " $ Screen.Class.Name, LogScreenNames);
 
     CheckForArmoryMainMenuScreen(Screen);
     CheckForUISoldierHeader(Screen);
 }
 
 event OnReceiveFocus(UIScreen Screen) {
-    `LOG("OnReceiveFocus screen: " $ Screen.Class.Name, LogScreenNames, 'TwitchIntegration');
+    `TILOGCLS("OnReceiveFocus screen: " $ Screen.Class.Name, LogScreenNames);
 
     // The armory main menu UIList is regenerated every time the screen receives focus,
     // so we need to keep injecting our menu item into it

@@ -18,13 +18,10 @@ function Initialize(TwitchStateManager StateMgr) {
     CommandAliases.Length = 0;
 
     foreach ActionTuples(Tuple) {
-        `LOG("Adding alias " $ Tuple.Alias, , 'TwitchIntegration');
-
         Aliases.AddItem(Tuple.Alias);
     }
 
     CommandAliases = Aliases;
-    `LOG("CommandAliases length: " $ CommandAliases.Length);
 }
 
 function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer Viewer) {
@@ -36,7 +33,6 @@ function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer
 
     // Remove leading exclamation point and find the alias we were invoked with
     Alias = Mid(Command.Body, 1, Instr(Command.Body, " ") - 1);
-    `LOG("Looking for ActionTuple with the alias: " $ Alias, , 'TwitchIntegration');
 
     // Figure out which tuple is being invoked
     foreach ActionTuples(Tuple) {
@@ -44,22 +40,20 @@ function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer
             continue;
         }
 
-        `LOG("Found a matching ActionTuple with the action name " $ Tuple.ActionName);
-
         if (Tuple.bMustBeSub && !Viewer.bIsSub) {
-            `LOG("Viewer is not a sub and cannot use this command", , 'TwitchIntegration');
+            `TILOGCLS("Viewer is not a sub and cannot use this command");
             return;
         }
 
         if (Tuple.CostInBits > Command.NumBits) {
-            `LOG("Not enough bits sent to use command; require " $ Tuple.CostInBits $ " but received " $ Command.NumBits, , 'TwitchIntegration');
+            `TILOGCLS("Not enough bits sent to use command; require " $ Tuple.CostInBits $ " but received " $ Command.NumBits);
             return;
         }
 
         Action = class'X2TwitchUtils'.static.GetTwitchEventActionTemplate(Tuple.ActionName);
 
         if (Action == none) {
-            `LOG("Didn't find an action called " $ Tuple.ActionName $ ". This command may be misconfigured.", , 'TwitchIntegration');
+            `TILOGCLS("Didn't find an action called " $ Tuple.ActionName $ ". This command may be misconfigured.");
             return;
         }
 
@@ -67,17 +61,17 @@ function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer
     }
 
     if (Action == none) {
-        `LOG("Never found an alias matching " $ Alias $ ", which should be impossible", , 'TwitchIntegration');
+        `TILOGCLS("Never found an alias matching " $ Alias $ ", which should be impossible");
         return;
     }
 
     ViewerOwnedUnit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(Viewer.Login);
 
     if (!Action.IsValid(ViewerOwnedUnit)) {
-        `LOG("Action '" $ Tuple.ActionName $ "' is not presently valid. Not executing.", , 'TwitchIntegration');
+        `TILOGCLS("Action '" $ Tuple.ActionName $ "' is not presently valid. Not executing.");
         return;
     }
 
-    `LOG("Executing action '" $ Tuple.ActionName $ "'");
+    `TILOGCLS("Executing action '" $ Tuple.ActionName $ "'");
     Action.Apply(ViewerOwnedUnit, none);
 }

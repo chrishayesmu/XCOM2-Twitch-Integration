@@ -5,7 +5,7 @@ class UIScreenListener_TacticalStart extends UIScreenListener;
 event OnInit(UIScreen Screen)
 {
     if (UITacticalHud(Screen) != none) {
-        `LOG("Tactical HUD loaded");
+        `TILOGCLS("Tactical HUD loaded");
         // Wait a few seconds; when the tactical HUD first loads there may still be a cinematic or loading
         // screen up, so any temporary things we do (like a 'connection successful' toast) will disappear
         // without being seen by the player

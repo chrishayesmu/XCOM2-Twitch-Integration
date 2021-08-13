@@ -25,7 +25,7 @@ static function X2EventListenerTemplate Create_Listener_Template()
 
 static protected function EventListenerReturn ConnectToTwitch(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData)
 {
-	`LOG("TwitchIntegration: tactical play begun, event name " $ Event);
+	`TILOG("Tactical play begun, event name " $ Event);
 
     if (`TISTATEMGR == none) {
 	    `XCOMGAME.Spawn(class'TwitchStateManager').Initialize();

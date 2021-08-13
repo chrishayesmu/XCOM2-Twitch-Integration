@@ -77,7 +77,7 @@ function Initialize() {
     local X2EventManager EventManager;
 	local X2PollEventTemplate PollEventTemplate;
 
-	`LOG("Initializing state manager", , 'TwitchIntegration');
+	`TILOGCLS("Initializing state manager");
 
     ThisObj = self;
 	EventManager = `XEVENTMGR;
@@ -91,7 +91,7 @@ function Initialize() {
 	    CommandHandlers.AddItem(CommandHandler);
     }
 
-    `LOG("Loaded " $ CommandHandlers.Length $ " command handlers", , 'TwitchIntegration');
+    `TILOGCLS("Loaded " $ CommandHandlers.Length $ " command handlers");
 
 	// Find all poll event templates and organize them by type for future use
 	EventTemplateManager = class'X2EventListenerTemplateManager'.static.GetEventListenerTemplateManager();
@@ -225,7 +225,7 @@ function int RaffleViewer() {
     }
 
     RaffledIndex = `SYNC_RAND(NumAvailableViewers);
-    `LOG("Out of " $ NumAvailableViewers $ " available viewers, rolled for #" $ RaffledIndex);
+    `TILOGCLS("Out of " $ NumAvailableViewers $ " available viewers, rolled for #" $ RaffledIndex);
 
     for (Index = 0; Index < TwitchChatConn.Viewers.Length; Index++) {
         // We've raffled an index into a virtual array of only available viewers, so now we
@@ -242,7 +242,7 @@ function int RaffleViewer() {
         }
     }
 
-    `LOG("Raffled available viewer at index " $ Index, , 'TwitchIntegration');
+    `TILOGCLS("Raffled available viewer at index " $ Index);
 
     return Index;
 }
@@ -314,7 +314,7 @@ function StartPoll(ePollType PollType, int DurationInTurns, optional XComGameSta
 }
 
 simulated event PostLoadGame() {
-    `LOG("PostLoadGame for TwitchStateManager");
+    `TILOGCLS("PostLoadGame for TwitchStateManager");
 }
 
 // ----------------------------------------------
@@ -354,7 +354,7 @@ private function OnConnectedToTwitchChat() {
 }
 
 private function OnNamesListReceiveError(HttpResponse Response) {
-    `LOG("[TwitchIntegration] Error occurred when retrieving viewers; response code was " $ Response.ResponseCode);
+    `TILOGCLS("Error occurred when retrieving viewers; response code was " $ Response.ResponseCode);
 
     HttpGet.Close();
     HttpGet.Destroy();
@@ -364,11 +364,11 @@ private function OnNamesListReceived(HttpResponse Response) {
 	local JsonObject JsonObj;
 
 	if (Response.ResponseCode != 200) {
-		`LOG("[TwitchIntegration] Error occurred when retrieving viewers; response code was " $ Response.ResponseCode);
+		`TILOGCLS("Error occurred when retrieving viewers; response code was " $ Response.ResponseCode);
 		return;
 	}
 
-    `LOG("Received names list, parsing response");
+    `TILOGCLS("Received names list, parsing response");
 
     ConnectedViewers.Length = 0;
 
@@ -388,7 +388,7 @@ private function OnNamesListReceived(HttpResponse Response) {
     bIsViewerListPopulated = true;
     HttpGet.Destroy();
 
-    `LOG("Received viewer list from Twitch: found " $ ConnectedViewers.Length $ " viewers");
+    `TILOGCLS("Received viewer list from Twitch: found " $ ConnectedViewers.Length $ " viewers");
 
     `XEVENTMGR.TriggerEvent('TwitchAssignUnitNames');
 }
@@ -538,7 +538,7 @@ private function array<X2PollEventTemplate> SelectEventsForPoll(ePollType PollTy
         foreach FilteredEvents(EventTemplate) {
             // ExclusiveWith could be in either direction, so just check both
             if (EventTemplate.ExclusiveWith.Find(SelectedEvent.DataName) != INDEX_NONE || SelectedEvent.ExclusiveWith.Find(EventTemplate.DataName) != INDEX_NONE) {
-                `LOG("Removing potential event due to ExclusiveWith: " $ EventTemplate.DataName);
+                `TILOGCLS("Removing potential event due to ExclusiveWith: " $ EventTemplate.DataName);
                 FilteredEvents.RemoveItem(EventTemplate);
             }
         }
@@ -566,14 +566,14 @@ private function X2PollEventTemplate SelectEventWithWeighting(array<X2PollEventT
 
     foreach PossibleEvents(EventTemplate) {
         if (WeightRoll < RunningTotal + EventTemplate.Weight) {
-            `LOG("Weighted roll selected event " $ EventTemplate.DataName $ " on roll " $ WeightRoll);
+            `TILOGCLS("Weighted roll selected event " $ EventTemplate.DataName $ " on roll " $ WeightRoll);
             return EventTemplate;
         }
 
         RunningTotal += EventTemplate.Weight;
     }
 
-    `LOG("Default selected event " $ PossibleEvents[PossibleEvents.Length - 1].DataName);
+    `TILOGCLS("Default selected event " $ PossibleEvents[PossibleEvents.Length - 1].DataName);
     return PossibleEvents[PossibleEvents.Length - 1];
 }
 
@@ -591,7 +591,7 @@ private function ePollType SelectPollTypeByWeight() {
 
     foreach PollTypeWeights(Weighting) {
         if (WeightRoll < RunningTotal + Weighting.Weight) {
-            `LOG("Weighted roll selected poll type " $ Weighting.PollType $ " with roll " $ WeightRoll);
+            `TILOGCLS("Weighted roll selected poll type " $ Weighting.PollType $ " with roll " $ WeightRoll);
             return Weighting.PollType;
         }
 
@@ -599,7 +599,7 @@ private function ePollType SelectPollTypeByWeight() {
     }
 
     // TODO: the last poll type might have a weight of 0, in which case this would be wrong
-    `LOG("Default selected poll type " $ PollTypeWeights[PollTypeWeights.Length - 1].PollType $ " TotalWeight " $ TotalWeight $ " roll " $ WeightRoll);
+    `TILOGCLS("Default selected poll type " $ PollTypeWeights[PollTypeWeights.Length - 1].PollType $ " TotalWeight " $ TotalWeight $ " roll " $ WeightRoll);
     return PollTypeWeights[PollTypeWeights.Length - 1].PollType;
 }
 
@@ -621,7 +621,7 @@ private function bool ShouldStartPoll(XComGameState_Player PlayerState) {
     if (PollState != none) {
         if (PollState.RemainingTurns > 0) {
             // This poll is still going right now
-            `LOG("There's already an active poll, not starting a new one");
+            `TILOGCLS("There's already an active poll, not starting a new one");
             return false;
         }
 
@@ -629,7 +629,7 @@ private function bool ShouldStartPoll(XComGameState_Player PlayerState) {
         TurnsSinceLastPollEnded = TurnsSinceLastPollStarted - PollState.DurationInTurns;
 
         if (TurnsSinceLastPollEnded < MinTurnsBetweenPolls) {
-            `LOG("Last poll ended " $ TurnsSinceLastPollEnded $ " turns ago; min to start new is " $ MinTurnsBetweenPolls);
+            `TILOGCLS("Last poll ended " $ TurnsSinceLastPollEnded $ " turns ago; min to start new is " $ MinTurnsBetweenPolls);
             return false;
         }
     }

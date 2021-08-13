@@ -63,7 +63,7 @@ static function XComGameState_TwitchObjectOwnership AssignOwnership(string Viewe
     OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForUser(ViewerLogin);
 
     if (OwnershipState != none && !AllowMultipleOwnership) {
-        `LOG("Viewer " $ ViewerLogin $ " already owns something: " $ `SHOWVAR(OwnershipState.OwnedObjectRef.ObjectID));
+        `TILOG("Viewer " $ ViewerLogin $ " already owns something: " $ `SHOWVAR(OwnershipState.OwnedObjectRef.ObjectID));
         return OwnershipState.OwnedObjectRef.ObjectID == ObjID ? OwnershipState : none;
     }
 
@@ -213,7 +213,7 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
     AssignOwnership(Viewer.Login, Unit.GetReference().ObjectID);
 
     if (Unit.IsCivilian() && Unit.IsAlien()) {
-        `LOG("WARNING: This unit is a Faceless!", , 'TwitchIntegration');
+        `TILOG("WARNING: This unit is a Faceless!");
     }
 
 	return ELR_NoInterrupt;
@@ -238,7 +238,7 @@ static protected function EventListenerReturn OnEnemyGroupSighted(Object EventDa
 	VisMgr = `XCOMVISUALIZATIONMGR;
 
     VisMgr.GetNodesOfType(VisMgr.VisualizationTree, class'X2Action_RevealAIBegin', arrActions);
-    `LOG("OnEnemyGroupSighted: there are " $ arrActions.Length $ " RevealAIBegin actions in current vis tree");
+    `TILOG("There are " $ arrActions.Length $ " RevealAIBegin actions in current vis tree");
 
     // TODO: sometimes there are no RevealAIBegin actions in the vis tree for some reason (esp. spawning from psi gate?)
     if (arrActions.Length == 0) {
@@ -249,7 +249,7 @@ static protected function EventListenerReturn OnEnemyGroupSighted(Object EventDa
     Context = RevealAIAction.StateChangeContext;
 
     foreach AIGroupState.m_arrMembers(UnitRef) {
-        `LOG("Sighted unit ID " $ UnitRef.ObjectID, , 'TwitchIntegration');
+        `TILOG("Sighted unit ID " $ UnitRef.ObjectID);
 
         OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(UnitRef.ObjectID);
 

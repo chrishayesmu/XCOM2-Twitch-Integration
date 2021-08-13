@@ -49,7 +49,7 @@ exec function TwitchChatCommand(string Command, string ViewerLogin, string Comma
     Message.Body = "!" $ Command @ CommandBody;
 
     if (StateMgr.TwitchChatConn.GetViewer(ViewerLogin, Viewer) == INDEX_NONE) {
-        `LOG("Viewer " $ ViewerLogin $ " not found, supplying fake viewer");
+        `TILOGCLS("Viewer " $ ViewerLogin $ " not found, supplying fake viewer");
         Viewer.Login = ViewerLogin;
     }
 

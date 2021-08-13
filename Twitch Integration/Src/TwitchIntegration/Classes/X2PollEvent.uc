@@ -1,6 +1,6 @@
 // This class isn't actually an event listener, but you have to be one of the known subclasses of
 // X2DataSet for your CreateTemplates to be called, and this one has the least implications.
-class X2PollEvent extends X2EventListener 
+class X2PollEvent extends X2EventListener
 	config(TwitchEvents)
 	dependson(X2PollEventTemplate);
 
@@ -18,7 +18,7 @@ static function array<X2DataTemplate> CreateTemplates()
 		Templates.AddItem(Template);
 	}
 
-	`LOG("[TwitchIntegration] Created " $ Templates.Length $ " X2PollEventTemplates");
+	`TILOG("Created " $ Templates.Length $ " X2PollEventTemplates");
 
 	return Templates;
 }

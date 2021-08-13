@@ -28,7 +28,7 @@ function bool IsValid() {
         Action = class'X2TwitchUtils'.static.GetTwitchEventActionTemplate(ActionName);
 
         if (!Action.IsValid(/* InvokingUnit */ none)) {
-            `LOG("Action " $ Action.Name $ " was not valid");
+            `TILOGCLS("Action " $ Action.Name $ " was not valid");
             return false;
         }
     }
@@ -41,7 +41,7 @@ function Resolve(XComGameState_TwitchEventPoll PollGameState) {
     local name ActionName;
 
     foreach ActionNames(ActionName) {
-        `LOG("Resolving by calling action " $ ActionName);
+        `TILOGCLS("Resolving by calling action " $ ActionName);
         Action = class'X2TwitchUtils'.static.GetTwitchEventActionTemplate(ActionName);
         `assert(Action != none);
         Action.Apply(/* InvokingUnit */, PollGameState);

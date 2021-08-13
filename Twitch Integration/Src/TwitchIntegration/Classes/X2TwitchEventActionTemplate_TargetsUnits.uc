@@ -127,27 +127,27 @@ protected function bool GiveAndActivateAbility(Name AbilityName, XComGameState_U
 // Override this function in child classes for custom targeting logic
 protected function bool IsValidTarget(XComGameState_Unit Unit) {
     if (!MatchesTeams(Unit)) {
-        `LOG("Unit team does not match: " $ `SHOWVAR(Unit.GetTeam()));
+        `TILOGCLS("Unit team does not match: " $ `SHOWVAR(Unit.GetTeam()));
         return false;
     }
 
     if (Unit.IsCivilian() && !IncludeCivilians) {
-        `LOG("Unit civilian status does not match: " $ `SHOWVAR(Unit.IsCivilian()));
+        `TILOGCLS("Unit civilian status does not match: " $ `SHOWVAR(Unit.IsCivilian()));
         return false;
     }
 
     if (Unit.IsDead() && !IncludeDead) {
-        `LOG("Unit IsDead does not match: " $ `SHOWVAR(Unit.IsDead()) $ ", " $ `SHOWVAR(IncludeDead));
+        `TILOGCLS("Unit IsDead does not match: " $ `SHOWVAR(Unit.IsDead()) $ ", " $ `SHOWVAR(IncludeDead));
         return false;
     }
 
     if (!Unit.IsDead() && !IncludeLiving) {
-        `LOG("Unit IsDead does not match: " $ `SHOWVAR(Unit.IsDead()) $ ", " $ `SHOWVAR(IncludeLiving));
+        `TILOGCLS("Unit IsDead does not match: " $ `SHOWVAR(Unit.IsDead()) $ ", " $ `SHOWVAR(IncludeLiving));
         return false;
     }
 
     if (Unit.IsConcealed() && !IncludeConcealed) {
-        `LOG("Unit IsConcealed does not match: " $ `SHOWVAR(Unit.IsConcealed()) $ ", " $ `SHOWVAR(IncludeConcealed));
+        `TILOGCLS("Unit IsConcealed does not match: " $ `SHOWVAR(Unit.IsConcealed()) $ ", " $ `SHOWVAR(IncludeConcealed));
         return false;
     }
 

@@ -27,7 +27,7 @@ static function ShowTwitchName(int ObjectID, optional XComGameState NewGameState
 
 	VisMgr = `XCOMVISUALIZATIONMGR;
     VisMgr.GetNodesOfType(VisMgr.VisualizationTree, class'X2Action_RevealAIBegin', arrActions);
-    `LOG("There are " $ arrActions.Length $ " RevealAIBegin actions in current vis tree");
+    `TILOG("There are " $ arrActions.Length $ " RevealAIBegin actions in current vis tree");
 
     if (arrActions.Length > 0) {
         // it's pretty unlikely we'll have multiple reveals at once, deal with that later

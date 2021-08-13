@@ -29,7 +29,7 @@ static function array<X2DataTemplate> CreateTemplates()
 
 	}
 
-	`LOG("[TwitchIntegration] Created " $ Templates.Length $ " X2TwitchEventActionTemplates from " $ default.ActionSpecifiers.Length $ " specifiers");
+	`TILOG("Created " $ Templates.Length $ " X2TwitchEventActionTemplates from " $ default.ActionSpecifiers.Length $ " specifiers");
 
 	return Templates;
 }

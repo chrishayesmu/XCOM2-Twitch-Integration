@@ -7,7 +7,7 @@ var config bool SpawnForceScamper; // If true, enemies will scamper instead of h
 
 function Apply(optional XComGameState_Unit InvokingUnit, optional XComGameState_TwitchEventPoll PollGameState) {
 	if (EncounterID != '') {
-		`LOG("Spawning encounter with ID " $ EncounterID, , 'TwitchIntegration');
+		`TILOGCLS("Spawning encounter with ID " $ EncounterID);
 
 		class'XComGameState_AIReinforcementSpawner'.static.InitiateReinforcements(EncounterID,
                                                                                   SpawnCountdown,

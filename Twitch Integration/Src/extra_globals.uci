@@ -1,5 +1,7 @@
 `define TILOG(msg, cond) `LOG(`msg, `cond, 'TwitchIntegration')
 
+`define TILOGCLS(msg, cond) `LOG("[" $ Class.Name $ "]   " $ `msg, `cond, 'TwitchIntegration')
+
 `define TISTATEMGR class'TwitchStateManager'.static.GetStateManager()
 
 `define TIVIEWERNAME(Viewer) (`Viewer.DisplayName != "" ? `Viewer.DisplayName : `Viewer.Login)

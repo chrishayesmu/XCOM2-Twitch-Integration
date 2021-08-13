@@ -36,7 +36,7 @@ function Call(string Url, delegate<ResponseHandler> CompletionHandler, delegate<
 	local int Index;
 
     if (bRequestInProgress) {
-        `WARN("[HttpGetRequest] Same object is being re-used while still in use, which is not allowed", , 'TwitchIntegration');
+        `WARN("[HttpGetRequest] Same object is being re-used while still in use, which is not allowed", );
         return;
     }
 
@@ -57,12 +57,12 @@ function Call(string Url, delegate<ResponseHandler> CompletionHandler, delegate<
 
     Response = EmptyResponse;
 
-    `LOG("[HttpGetRequest] Resolving host: " $ Host, LogRequest, 'TwitchIntegration');
+    `TILOGCLS("Resolving host: " $ Host, LogRequest);
     resolve(Host);
 }
 
 function int SendText(coerce string str) {
-	`LOG("[HttpGetRequest] [SEND] " $ str, LogRequest, 'TwitchIntegration');
+	`TILOGCLS("[SEND] " $ str, LogRequest);
 
 	return super.SendText(str);
 }
@@ -71,12 +71,12 @@ event Resolved(IpAddr Addr)
 {
     Addr.Port = 80;
 
-    `LOG("[HttpGetRequest] " $ CurrentUrl $ " resolved to " $ IpAddrToString(Addr), LogRequest, 'TwitchIntegration');
-    `LOG("[HttpGetRequest] Bound to local port: " $ BindPort(), LogRequest, 'TwitchIntegration');
+    `TILOGCLS("" $ CurrentUrl $ " resolved to " $ IpAddrToString(Addr), LogRequest);
+    `TILOGCLS("Bound to local port: " $ BindPort(), LogRequest);
 
     if (!Open(Addr))
     {
-        `WARN("[HttpGetRequest] Failed to open request", , 'TwitchIntegration');
+        `WARN("[HttpGetRequest] Failed to open request", );
 
         Response.ResponseCode = 400;
 
@@ -88,7 +88,7 @@ event Resolved(IpAddr Addr)
 
 event ResolveFailed()
 {
-    `LOG("[HttpGetRequest] Unable to resolve address " $ CurrentUrl, LogRequest, 'TwitchIntegration');
+    `TILOGCLS("Unable to resolve address " $ CurrentUrl, LogRequest);
 
     Response.ResponseCode = 400;
 
@@ -102,7 +102,7 @@ event Opened()
 	local string CRLF;
 	CRLF = chr(13) $ chr(10);
 
-    `LOG("[HttpGetRequest] Sending HTTP request body", LogRequest, 'TwitchIntegration');
+    `TILOGCLS("Sending HTTP request body", LogRequest);
 
     // Simple HTTP GET request
     SendText("GET " $ RequestPath $ " HTTP/1.1" $ CRLF);
@@ -110,12 +110,12 @@ event Opened()
     SendText("Connection: close" $ CRLF);
 	SendText(CRLF); // indicate request is done
 
-    `LOG("[HttpGetRequest] GET request sent", LogRequest, 'TwitchIntegration');
+    `TILOGCLS("GET request sent", LogRequest);
 }
 
 event Closed()
 {
-    `LOG("[HttpGetRequest] Connection closed; final response body is " $ Response.Body, LogRequest, 'TwitchIntegration');
+    `TILOGCLS("Connection closed; final response body is " $ Response.Body, LogRequest);
 
     bRequestInProgress = false;
 
@@ -139,7 +139,7 @@ event ReceivedText(string Text)
         Text = Mid(Text, 2);
     }
 
-    `LOG("[HttpGetRequest] Received text: " $ Text, LogRequest, 'TwitchIntegration');
+    `TILOGCLS("Received text: " $ Text, LogRequest);
 
     if (bLastChunkReceived) {
         // We might receive headers after the response body, but we don't care about them
@@ -229,7 +229,7 @@ event ReceivedText(string Text)
         RemainingBytesInChunk -= Len(ChunkBody);
 
         if (RemainingBytesInChunk < 0) {
-            `WARN("[HttpGetRequest] WARNING: negative number of bytes remaining in chunk: " $ RemainingBytesInChunk, , 'TwitchIntegration');
+            `WARN("[HttpGetRequest] WARNING: negative number of bytes remaining in chunk: " $ RemainingBytesInChunk, );
         }
     }
 }
@@ -256,7 +256,7 @@ private function int HexToInt(string HexVal) {
         }
 
         if (CurrentCharAscii < 0 || CurrentCharAscii > 15) {
-            `LOG("[HttpGetRequest] WARNING: character out of range; adjusted ASCII value is " $ CurrentCharAscii, , 'TwitchIntegration');
+            `TILOGCLS("WARNING: character out of range; adjusted ASCII value is " $ CurrentCharAscii, );
             return -1;
         }
 

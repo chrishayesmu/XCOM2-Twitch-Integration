@@ -37,7 +37,7 @@ static private function EventListenerReturn OnConnectedToTwitch(Object EventData
     Context = XComGameStateContext_ChangeContainer(NewGameState.GetContext());
 	Context.BuildVisualizationFn = BuildVisualization_OnConnectedToTwitch;
 
-    `LOG("Submitting new game state for Twitch connection", , 'TwitchIntegration');
+    `TILOG("Submitting new game state for Twitch connection");
 	`GAMERULES.SubmitGameState(NewGameState);
 
     return ELR_NoInterrupt;

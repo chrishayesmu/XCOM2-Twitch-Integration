@@ -63,7 +63,7 @@ static function GiveAbilityToUnit(Name AbilityName, XComGameState_Unit Unit, opt
 		UnitAlreadyHasAbility = (Unit.FindAbility(AbilityName).ObjectID > 0);
 
 		if (!UnitAlreadyHasAbility) {
-            `LOG("Giving unit '" $ Unit.GetFullName() $ "' ability " $ AbilityName, , 'TwitchIntegration');
+            `TILOG("Giving unit '" $ Unit.GetFullName() $ "' ability " $ AbilityName);
 			AbilityRef = TacticalRules.InitAbilityForUnit(AbilityTemplate, Unit, NewGameState);
 
             if (AbilityRef.ObjectID != 0) {
