@@ -5,6 +5,7 @@ var localized string ClearButtonLabel;
 var config bool bShowChatLog;
 var config bool bColorMessagesByTeam;
 var config bool bColorMessagesSameAsTwitch;    // takes priority over bColorMessagesByTeam
+var config bool bFormatDeadMessages;
 var config bool bShowFullEnemyUnitName;
 var config bool bShowFullFriendlyUnitName;
 var config float TimeToShowOnMessageReceived;
@@ -52,7 +53,7 @@ function UIChatLog InitChatLog(int InitX, int InitY, int InitWidth, int InitHeig
 function AddMessage(string Sender, string Body, optional XComGameState_Unit Unit) {
     local ChatMessage Message;
 
-    Message.Body = class'TextUtilities_Twitch'.static.SanitizeText(Body);
+    Message.Body = FormatMessageBody(Body, Unit);
     Message.Sender = FormatSenderName(Sender, Unit);
 
     Messages.AddItem(Message);
@@ -85,6 +86,20 @@ function bool IsCollapsed() {
     return X < 0;
 }
 
+private function string FormatMessageBody(string Body, optional XComGameState_Unit Unit) {
+    Body = class'TextUtilities_Twitch'.static.SanitizeText(Body);
+
+    if (Unit == none) {
+        return Body;
+    }
+
+    if (bFormatDeadMessages && Unit.IsDead()) {
+        Body = "..." @ LOCS(Body) @ "...";
+    }
+
+    return Body;
+}
+
 private function string FormatSenderName(string Sender, optional XComGameState_Unit Unit) {
     local string SenderColor;
     local TwitchViewer Viewer;
@@ -95,7 +110,6 @@ private function string FormatSenderName(string Sender, optional XComGameState_U
     }
 
     Ownership = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Unit.GetReference().ObjectID);
-
 
     if (bShowFullEnemyUnitName && (Unit.GetTeam() == eTeam_Alien || Unit.GetTeam() == eTeam_TheLost)) {
         Sender = Sender $ " " $ Unit.GetLastName(); // original unit name is kept in the last name
@@ -121,6 +135,11 @@ private function string FormatSenderName(string Sender, optional XComGameState_U
                 SenderColor = class'UIUtilities_Colors'.const.NORMAL_HTML_COLOR;
                 break;
         }
+    }
+
+    // bFormatDeadMessages takes priority over other color options
+    if (bFormatDeadMessages && Unit.IsDead()) {
+        SenderColor = class'UIUtilities_Colors'.const.DISABLED_HTML_COLOR;
     }
 
     if (SenderColor != "") {
