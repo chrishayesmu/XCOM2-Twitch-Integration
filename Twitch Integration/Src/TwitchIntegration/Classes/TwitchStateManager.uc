@@ -419,7 +419,13 @@ private function EventListenerReturn OnPlayerTurnBegun(Object EventData, Object 
 }
 
 private function OnTwitchMessageReceived(TwitchMessage Message, TwitchViewer FromViewer) {
-	// Only messages we're interested in are chat commands
+    // Handle deleted messages specially
+    if (Message.MessageType == eTwitchMessageType_ClearMessage && ChatLog != none) {
+        ChatLog.DeleteMessage(Message.MsgId);
+        return;
+    }
+
+	// Only other messages we're interested in are chat commands
 	if (Message.MessageType != eTwitchMessageType_Chat && Message.MessageType != eTwitchMessageType_Whisper) {
 		return;
 	}

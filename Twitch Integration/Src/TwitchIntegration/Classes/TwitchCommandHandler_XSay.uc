@@ -37,6 +37,7 @@ function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer
 	XSayGameState = XComGameState_TwitchXSay(NewGameState.CreateStateObject(class'XComGameState_TwitchXSay'));
 	XSayGameState.MessageBody = GetCommandBody(Command);
 	XSayGameState.Sender = Viewer.Login;
+    XSayGameState.TwitchMessageId = Command.MsgId;
 
     // Need to include a new game state for the unit or else the visualizer may think it's still
     // visualizing an old ability and fail to do the flyover
@@ -114,6 +115,7 @@ protected function XSay_BuildVisualization(XComGameState VisualizeGameState) {
     ChatLogAction = X2Action_AddToChatLog(class'X2Action_AddToChatLog'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext(), , ActionMetadata.LastActionAdded));
     ChatLogAction.Sender = ViewerName;
     ChatLogAction.Message = XSayGameState.MessageBody; // no need to sanitize, chat log will do it
+    ChatLogAction.MsgId = XSayGameState.TwitchMessageId;
 
     if (bShowToast) {
         SanitizedMessageBody = class'TextUtilities_Twitch'.static.SanitizeText(TruncateMessage(XSayGameState.MessageBody, MaxToastLength));

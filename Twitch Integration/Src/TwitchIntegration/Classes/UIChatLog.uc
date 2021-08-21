@@ -78,6 +78,17 @@ function AddMessage(string Sender, string Body, optional XComGameState_Unit Unit
     }
 }
 
+function DeleteMessage(string MsgId) {
+    local int Index;
+
+    Index = Messages.Find('MsgId', MsgId);
+
+    if (Index != INDEX_NONE) {
+        Messages.Remove(Index, 1);
+        UpdateUI();
+    }
+}
+
 function Collapse() {
     XPos = X;
 
