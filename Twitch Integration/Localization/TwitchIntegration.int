@@ -42,6 +42,57 @@ strDescription="Set this soldier's Twitch username. That Twitch user will be abl
 strDialogTitle="Twitch Username"
 
 
+[TwitchIntegrationConfig]
+strChangeButtonLabel="Change.."
+
+strGeneralSettingsGroupTitle="General Settings"
+strTwitchChannelLabel="Twitch Channel"
+strTwitchChannelTooltip="Enter the name of your Twitch channel (not case sensitive). This is the channel that will be connected to and have its chat monitored."
+strTwitchUsernameLabel="Twitch Username"
+strTwitchUsernameTooltip="The login name of an account that you want to interact with viewers. This account will send whispers and chat messages, so you may find it simpler if this is not the same Twitch account that you stream on."
+strOAuthTokenInputBoxTitle="OAuth Token - DO NOT SHOW ON STREAM"
+strOAuthTokenLabel="OAuth Token"
+strOAuthTokenTooltip="DO NOT SHOW THIS ON STREAM! Twitch requires an OAuth token rather than your password. You can get one by being logged into Twitch on the username above, then visiting https://twitchapps.com/tmi/"
+strViewerTTLLabel="Viewer TTL (Minutes)"
+strViewerTTLTooltip="If a viewer's presence is not detected for this long (either because they send a message in chat/whispers, or through the Twitch API we use to query viewers periodically) they will be considered disconnected, removing them from the current viewer list so they are not eligible for raffles."
+
+strChatLogSettingsGroupTitle="Chat Settings"
+strShowChatLogLabel="Show Chat Log"
+strShowChatLogTooltip="If true, a chat log is visible on the left side of the screen, containing some system messages and any chat submitted through the !xsay command. Note that every other way of showing !xsay messages only support fairly small messages, so the chat log is the only way you're going to see everything. If you turn off the chat log, consider turning off !xsay as well."
+
+strChatLogColorSchemeLabel="Chat Name Colors"
+strChatLogColorSchemeTooltip="Choose how chatter names will be colored in the chat log. Note: when using Twitch colors, the viewer must have explicitly set their color in Twitch. For viewers who haven't, their name will show in the default cyan."
+strChatLogColorScheme_Default="Cyan"
+strChatLogColorScheme_Team="Color by Unit's Team"
+strChatLogColorScheme_Twitch="Use Twitch Color"
+
+strChatLogEnemyNameFormatLabel="Enemy Name Format"
+strChatLogEnemyNameFormatTooltip="How to format names when viewers are chatting while controlling an enemy unit."
+strChatLogFriendlyNameFormatLabel="Friendly Name Format"
+strChatLogFriendlyNameFormatTooltip="How to format names when viewers are chatting while controlling an friendly unit."
+strChatLogNameFormat_TwitchName="Twitch Name"
+strChatLogNameFormat_UnitName="Unit Name"
+
+strPollSettingsGroupTitle="Poll Settings"
+strEnablePollsLabel="Enable Viewer Polls"
+strEnablePollsTooltip="If enabled, you will periodically see polls start where your Twitch chat can vote for events to occur in-game."
+strPollDurationLabel="Poll Duration (Turns)"
+strPollDurationTooltip="How many turns your chat has to vote before the poll takes effect. The poll timer ticks down at the start of your turn, which is also when the effects will occur when it ends."
+strMinTurnsBeforeFirstPollLabel="Minimum Turns Before First Poll"
+strMinTurnsBeforeFirstPollTooltip="How many turns need to pass in a mission before the first poll can occur."
+strMinTurnsBetweenPollsLabel="Minimum Turns Between Polls"
+strMinTurnsBetweenPollsTooltip="How many turns need to pass between the end of one poll and the start of another."
+strChanceToStartPollLabel="Poll Chance Each Turn (%)"
+strChanceToStartPollTooltip="The percentage chance to start a poll on each eligible turn. If 100, a poll will start every turn that it is possible (according to the settings above)."
+
+strRaffleSettingsGroupTitle="Raffle Settings"
+strAssignUnitNamesLabel="Raffle Non-Soldier Units As Viewers"
+strAssignUnitNamesTooltip="If enabled, non-soldiers on missions (enemies, civilians, VIPs, etc) will automatically be raffled as viewers from your chat."
+strAssignChosenNamesLabel="Raffle the Chosen Assassin/Hunter/Warlock"
+strAssignChosenNamesTooltip="If enabled, the Chosen will also be raffled automatically. Otherwise they will retain their automatically generated names."
+strChosenNamesArePersistentLabel="Chosen Names Persist Throughout Campaign"
+strChosenNamesArePersistentTooltip="If enabled, the viewer names given to the Chosen will persist for the entire campaign. Otherwise, they will be re-raffled every time they appear on a mission."
+
 [PollEvent_ImpairEnemies_CatchFire X2PollEventTemplate]
 FriendlyName="Ignite 1 Enemy"
 Explanation="1 enemy will catch fire for 2 turns."

@@ -1,6 +1,6 @@
 // Usually we connect to Twitch by responding to the OnTacticalBeginPlay event, but unfortunately,
 // that event does not fire when loading into the tactical game directly.
-class UIScreenListener_TacticalStart extends UIScreenListener;
+class UIScreenListener_TwitchTacticalStart extends UIScreenListener;
 
 event OnInit(UIScreen Screen)
 {

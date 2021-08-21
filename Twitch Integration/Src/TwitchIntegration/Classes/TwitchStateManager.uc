@@ -13,16 +13,9 @@ struct PollTypeWeighting {
 // ----------------------------------------------
 // Config vars
 
-var config string Channel;
-var config bool bBlacklistBroadcaster;
 var config array<string> BlacklistedViewerNames;
 
 var config(TwitchChatCommands) array<string> EnabledCommands;
-
-var config(TwitchEvents) int PollDurationInTurns;
-var config(TwitchEvents) int MinTurnsBeforeFirstPoll;
-var config(TwitchEvents) int MinTurnsBetweenPolls;
-var config(TwitchEvents) int ChanceToStartPoll;
 var config(TwitchEvents) array<PollTypeWeighting> PollTypeWeights;
 
 var private int OptionsPerPoll;
@@ -32,9 +25,6 @@ var private int OptionsPerPoll;
 
 var bool bUnraffledUnitsExist;
 var privatewrite bool bIsViewerListPopulated;
-var array<TwitchViewer> ConnectedViewers;
-var private array<string> AvailableViewers;
-var private array<string> RaffledViewers;
 var private array<string> VotersInCurrentPoll;
 
 var private HttpGetRequest HttpGet;
@@ -202,14 +192,14 @@ function HandleChatCommand(TwitchMessage Command, TwitchViewer Viewer) {
 
 function LoadViewerList() {
 	HttpGet = Spawn(class'HttpGetRequest');
-	HttpGet.Call("tmi.twitch.tv/group/user/" $ Locs(class'TwitchChatTcpLink'.default.TwitchChannel) $ "/chatters", OnNamesListReceived, OnNamesListReceiveError);
+	HttpGet.Call("tmi.twitch.tv/group/user/" $ Locs(`TI_CFG(TwitchChannel)) $ "/chatters", OnNamesListReceived, OnNamesListReceiveError);
 }
 
 /// <summary>
 /// Selects a viewer who does not currently own any object. Do not call this multiple times without assigning
 /// ownership first, or you may get the same viewer repeatedly.
 /// </summary>
-/// <returns>The index of the viewer in the ConnectedViewers array, or INDEX_NONE if no viewers are available.</returns>
+/// <returns>The index of the viewer in the TwitchChatConn.Viewers array, or INDEX_NONE if no viewers are available.</returns>
 function int RaffleViewer() {
     local int AvailableIndex, Index, RaffledIndex;
     local int NumAvailableViewers;
@@ -347,7 +337,8 @@ private function bool FilterRelevantTemplates(X2DataTemplate Template) {
 }
 
 private function OnConnectedToTwitchChat() {
-    if (ChatLog == none && class'UIChatLog'.default.bShowChatLog) {
+    if (ChatLog == none) {
+        // We always create a chat log, and let that component worry about hiding itself based on config
         ChatLog = Spawn(class'UIChatLog', `SCREENSTACK.GetFirstInstanceOf(class'UITacticalHud')).InitChatLog(10, 245, 475, 210);
         ChatLog.AnchorTopLeft();
     }
@@ -370,8 +361,6 @@ private function OnNamesListReceived(HttpResponse Response) {
 
     `TILOGCLS("Received names list, parsing response");
 
-    ConnectedViewers.Length = 0;
-
     // TODO: rewrite this without JsonObject because it crashes on large payloads
 
 	JsonObj = class'JsonObject'.static.DecodeJson(Response.Body);
@@ -387,8 +376,6 @@ private function OnNamesListReceived(HttpResponse Response) {
 
     bIsViewerListPopulated = true;
     HttpGet.Destroy();
-
-    `TILOGCLS("Received viewer list from Twitch: found " $ ConnectedViewers.Length $ " viewers");
 
     `XEVENTMGR.TriggerEvent('TwitchAssignUnitNames');
 }
@@ -409,7 +396,7 @@ private function EventListenerReturn OnPlayerTurnBegun(Object EventData, Object 
 
     if (PollGameState == none) {
         if (ShouldStartPoll(PlayerState)) {
-            StartPoll(SelectPollTypeByWeight(), PollDurationInTurns, PlayerState);
+            StartPoll(SelectPollTypeByWeight(), `TI_CFG(PollDurationInTurns), PlayerState);
         }
 
         return ELR_NoInterrupt;
@@ -432,10 +419,6 @@ private function EventListenerReturn OnPlayerTurnBegun(Object EventData, Object 
 }
 
 private function OnTwitchMessageReceived(TwitchMessage Message, TwitchViewer FromViewer) {
-	local string Command;
-	local string CommandBody;
-	local int Index;
-
 	// Only messages we're interested in are chat commands
 	if (Message.MessageType != eTwitchMessageType_Chat && Message.MessageType != eTwitchMessageType_Whisper) {
 		return;
@@ -450,7 +433,6 @@ private function OnTwitchMessageReceived(TwitchMessage Message, TwitchViewer Fro
 
     HandleChatCommand(Message, FromViewer);
 }
-
 
 private function PopulateViewers(array<string> ViewerLogins) {
     local string Login;
@@ -469,10 +451,6 @@ private function PopulateViewers(array<string> ViewerLogins) {
         }
 
         if (BlacklistedViewerNames.Find(Login) != INDEX_NONE) {
-            continue;
-        }
-
-        if (bBlacklistBroadcaster && Login == TwitchChatConn.TwitchChannel) {
             continue;
         }
 
@@ -608,10 +586,14 @@ private function bool ShouldStartPoll(XComGameState_Player PlayerState) {
     local int TurnsSinceMissionStart;
 	local XComGameState_TwitchEventPoll PollState;
 
+    if (!`TI_CFG(bEnablePolls)) {
+        return false;
+    }
+
     // Check if enough turns have elapsed since beginning the mission
     TurnsSinceMissionStart = PlayerState.PlayerTurnCount - 1; // PlayerTurnCount is 1 on the first turn
 
-    if (TurnsSinceMissionStart < MinTurnsBeforeFirstPoll) {
+    if (TurnsSinceMissionStart < `TI_CFG(MinTurnsBeforeFirstPoll)) {
         return false;
     }
 
@@ -628,14 +610,14 @@ private function bool ShouldStartPoll(XComGameState_Player PlayerState) {
         TurnsSinceLastPollStarted = PlayerState.PlayerTurnCount - PollState.PlayerTurnCountWhenStarted;
         TurnsSinceLastPollEnded = TurnsSinceLastPollStarted - PollState.DurationInTurns;
 
-        if (TurnsSinceLastPollEnded < MinTurnsBetweenPolls) {
-            `TILOGCLS("Last poll ended " $ TurnsSinceLastPollEnded $ " turns ago; min to start new is " $ MinTurnsBetweenPolls);
+        if (TurnsSinceLastPollEnded < `TI_CFG(MinTurnsBetweenPolls)) {
+            `TILOGCLS("Last poll ended " $ TurnsSinceLastPollEnded $ " turns ago; cannot start another yet");
             return false;
         }
     }
 
     // Roll it
-    return `SYNC_RAND(100) < ChanceToStartPoll;
+    return `SYNC_RAND(100) < `TI_CFG(ChanceToStartPoll);
 }
 
 defaultproperties

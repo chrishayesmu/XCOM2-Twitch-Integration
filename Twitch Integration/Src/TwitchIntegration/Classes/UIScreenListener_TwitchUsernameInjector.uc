@@ -8,6 +8,7 @@ var localized string strButtonLabel;
 var localized string strDescription;
 var localized string strDialogTitle;
 
+// TODO need to stop storing these somehow since UISLs apparently don't get garbage collected
 var private UIArmory_MainMenu ArmoryMainMenu;
 var private delegate<OnItemSelectedCallback> OriginalOnItemClicked;
 var private delegate<OnItemSelectedCallback> OriginalOnSelectionChanged;

@@ -55,10 +55,9 @@ struct QueuedOutboundMessage {
 // ------------------------------------------
 // Config vars
 
-var config string TwitchChannel;
-var config string TwitchUsername;
-var config string OAuthToken;
-var config int ViewerTTLInMinutes;
+var privatewrite string TwitchChannel;
+var privatewrite string TwitchUsername;
+var private string OAuthToken;
 
 var config(TwitchDebug) bool LogTraffic;
 
@@ -96,15 +95,17 @@ delegate ConnectionListener();
 delegate MessageListener(TwitchMessage Chat, TwitchViewer FromViewer);
 
 function Initialize(delegate<ConnectionListener> OnConnect = none, delegate<MessageListener> OnMessage = none) {
-	default.TwitchChannel = Locs(TwitchChannel);
-    default.TwitchUsername = Locs(TwitchUsername);
+	TwitchChannel = Locs(`TI_CFG(TwitchChannel));
+    TwitchUsername = Locs(`TI_CFG(TwitchUsername));
+    OAuthToken = `TI_CFG(OAuthToken);
+
 	OnMessageReceived = OnMessage;
     OnConnectSuccessful = OnConnect;
 
     bConnectedAsBroadcaster = (TwitchChannel == TwitchUsername);
 
-    if (Left(default.OAuthToken, 6) != "oauth:") {
-        default.OAuthToken = "oauth:" $ default.OAuthToken;
+    if (Left(OAuthToken, 6) != "oauth:") {
+        OAuthToken = "oauth:" $ OAuthToken;
     }
 
     MessagePrefix = ":" $ TwitchUsername $ "!" $ TwitchUsername $ "@" $ TwitchUsername $ ".tmi.twitch.tv ";
@@ -476,6 +477,9 @@ private function ProcessMessageQueue() {
 private function PurgeStaleViewers() {
     local int Index;
     local int EarliestValidTime;
+    local int ViewerTTLInMinutes;
+
+    ViewerTTLInMinutes = Clamp(`TI_CFG(ViewerTTLInMinutes), 10, 60);
 
     EarliestValidTime = class'XComGameState_TimerData'.static.GetUTCTimeInSeconds() - ViewerTTLInMinutes * 60;
 

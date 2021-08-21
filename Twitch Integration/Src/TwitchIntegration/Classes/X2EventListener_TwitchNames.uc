@@ -1,19 +1,11 @@
 class X2EventListener_TwitchNames extends X2EventListener
     config(TwitchIntegration);
 
-var config bool bAssignUnitNames;
-
-var config bool bAssignChosenNames;
-var config bool bChosenNamesArePersistent;
-//var config eTwitchRole MinRoleForChosen;
-
 static function array<X2DataTemplate> CreateTemplates() {
 	local array<X2DataTemplate> Templates;
 
-    if (default.bAssignUnitNames) {
-	    Templates.AddItem(UnitAssignName());
-	    Templates.AddItem(UnitShowName());
-    }
+    Templates.AddItem(UnitAssignName());
+    Templates.AddItem(UnitShowName());
 
 	return Templates;
 }
@@ -143,6 +135,10 @@ static protected function EventListenerReturn AssignNamesToUnits(Object EventDat
     local XComGameState_TwitchObjectOwnership OwnershipState;
 	local XComGameState_Unit Unit;
 
+    if (!`TI_CFG(bAssignUnitNames)) {
+        return ELR_NoInterrupt;
+    }
+
     foreach `XCOMHISTORY.IterateByClassType(class'XComGameState_Unit', Unit) {
         // Make sure someone doesn't already own this unit
         OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Unit.ObjectID);
@@ -164,6 +160,10 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
     local TwitchViewer Viewer;
 	local XComGameState_Unit Unit;
     local XComGameState_TwitchObjectOwnership OwnershipState;
+
+    if (!`TI_CFG(bAssignUnitNames)) {
+		return ELR_NoInterrupt;
+    }
 
     TwitchMgr = `TISTATEMGR;
     TwitchConn = TwitchMgr.TwitchChatConn;

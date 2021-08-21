@@ -169,7 +169,6 @@ exec function TwitchRaffleUnitUnderMouse() {
 /// use any raffling, and does work on XCOM soldiers. It also works on dead units.
 /// </summary>
 exec function TwitchReassignUnitUnderMouse(optional string ViewerLogin) {
-	local XComGameState NewGameState;
 	local XComGameState_TwitchObjectOwnership OwnershipState;
 	local XComGameState_Unit Unit;
 

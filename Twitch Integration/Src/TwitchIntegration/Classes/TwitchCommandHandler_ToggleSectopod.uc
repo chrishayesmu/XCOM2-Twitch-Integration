@@ -23,8 +23,6 @@ function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer
 }
 
 protected function ToggleSectopod_BuildVisualization(XComGameState VisualizeGameState) {
-    local string SanitizedMessageBody;
-    local EWidgetColor MessageColor;
 	local VisualizationActionMetadata ActionMetadata;
 	local XComGameState_Unit Unit;
 	local XComGameStateHistory History;

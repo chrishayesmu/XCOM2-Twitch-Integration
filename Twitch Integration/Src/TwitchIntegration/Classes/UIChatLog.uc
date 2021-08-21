@@ -1,18 +1,16 @@
-class UIChatLog extends UIPanel config(TwitchChatCommands);
+class UIChatLog extends UIPanel
+    config(TwitchChatCommands)
+    dependson(TwitchIntegrationConfig);
 
 var localized string ClearButtonLabel;
 
-var config bool bShowChatLog;
-var config bool bColorMessagesByTeam;
-var config bool bColorMessagesSameAsTwitch;    // takes priority over bColorMessagesByTeam
-var config bool bFormatDeadMessages;
-var config bool bShowFullEnemyUnitName;
-var config bool bShowFullFriendlyUnitName;
 var config float TimeToShowOnMessageReceived;
 
 struct ChatMessage {
     var string Sender;
     var string Body;
+    var string MsgId;
+    var XComGameState_Unit Unit;
 };
 
 var private int XPos;
@@ -24,6 +22,7 @@ var private UITextContainer m_TextContainer;
 var private array<ChatMessage> Messages;
 
 function UIChatLog InitChatLog(int InitX, int InitY, int InitWidth, int InitHeight) {
+    local Object ThisObj;
     InitPanel();
     SetPosition(InitX, InitY);
     SetSize(InitWidth, InitHeight);
@@ -45,17 +44,28 @@ function UIChatLog InitChatLog(int InitX, int InitY, int InitWidth, int InitHeig
     m_ExpandCollapseButton.SetPosition(InitX + m_TextContainer.Width + 3, m_TextContainer.Y);
     m_ExpandCollapseButton.SetSize(28, 28);
 
+    ThisObj = self;
+	`XEVENTMGR.RegisterForEvent(ThisObj, 'TwitchModConfigSaved', OnModConfigChanged, ELD_Immediate);
+
     Collapse();
+
+    if (!`TI_CFG(bShowChatLog)) {
+        Hide();
+    }
 
     return self;
 }
 
-function AddMessage(string Sender, string Body, optional XComGameState_Unit Unit) {
+function AddMessage(string Sender, string Body, optional XComGameState_Unit Unit, optional string MsgId) {
     local ChatMessage Message;
 
-    Message.Body = FormatMessageBody(Body, Unit);
-    Message.Sender = FormatSenderName(Sender, Unit);
+    // Do formatting on display, not storage, in case user config changes at runtime
+    Message.Body = Body;
+    Message.Sender = Sender;
+    Message.Unit = Unit;
+    Message.MsgId = MsgId;
 
+    // TODO: probably a good idea to have a max chat history size at some point?
     Messages.AddItem(Message);
 
     // TODO: don't expand if it was manually collapsed; make expand button flash instead
@@ -93,7 +103,7 @@ private function string FormatMessageBody(string Body, optional XComGameState_Un
         return Body;
     }
 
-    if (bFormatDeadMessages && Unit.IsDead()) {
+    if (`TI_CFG(bFormatDeadMessages) && Unit.IsDead()) {
         Body = "..." @ LOCS(Body) @ "...";
     }
 
@@ -101,7 +111,10 @@ private function string FormatMessageBody(string Body, optional XComGameState_Un
 }
 
 private function string FormatSenderName(string Sender, optional XComGameState_Unit Unit) {
+    local bool bIsFriendlyUnit;
     local string SenderColor;
+    local eTwitchConfig_ChatLogColorScheme ColorScheme;
+    local eTwitchConfig_ChatLogNameFormat NameFormat;
     local TwitchViewer Viewer;
     local XComGameState_TwitchObjectOwnership Ownership;
 
@@ -109,21 +122,23 @@ private function string FormatSenderName(string Sender, optional XComGameState_U
         return Sender;
     }
 
+    bIsFriendlyUnit = Unit.GetTeam() == eTeam_XCom;
+    NameFormat = bIsFriendlyUnit ? `TI_CFG(ChatLogFriendlyNameFormat) : `TI_CFG(ChatLogEnemyNameFormat);
     Ownership = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Unit.GetReference().ObjectID);
 
-    if (bShowFullEnemyUnitName && (Unit.GetTeam() == eTeam_Alien || Unit.GetTeam() == eTeam_TheLost)) {
-        Sender = Sender $ " " $ Unit.GetLastName(); // original unit name is kept in the last name
-    }
-    else if (bShowFullFriendlyUnitName && Unit.GetTeam() == eTeam_XCom) {
+    // Only use full name for friendly units, or visible enemy units
+    if (NameFormat == ETC_UnitNameOnly && (bIsFriendlyUnit || class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(Unit.ObjectID))) {
         Sender = Unit.GetFullName();
     }
 
-    if (bColorMessagesSameAsTwitch) {
+    ColorScheme = `TI_CFG(ChatLogColorScheme);
+
+    if (ColorScheme == ETC_TwitchColors) {
         if (`TISTATEMGR.TwitchChatConn.GetViewer(Ownership.TwitchLogin, Viewer) != INDEX_NONE) {
             SenderColor = Mid(Viewer.ChatColor, 1); // strip leading # from color
         }
     }
-    else if (bColorMessagesByTeam) {
+    else if (ColorScheme == ETC_TeamColors) {
         switch (Unit.GetTeam()) {
             case eTeam_Alien:
                 SenderColor = class'UIUtilities_Colors'.const.BAD_HTML_COLOR;
@@ -138,7 +153,7 @@ private function string FormatSenderName(string Sender, optional XComGameState_U
     }
 
     // bFormatDeadMessages takes priority over other color options
-    if (bFormatDeadMessages && Unit.IsDead()) {
+    if (`TI_CFG(bFormatDeadMessages) && Unit.IsDead()) {
         SenderColor = class'UIUtilities_Colors'.const.DISABLED_HTML_COLOR;
     }
 
@@ -165,16 +180,30 @@ private function OnExpandCollapseButtonClicked(UIButton Button) {
     }
 }
 
+private function EventListenerReturn OnModConfigChanged(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
+    // Re-render all messages in case we've changed our display settings
+    UpdateUI();
+
+    return ELR_NoInterrupt;
+}
+
 private function UpdateUI() {
     local string FullChat;
     local string FormattedMessage;
     local ChatMessage Message;
 
+    if (!`TI_CFG(bShowChatLog)) {
+        Hide();
+        return;
+    }
+
+    Show();
+
     foreach Messages(Message) {
-        FormattedMessage = Message.Sender $ ": " $ Message.Body;
+        FormattedMessage = FormatSenderName(Message.Sender, Message.Unit) $ ": " $ FormatMessageBody(Message.Body, Message.Unit);
 
         if (FullChat == "") {
-            FulLChat = FormattedMessage;
+            FullChat = FormattedMessage;
         }
         else {
             FullChat = FullChat $ "\n" $ FormattedMessage;
