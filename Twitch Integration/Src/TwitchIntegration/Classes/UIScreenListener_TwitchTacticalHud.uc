@@ -42,11 +42,32 @@ event OnRemoved(UIScreen Screen) {
 protected function CheckUnitLosStatus() {
     local bool bUnitIsVisibleToSquad;
     local UIWorldMessageMgr WorldMessageMgr;
+    local UIUnitFlagManager UnitFlagManager;
+	local UIUnitFlag UnitFlag;
+	local XComGameStateHistory History;
     local XGUnit Unit;
 
-    // TODO: since this isn't tied into the visualization system, it's changing status too early
+    UnitFlagManager = `PRES.m_kUnitFlagManager;
+
+    if (UnitFlagManager == none) {
+        `TILOGCLS("No UnitFlagManager, skipping update to nameplates");
+        return;
+    }
+
     foreach `XCOMGAME.AllActors(class'XGUnit', Unit) {
-        bUnitIsVisibleToSquad = class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(Unit.ObjectID);
+        UnitFlag = UnitFlagManager.GetFlagForObjectID(Unit.ObjectID);
+
+        // If a unit flag exists, simply tie into its state; we'll want to match it as often as possible
+        if (UnitFlag != none) {
+            bUnitIsVisibleToSquad = UnitFlag.bIsVisible;
+        }
+        else if (Unit.IsDead()) {
+            // Never show nameplates on dead units
+            bUnitIsVisibleToSquad = false;
+        }
+        else  {
+            bUnitIsVisibleToSquad = class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(Unit.ObjectID);
+        }
 
         if (!bUnitIsVisibleToSquad) {
             class'UIUtilities_Twitch'.static.HideTwitchName(Unit.ObjectID, WorldMessageMgr);
