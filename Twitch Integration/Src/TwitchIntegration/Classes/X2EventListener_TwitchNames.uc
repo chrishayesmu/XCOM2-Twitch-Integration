@@ -16,6 +16,7 @@ static function X2EventListenerTemplate UnitAssignName() {
 	`CREATE_X2TEMPLATE(class'CHEventListenerTemplate', Template, 'AssignTwitchName');
 
 	Template.RegisterInTactical = true;
+	Template.AddCHEvent('ObjectMoved', ShowOrHideNameplates, ELD_OnVisualizationBlockStarted);
 	Template.AddEvent('OnUnitBeginPlay', ChooseViewerName);
     Template.AddEvent('UnitRemovedFromPlay', OnUnitRemovedFromPlay);
 	Template.AddEvent('UnitSpawned', ChooseViewerName);
@@ -220,9 +221,11 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
 }
 
 static protected function EventListenerReturn OnEnemyGroupSighted(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
+    local TwitchViewer Viewer;
 	local VisualizationActionMetadata EmptyMetadata;
 	local VisualizationActionMetadata Metadata;
 	local Array<X2Action> arrActions;
+    local X2Action_Twitch_ToggleNameplate NameplateAction;
     local X2Action_RevealAIBegin RevealAIAction;
 	local X2Action_PlaySoundAndFlyOver SoundAndFlyover;
 	local XComGameStateContext Context;
@@ -249,26 +252,21 @@ static protected function EventListenerReturn OnEnemyGroupSighted(Object EventDa
     Context = RevealAIAction.StateChangeContext;
 
     foreach AIGroupState.m_arrMembers(UnitRef) {
-        `TILOG("Sighted unit ID " $ UnitRef.ObjectID);
-
         OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(UnitRef.ObjectID);
 
         if (OwnershipState == none) {
             continue;
         }
 
-        OwnedObject = `XCOMHISTORY.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID, eReturnType_Reference);
+        OwnedObject = History.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID, eReturnType_Reference);
 
 	    Metadata = EmptyMetadata;
 	    Metadata.StateObject_OldState = OwnedObject;
 	    Metadata.StateObject_NewState = OwnedObject;
 	    Metadata.VisualizeActor = History.GetVisualizer(OwnedObject.ObjectID);
 
-        // TODO: might have to make our own action in order to show the flyover longer; this one's pretty short
-        // TODO: pull Twitch display name instead of login
-	    SoundAndFlyOver = X2Action_PlaySoundAndFlyOver(class'X2Action_PlaySoundAndFlyOver'.static.AddToVisualizationTree(Metadata, Context, false, RevealAIAction));
-	    SoundAndFlyOver.SetSoundAndFlyOverParameters(none, OwnershipState.TwitchLogin, '', eColor_Purple, class'UIUtilities_Twitch'.const.TwitchIcon_3D,
-                                                     0, /* _BlockUntilFinished */, /* _VisibleTeam */, class'UIWorldMessageMgr'.const.FXS_MSG_BEHAVIOR_READY);
+        NameplateAction = X2Action_Twitch_ToggleNameplate(class'X2Action_Twitch_ToggleNameplate'.static.AddToVisualizationTree(Metadata, Context, false, RevealAIAction));
+        NameplateAction.bEnableNameplate = true;
     }
 
     return ELR_InterruptEvent;
@@ -305,10 +303,26 @@ static protected function EventListenerReturn OnUnitRemovedFromPlay(Object Event
         // Need to delete ownership of the original civilian unit
         NewGameState.RemoveStateObject(Ownership.ObjectID);
 
+        // TODO: probably need to delete the nameplate of the civilian and create a new one attached to the Faceless object ID
+
         `GAMERULES.SubmitGameState(NewGameState);
 
         break;
     }
+
+    return ELR_NoInterrupt;
+}
+
+static protected function EventListenerReturn ShowOrHideNameplates(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
+    local XComGameState_Unit Unit;
+
+    Unit = XComGameState_Unit(EventData);
+
+    if (Unit == none) {
+        return ELR_NoInterrupt;
+    }
+
+    //`TILOG("ShowOrHideNameplates triggered for unit ID " $ Unit.GetReference().ObjectID);
 
     return ELR_NoInterrupt;
 }

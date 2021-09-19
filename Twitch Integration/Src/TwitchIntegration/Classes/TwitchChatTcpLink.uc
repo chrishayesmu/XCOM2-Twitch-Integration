@@ -128,6 +128,7 @@ function int GetViewer(string Login, out TwitchViewer Viewer) {
     Index = Viewers.Find('Login', Login);
 
     if (Index == INDEX_NONE) {
+        Viewer.Login = Login;
         return INDEX_NONE;
     }
 

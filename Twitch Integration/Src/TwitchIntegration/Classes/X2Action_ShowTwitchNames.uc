@@ -1,1 +1,0 @@
-class X2Action_ShowTwitchNames extends X2Action;

@@ -331,6 +331,7 @@ private function OpenOAuthTokenInputBox(MCM_API_Setting _Setting) {
     kData.iMaxChars = 36; // token is 30 characters, plus 6 for the "oauth:" prefix
     kData.fnCallbackAccepted = OnOAuthTokenInputBoxClosed;
     kData.strInputBoxText = OAuthToken;
+    kData.bIsPassword = true;
 
     `PRESBASE.UIInputDialog(kData);
 }

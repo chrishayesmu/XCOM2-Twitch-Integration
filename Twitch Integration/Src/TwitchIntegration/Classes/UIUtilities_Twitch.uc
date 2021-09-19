@@ -10,12 +10,20 @@ static function string RPad(coerce string S, string Padding, int Length) {
     return S;
 }
 
+static function HideTwitchName(int ObjectID, optional UIWorldMessageMgr MessageMgr) {
+    if (MessageMgr == none) {
+        MessageMgr = `PRES.m_kWorldMessageManager;
+    }
+
+    // We want to hide both temporary and permanent messages so do both
+    MessageMgr.RemoveMessage(GetMsgID(ObjectID, false));
+    MessageMgr.RemoveMessage(GetMsgID(ObjectID, true));
+}
+
 static function ShowTwitchName(int ObjectID, optional XComGameState NewGameState, optional bool bPermanent = false) {
-	local Array<X2Action> arrActions;
-    local X2Action_RevealAIBegin RevealAIAction;
-    local X2Action_ShowTwitchNames ShowNamesAction;
-	local XComGameStateContext Context;
-	local XComGameStateVisualizationMgr VisMgr;
+    local float DisplayTime;
+    local int MsgBehavior;
+    local TwitchViewer Viewer;
     local XComGameState_TwitchObjectOwnership OwnershipState;
     local Vector Position;
 
@@ -25,31 +33,35 @@ static function ShowTwitchName(int ObjectID, optional XComGameState NewGameState
         return;
     }
 
-	VisMgr = `XCOMVISUALIZATIONMGR;
-    VisMgr.GetNodesOfType(VisMgr.VisualizationTree, class'X2Action_RevealAIBegin', arrActions);
-    `TILOG("There are " $ arrActions.Length $ " RevealAIBegin actions in current vis tree");
+    `TISTATEMGR.TwitchChatConn.GetViewer(OwnershipState.TwitchLogin, Viewer);
+    DisplayTime = bPermanent ? 0.0 : 7.0;
+    MsgBehavior = bPermanent ? class'UIWorldMessageMgr'.const.FXS_MSG_BEHAVIOR_STEADY : class'UIWorldMessageMgr'.const.FXS_MSG_BEHAVIOR_FLOAT;
 
-    if (arrActions.Length > 0) {
-        // it's pretty unlikely we'll have multiple reveals at once, deal with that later
-        RevealAIAction = X2Action_RevealAIBegin(arrActions[0]);
-	    Context = RevealAIAction.StateChangeContext;
-
-        ShowNamesAction = X2Action_ShowTwitchNames(class'X2Action_ShowTwitchNames'.static.CreateVisualizationAction(Context));
-
-        VisMgr.ReplaceNode(ShowNamesAction, RevealAIAction);
-		VisMgr.ConnectAction(RevealAIAction, VisMgr.BuildVisTree, true, ShowNamesAction);
-    }
-
-    `PRES.QueueWorldMessage(OwnershipState.TwitchLogin,
+    `PRES.QueueWorldMessage(`TIVIEWERNAME(Viewer),
                             Position,
                             OwnershipState.OwnedObjectRef,
                             eColor_Purple,
-                            class'UIWorldMessageMgr'.const.FXS_MSG_BEHAVIOR_READY,
-                            /* _sId */ "twitch_name_" $ ObjectID,
+                            MsgBehavior,
+                            /* _sId */ GetMsgId(ObjectID, bPermanent),
                             /* _eBroadcastToTeams */,
                             /* _bUseScreenLocationParam */,
                             /* _vScreenLocationParam */,
-                            /* _displayTime */ bPermanent ? -1.0 : 7.0,
+                            /* _displayTime */ DisplayTime,
                             /* deprecated */,
                             TwitchIcon_3D, , , , , , , NewGameState, true);
+}
+
+private static function string GetMsgId(int ObjectID, bool bPermanent) {
+    local string MsgId;
+
+    // The world messenger tries to update messages with the same ID, and it checks every param for changes
+    // except for the display time, which of course is the only one we change. Accordingly we have to use different
+    // message IDs for permanent messages.
+    MsgId = "twitch_name_" $ ObjectID;
+
+    if (bPermanent) {
+        MsgId $= "_perm";
+    }
+
+    return MsgId;
 }
