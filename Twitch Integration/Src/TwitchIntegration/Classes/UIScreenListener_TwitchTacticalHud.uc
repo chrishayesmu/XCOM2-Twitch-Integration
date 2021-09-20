@@ -5,7 +5,6 @@ class UIScreenListener_TwitchTacticalHud extends UIScreenListener
 
 var private bool bIsAltDown;
 var private bool bIsControlDown;
-var privatewrite config bool bPermanentNameplatesEnabled;
 
 event OnInit(UIScreen Screen) {
     local UITacticalHud TacticalHud;
@@ -14,10 +13,6 @@ event OnInit(UIScreen Screen) {
     if (TacticalHud == none) {
         return;
     }
-
-    `TILOGCLS("OnInit 1: Twitch nameplates enabled: " $ default.bPermanentNameplatesEnabled);
-    default.bPermanentNameplatesEnabled = false;
-    `TILOGCLS("OnInit 2: Twitch nameplates enabled: " $ default.bPermanentNameplatesEnabled);
 
     TacticalHud.Movie.Stack.SubscribeToOnInputForScreen(TacticalHud, OnTacticalHudInput);
 
@@ -40,7 +35,8 @@ event OnRemoved(UIScreen Screen) {
 }
 
 protected function CheckUnitLosStatus() {
-    local bool bUnitIsVisibleToSquad;
+    local bool bPermanentNameplatesEnabled, bCivilianNameplatesEnabled, bEnemyNameplatesEnabled, bSoldierNameplatesEnabled;
+    local bool bShowNameplate;
     local UIWorldMessageMgr WorldMessageMgr;
     local UIUnitFlagManager UnitFlagManager;
 	local UIUnitFlag UnitFlag;
@@ -54,25 +50,41 @@ protected function CheckUnitLosStatus() {
         return;
     }
 
+    bPermanentNameplatesEnabled = `TI_CFG(bPermanentNameplatesEnabled);
+    bCivilianNameplatesEnabled = `TI_CFG(bCivilianNameplatesEnabled);
+    bEnemyNameplatesEnabled = `TI_CFG(bEnemyNameplatesEnabled);
+    bSoldierNameplatesEnabled = `TI_CFG(bSoldierNameplatesEnabled);
+
     foreach `XCOMGAME.AllActors(class'XGUnit', Unit) {
         UnitFlag = UnitFlagManager.GetFlagForObjectID(Unit.ObjectID);
 
         // If a unit flag exists, simply tie into its state; we'll want to match it as often as possible
         if (UnitFlag != none) {
-            bUnitIsVisibleToSquad = UnitFlag.bIsVisible;
+            bShowNameplate = UnitFlag.bIsVisible;
         }
         else if (Unit.IsDead()) {
             // Never show nameplates on dead units
-            bUnitIsVisibleToSquad = false;
+            bShowNameplate = false;
         }
-        else  {
-            bUnitIsVisibleToSquad = class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(Unit.ObjectID);
+        else {
+            bShowNameplate = class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(Unit.ObjectID);
         }
 
-        if (!bUnitIsVisibleToSquad) {
+        if (Unit.GetTeam() == eTeam_XCom && Unit.IsSoldier()) {
+            bShowNameplate = bShowNameplate && bSoldierNameplatesEnabled;
+        }
+        else if (Unit.IsCivilianChar()) {
+            // TODO, player-controlled VIPs should maybe be handled differently
+            bShowNameplate = bShowNameplate && bCivilianNameplatesEnabled;
+        }
+        else if (Unit.GetTeam() == eTeam_Alien) {
+            bShowNameplate = bShowNameplate && bEnemyNameplatesEnabled;
+        }
+
+        if (!bShowNameplate) {
             class'UIUtilities_Twitch'.static.HideTwitchName(Unit.ObjectID, WorldMessageMgr);
         }
-        else if (default.bPermanentNameplatesEnabled)  {
+        else if (bPermanentNameplatesEnabled)  {
             class'UIUtilities_Twitch'.static.ShowTwitchName(Unit.ObjectID, , /* bPermanent */ true);
         }
     }
@@ -121,17 +133,19 @@ private function SpawnStateManagerIfNeeded() {
 }
 
 private function ToggleNameplates() {
-    local bool bUnitIsVisibleToSquad;
+    local bool bPermanentNameplatesEnabled, bUnitIsVisibleToSquad;
     local UIWorldMessageMgr WorldMessageMgr;
     local XGUnit Unit;
 
-    default.bPermanentNameplatesEnabled = !default.bPermanentNameplatesEnabled;
+    bPermanentNameplatesEnabled = !`TI_CFG(bPermanentNameplatesEnabled);
+
+    class'TwitchIntegrationConfig'.default.bPermanentNameplatesEnabled = bPermanentNameplatesEnabled;
     WorldMessageMgr = `PRES.m_kWorldMessageManager;
 
-    `TILOGCLS("Twitch nameplates enabled: " $ default.bPermanentNameplatesEnabled);
+    `TILOGCLS("Twitch nameplates enabled: " $ bPermanentNameplatesEnabled);
 
     foreach `XCOMGAME.AllActors(class'XGUnit', Unit) {
-        if (default.bPermanentNameplatesEnabled) {
+        if (bPermanentNameplatesEnabled) {
             bUnitIsVisibleToSquad = class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(Unit.ObjectID);
 
             if (bUnitIsVisibleToSquad) {

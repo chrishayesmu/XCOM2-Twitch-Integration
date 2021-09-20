@@ -25,6 +25,15 @@ var config eTwitchConfig_ChatLogNameFormat  ChatLogFriendlyNameFormat;
 
 // #endregion
 
+// #region Nameplate settings
+
+var config bool bPermanentNameplatesEnabled;
+var config bool bCivilianNameplatesEnabled;
+var config bool bEnemyNameplatesEnabled;
+var config bool bSoldierNameplatesEnabled;
+
+// #endregion
+
 // #region Poll settings
 
 var config bool bEnablePolls;

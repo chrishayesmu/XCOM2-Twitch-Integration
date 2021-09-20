@@ -9,10 +9,8 @@ simulated state Executing
 	    local X2Action_PlaySoundAndFlyOver SoundAndFlyover;
         local XComGameState_TwitchObjectOwnership OwnershipState;
 
-        `TILOGCLS("SetNameplate: " $ bEnableNameplate $ "; " $ `SHOWVAR(class'UIScreenListener_TwitchTacticalHud'.default.bPermanentNameplatesEnabled));
-
         if (bEnableNameplate) {
-            class'UIUtilities_Twitch'.static.ShowTwitchName(Unit.ObjectID, , /* bPermanent */ class'UIScreenListener_TwitchTacticalHud'.default.bPermanentNameplatesEnabled);
+            class'UIUtilities_Twitch'.static.ShowTwitchName(Unit.ObjectID, , /* bPermanent */ `TI_CFG(bPermanentNameplatesEnabled));
         }
         else {
             class'UIUtilities_Twitch'.static.HideTwitchName(Unit.ObjectID);

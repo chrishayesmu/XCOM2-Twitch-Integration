@@ -59,6 +59,20 @@ var localized string strChatLogNameFormat_UnitName;
 
 // #endregion
 
+// #region Nameplate strings
+
+var localized string strNameplateSettingsGroupTitle;
+var localized string strPermanentNameplatesEnabledLabel;
+var localized string strPermanentNameplatesEnabledTooltip;
+var localized string strCivilianNameplatesEnabledLabel;
+var localized string strCivilianNameplatesEnabledTooltip;
+var localized string strEnemyNameplatesEnabledLabel;
+var localized string strEnemyNameplatesEnabledTooltip;
+var localized string strSoldierNameplatesEnabledLabel;
+var localized string strSoldierNameplatesEnabledTooltip;
+
+// #endregion
+
 // #region Poll strings
 
 var localized string strPollSettingsGroupTitle;
@@ -109,6 +123,15 @@ var config bool                             bFormatDeadMessages;
 var config eTwitchConfig_ChatLogColorScheme ChatLogColorScheme;
 var config eTwitchConfig_ChatLogNameFormat  ChatLogEnemyNameFormat;
 var config eTwitchConfig_ChatLogNameFormat  ChatLogFriendlyNameFormat;
+
+// #endregion
+
+// #region Nameplate settings
+
+var config bool bPermanentNameplatesEnabled;
+var config bool bCivilianNameplatesEnabled;
+var config bool bEnemyNameplatesEnabled;
+var config bool bSoldierNameplatesEnabled;
 
 // #endregion
 
@@ -175,6 +198,14 @@ function ClientModCallback(MCM_API_Instance ConfigAPI, int GameMode) {
     Group.AddDropdown(nameof(ChatLogFriendlyNameFormat), strChatLogFriendlyNameFormatLabel, strChatLogFriendlyNameFormatTooltip, ChatLogNameFormatOptions, ChatLogNameFormatToString(ChatLogFriendlyNameFormat), SaveChatLogFriendlyNameFormat);
 
     DisableGroupWhenFalseHandler(Setting, bShowChatLog);
+
+
+
+    Group = Page.AddGroup('TwitchNameplateSettings', strNameplateSettingsGroupTitle);
+    Group.AddCheckbox(nameof(bPermanentNameplatesEnabled), strPermanentNameplatesEnabledLabel, strPermanentNameplatesEnabledTooltip, bPermanentNameplatesEnabled, PermanentNameplatesSaveHandler);
+    Group.AddCheckbox(nameof(bCivilianNameplatesEnabled), strCivilianNameplatesEnabledLabel, strCivilianNameplatesEnabledTooltip, bCivilianNameplatesEnabled, CivilianNameplatesSaveHandler);
+    Group.AddCheckbox(nameof(bEnemyNameplatesEnabled), strEnemyNameplatesEnabledLabel, strEnemyNameplatesEnabledTooltip, bEnemyNameplatesEnabled, EnemyNameplatesSaveHandler);
+    Group.AddCheckbox(nameof(bSoldierNameplatesEnabled), strSoldierNameplatesEnabledLabel, strSoldierNameplatesEnabledTooltip, bSoldierNameplatesEnabled, SoldierNameplatesSaveHandler);
 
 
 
@@ -371,6 +402,10 @@ private function OnTwitchUsernameInputBoxClosed(string Text) {
 }
 
 `MCM_CH_VersionChecker(class'TwitchIntegrationConfigDefaults'.default.ConfigVersion, ConfigVersion);
+`MCM_API_BasicCheckboxSaveHandler(PermanentNameplatesSaveHandler, bPermanentNameplatesEnabled);
+`MCM_API_BasicCheckboxSaveHandler(CivilianNameplatesSaveHandler, bCivilianNameplatesEnabled);
+`MCM_API_BasicCheckboxSaveHandler(EnemyNameplatesSaveHandler, bEnemyNameplatesEnabled);
+`MCM_API_BasicCheckboxSaveHandler(SoldierNameplatesSaveHandler, bSoldierNameplatesEnabled);
 `MCM_API_BasicCheckboxSaveHandler(EnablePollsSaveHandler, bEnablePolls);
 `MCM_API_BasicCheckboxSaveHandler(ShowChatLogSaveHandler, bShowChatLog);
 `MCM_API_BasicCheckboxSaveHandler(AssignUnitNamesSaveHandler, bAssignUnitNames);
