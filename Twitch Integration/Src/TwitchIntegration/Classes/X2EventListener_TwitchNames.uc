@@ -16,7 +16,6 @@ static function X2EventListenerTemplate UnitAssignName() {
 	`CREATE_X2TEMPLATE(class'CHEventListenerTemplate', Template, 'AssignTwitchName');
 
 	Template.RegisterInTactical = true;
-	Template.AddCHEvent('ObjectMoved', ShowOrHideNameplates, ELD_OnVisualizationBlockStarted);
 	Template.AddEvent('OnUnitBeginPlay', ChooseViewerName);
     Template.AddEvent('UnitRemovedFromPlay', OnUnitRemovedFromPlay);
 	Template.AddEvent('UnitSpawned', ChooseViewerName);
@@ -309,20 +308,6 @@ static protected function EventListenerReturn OnUnitRemovedFromPlay(Object Event
 
         break;
     }
-
-    return ELR_NoInterrupt;
-}
-
-static protected function EventListenerReturn ShowOrHideNameplates(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
-    local XComGameState_Unit Unit;
-
-    Unit = XComGameState_Unit(EventData);
-
-    if (Unit == none) {
-        return ELR_NoInterrupt;
-    }
-
-    //`TILOG("ShowOrHideNameplates triggered for unit ID " $ Unit.GetReference().ObjectID);
 
     return ELR_NoInterrupt;
 }
