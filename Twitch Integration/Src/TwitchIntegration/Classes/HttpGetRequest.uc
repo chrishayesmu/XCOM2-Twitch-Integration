@@ -28,7 +28,7 @@ var private delegate<ResponseHandler> OnRequestError;
 
 delegate ResponseHandler(HttpResponse Resp);
 
-const LogRequest = true;
+const LogRequest = false;
 
 function Call(string Url, delegate<ResponseHandler> CompletionHandler, delegate<ResponseHandler> ErrorHandler = none)
 {
@@ -69,10 +69,13 @@ function int SendText(coerce string str) {
 
 event Resolved(IpAddr Addr)
 {
+    local int LocalPort;
+
     Addr.Port = 80;
+    LocalPort = BindPort();
 
     `TILOGCLS("" $ CurrentUrl $ " resolved to " $ IpAddrToString(Addr), LogRequest);
-    `TILOGCLS("Bound to local port: " $ BindPort(), LogRequest);
+    `TILOGCLS("Bound to local port: " $ LocalPort, LogRequest);
 
     if (!Open(Addr))
     {
