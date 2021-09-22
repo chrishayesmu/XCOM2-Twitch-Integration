@@ -8,6 +8,7 @@ static function DeleteOwnership(XComGameState_TwitchObjectOwnership Ownership) {
 	local XComGameState_Unit Unit;
 
     Unit = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(Ownership.OwnedObjectRef.ObjectID));
+    `TILOG("Requested to delete ownership of unit " $ Unit.GetFullName() $ " from viewer " $ Ownership.TwitchLogin);
 
     NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Remove Twitch Ownership");
     NewGameState.RemoveStateObject(Ownership.ObjectID);

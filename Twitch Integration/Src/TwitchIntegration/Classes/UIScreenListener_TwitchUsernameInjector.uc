@@ -167,7 +167,7 @@ private function OnNameInputBoxClosed(string Text) {
         return;
     }
 
-	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Assign Twitch Owner");
+	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Assign Twitch Owner From UI");
 
     if (Text == "") {
         // There was an owner but now is not

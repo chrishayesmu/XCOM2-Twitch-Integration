@@ -4,10 +4,20 @@ class X2EventListener_TwitchNames extends X2EventListener
 static function array<X2DataTemplate> CreateTemplates() {
 	local array<X2DataTemplate> Templates;
 
+    //Templates.AddItem(CleanUpOwnershipStates());
     Templates.AddItem(UnitAssignName());
     Templates.AddItem(UnitShowName());
 
 	return Templates;
+}
+
+static function X2EventListenerTemplate CleanUpOwnershipStates() {
+	local CHEventListenerTemplate Template;
+
+	Template.AddEvent('OnTacticalBeginPlay', RemoveTransientOwnershipStates);
+	Template.AddEvent('TacticalGameEnd', RemoveTransientOwnershipStates);
+
+    return Template;
 }
 
 static function X2EventListenerTemplate UnitAssignName() {
@@ -62,6 +72,11 @@ static function XComGameState_TwitchObjectOwnership AssignOwnership(string Viewe
     OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(ObjID);
 
     if (OwnershipState != none && !OverridePreviousOwnership) {
+        `TILOG("Object " $ ObjID $ " is already owned by " $ OwnershipState.TwitchLogin);
+        return OwnershipState;
+    }
+
+    if (OwnershipState != none && OwnershipState.TwitchLogin == ViewerLogin) {
         return OwnershipState;
     }
 // #endregion
@@ -75,11 +90,10 @@ static function XComGameState_TwitchObjectOwnership AssignOwnership(string Viewe
         bCreatedGameState = true;
     }
 
-    `TILOG("Assigning viewer " $ ViewerLogin $ " at index " $ ViewerIndex $ " to unit " $ Unit.GetFullName());
+    `TILOG("Assigning viewer " $ ViewerLogin $ " at index " $ ViewerIndex $ " to unit " $ Unit.GetFullName() $ " with object ID " $ ObjID);
 
 // #region Create or update ownership state
     if (OwnershipState == none) {
-        // TODO: maybe we can make this game state transient if it's a non-Chosen enemy who will never be seen again
         OwnershipState = XComGameState_TwitchObjectOwnership(NewGameState.CreateStateObject(class'XComGameState_TwitchObjectOwnership'));
     }
     else {
@@ -98,8 +112,9 @@ if (ViewerIndex != INDEX_NONE) {
 // #endregion
 
 // #region Modify unit attributes as needed
-    if (Unit.GetTeam() == eTeam_XCom && Unit.IsSoldier()) {
+    if (Unit.GetTeam() == eTeam_XCom && ( Unit.IsSoldier() || Unit.GetMyTemplate().bIsCosmetic )) {
         // Don't do anything in this case; we don't modify soldiers because the player has full agency to do that
+        // TODO: need to check if this is a cosmetic unit also (i.e. Gremlin)
     }
     else {
         Unit = XComGameState_Unit(NewGameState.ModifyStateObject(class'XComGameState_Unit', Unit.GetReference().ObjectID));
@@ -122,6 +137,10 @@ if (ViewerIndex != INDEX_NONE) {
         class'X2TwitchUtils'.static.SyncUnitFlag(Unit);
     }
 // #endregion
+
+    if (Unit.IsChosen()) {
+        UpdateChosenGameStateFromUnit(Unit);
+    }
 
     if (bCreatedGameState) {
         `GAMERULES.SubmitGameState(NewGameState);
@@ -169,34 +188,41 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
     TwitchConn = TwitchMgr.TwitchChatConn;
 	Unit = XComGameState_Unit(EventSource);
 
+    `TILOG("In ChooseViewerName for unit " $ Unit.GetFullName());
+
     // UnitBeginPlay events can fire before we have a chance to initialize the TwitchStateManager
-	if (TwitchMgr == none || Unit == none) {
+	if (TwitchMgr == none) {
+        `TILOG("Aborting ChooseViewerName: TwitchStateManager is none");
 		return ELR_NoInterrupt;
     }
 
     // Don't assign names until we've processed the full viewer list, or else names will be
     // biased towards people who chat the most
     if (!TwitchMgr.bIsViewerListPopulated) {
+        `TILOG("Aborting ChooseViewerName: viewer list is not populated");
         return ELR_NoInterrupt;
     }
 
     OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Unit.ObjectID);
 
     if (OwnershipState != none) {
+        `TILOG("Aborting ChooseViewerName: unit is already owned by " $ OwnershipState.TwitchLogin);
         // Someone already owns this unit
         return ELR_NoInterrupt;
     }
 
-    // Don't give Twitch names to XCOM soldiers, they should have persistent names assigned by the streamer
+    // Don't give Twitch names to XCOM soldiers or Gremlins, they should have persistent names assigned by the streamer
     // (Non-XCOM soldiers are Resistance members, who should receive names)
     // TODO: when you rescue a Resistance member, do they join your roster?
-    if (Unit.GetTeam() == eTeam_XCom && Unit.IsSoldier()) {
+    if (Unit.GetTeam() == eTeam_XCom && ( Unit.IsSoldier() || Unit.GetMyTemplate().bIsCosmetic )) {
+        `TILOG("Aborting ChooseViewerName: unit is non-raffleable XCOM unit");
         return ELR_NoInterrupt;
     }
 
     // Don't give names to player Avatars
     // TODO: make this configurable
     if (Unit.GetTeam() == eTeam_XCom && Unit.GetMyTemplate().CharacterGroupName == 'AdventPsiWitch') {
+        `TILOG("Aborting ChooseViewerName: unit is non-raffleable XCOM Avatar");
         return ELR_NoInterrupt;
     }
 
@@ -205,6 +231,7 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
 
     if (ViewerIndex == INDEX_NONE) {
         // We'll have to try again later when there might be more viewers in the pool
+        `TILOG("Unable to raffle unit " $ Unit.GetFullName() $ " because there are no viewers available");
         TwitchMgr.bUnraffledUnitsExist = true;
         return ELR_NoInterrupt;
     }
@@ -310,4 +337,62 @@ static protected function EventListenerReturn OnUnitRemovedFromPlay(Object Event
     }
 
     return ELR_NoInterrupt;
+}
+
+static protected function EventListenerReturn RemoveTransientOwnershipStates(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
+	local XComGameStateHistory History;
+    local XComGameState NewGameState;
+    local XComGameState_TwitchObjectOwnership OwnershipState;
+    local XComGameState_Unit Unit;
+
+    `TILOG("Cleaning up transient ownership states for event " $ Event);
+
+    History = `XCOMHISTORY;
+	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Delete Transient Twitch Ownership");
+
+    foreach History.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState, , /* bUnlimitedSearch */ true) {
+        Unit = XComGameState_Unit(History.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID, eReturnType_Reference));
+
+        if (!IsOwnershipTransient(Unit)) {
+            continue;
+        }
+
+        NewGameState.RemoveStateObject(OwnershipState.ObjectID);
+    }
+
+    `TILOG("Removing " $ NewGameState.GetNumGameStateObjects() $ " game state objects");
+
+    if (NewGameState.GetNumGameStateObjects() > 0) {
+		`GAMERULES.SubmitGameState(NewGameState);
+	}
+    else {
+		History.CleanupPendingGameState(NewGameState);
+    }
+
+    return ELR_NoInterrupt;
+}
+
+static protected function bool IsOwnershipTransient(XComGameState_Unit Unit) {
+    // Friendly soldiers and cosmetic units (i.e. Gremlins) have permanent ownership
+    if (Unit.GetTeam() == eTeam_XCom && ( Unit.IsSoldier() || Unit.GetMyTemplate().bIsCosmetic )) {
+        return false;
+    }
+
+    // TODO XComGameState_AdventChosen
+    if (Unit.IsChosen()) {
+        return false;
+    }
+
+    return true;
+}
+
+static protected function UpdateChosenGameStateFromUnit(XComGameState_Unit ChosenUnit) {
+	local name UnitTemplate;
+    local XComGameState_AdventChosen ChosenState;
+
+    foreach `XCOMHISTORY.IterateByClassType(class'XComGameState_AdventChosen', ChosenState) {
+        if (ChosenState.GetChosenTemplate() == ChosenUnit.GetMyTemplate()) {
+            `TILOG("Identified Chosen from template: " $ `SHOWVAR(ChosenUnit.GetMyTemplate().CharacterGroupName));
+        }
+	}
 }

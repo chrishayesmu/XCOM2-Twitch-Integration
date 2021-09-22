@@ -112,7 +112,7 @@ exec function TwitchListRaffledViewers() {
     class'Helpers'.static.OutputMsg(Message);
     class'Helpers'.static.OutputMsg("-------------------------------------------------------");
 
-    foreach `XCOMHISTORY.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState) {
+    foreach `XCOMHISTORY.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState, , /* bUnlimitedSearch */ true) {
         Unit = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID, eReturnType_Reference));
 
         // First column is deliberately wider than its header due to non-fixed-width font
@@ -121,6 +121,7 @@ exec function TwitchListRaffledViewers() {
         Message $= Unit.GetFullName();
 
         class'Helpers'.static.OutputMsg(Message);
+        `TILOGCLS(Message);
     }
 }
 
