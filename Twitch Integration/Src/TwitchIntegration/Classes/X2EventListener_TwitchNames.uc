@@ -4,7 +4,7 @@ class X2EventListener_TwitchNames extends X2EventListener
 static function array<X2DataTemplate> CreateTemplates() {
 	local array<X2DataTemplate> Templates;
 
-    //Templates.AddItem(CleanUpOwnershipStates());
+    Templates.AddItem(CleanUpOwnershipStates());
     Templates.AddItem(UnitAssignName());
     Templates.AddItem(UnitShowName());
 
@@ -12,10 +12,14 @@ static function array<X2DataTemplate> CreateTemplates() {
 }
 
 static function X2EventListenerTemplate CleanUpOwnershipStates() {
-	local CHEventListenerTemplate Template;
+    local CHEventListenerTemplate Template;
 
-	Template.AddEvent('OnTacticalBeginPlay', RemoveTransientOwnershipStates);
-	Template.AddEvent('TacticalGameEnd', RemoveTransientOwnershipStates);
+    `CREATE_X2TEMPLATE(class'CHEventListenerTemplate', Template, 'CleanUpTwitchOwnership');
+
+    Template.RegisterInStrategy = true;
+    Template.RegisterInTactical = true;
+    Template.AddEvent('OnTacticalBeginPlay', RemoveTransientOwnershipStates);
+    Template.AddEvent('TacticalGameEnd', RemoveTransientOwnershipStates);
 
     return Template;
 }
@@ -94,7 +98,7 @@ static function XComGameState_TwitchObjectOwnership AssignOwnership(string Viewe
 
 // #region Create or update ownership state
     if (OwnershipState == none) {
-        OwnershipState = XComGameState_TwitchObjectOwnership(NewGameState.CreateStateObject(class'XComGameState_TwitchObjectOwnership'));
+        OwnershipState = XComGameState_TwitchObjectOwnership(NewGameState.CreateNewStateObject(class'XComGameState_TwitchObjectOwnership'));
     }
     else {
         OwnershipState = XComGameState_TwitchObjectOwnership(NewGameState.ModifyStateObject(class'XComGameState_TwitchObjectOwnership', OwnershipState.ObjectID));
