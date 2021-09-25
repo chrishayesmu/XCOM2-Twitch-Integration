@@ -17,7 +17,7 @@ var private UIListItemString TwitchListItem;
 var private UIText Text;
 var private UIImage TwitchIcon;
 
-const LogScreenNames = true;
+const LogScreenNames = false;
 
 delegate OnItemSelectedCallback(UIList ContainerList, int ItemIndex);
 
@@ -205,7 +205,7 @@ private function OnNameInputBoxClosed(string Text) {
     }
     else {
         if (OwnershipState == none) {
-	        OwnershipState = XComGameState_TwitchObjectOwnership(NewGameState.CreateStateObject(class'XComGameState_TwitchObjectOwnership'));
+	        OwnershipState = XComGameState_TwitchObjectOwnership(NewGameState.CreateNewStateObject(class'XComGameState_TwitchObjectOwnership'));
         }
         else {
             OwnershipState = XComGameState_TwitchObjectOwnership(NewGameState.ModifyStateObject(class'XComGameState_TwitchObjectOwnership', OwnershipState.ObjectID));

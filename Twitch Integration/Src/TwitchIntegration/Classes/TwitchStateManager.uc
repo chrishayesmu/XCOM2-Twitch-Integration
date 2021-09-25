@@ -290,7 +290,7 @@ function StartPoll(ePollType PollType, int DurationInTurns, optional XComGameSta
     // Submit a new game state for the start of the poll
 	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Poll Start");
 
-	PollState = XComGameState_TwitchEventPoll(NewGameState.CreateStateObject(class'XComGameState_TwitchEventPoll'));
+	PollState = XComGameState_TwitchEventPoll(NewGameState.CreateNewStateObject(class'XComGameState_TwitchEventPoll'));
 	PollState.PollType = PollType;
 	PollState.DurationInTurns = DurationInTurns;
 	PollState.RemainingTurns = DurationInTurns;

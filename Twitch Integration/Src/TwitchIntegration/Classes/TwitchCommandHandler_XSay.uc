@@ -34,7 +34,7 @@ function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer
 
 	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("XSay From " $ Viewer.Login);
 
-	XSayGameState = XComGameState_TwitchXSay(NewGameState.CreateStateObject(class'XComGameState_TwitchXSay'));
+	XSayGameState = XComGameState_TwitchXSay(NewGameState.CreateNewStateObject(class'XComGameState_TwitchXSay'));
 	XSayGameState.MessageBody = GetCommandBody(Command);
 	XSayGameState.Sender = Viewer.Login;
     XSayGameState.TwitchMessageId = Command.MsgId;

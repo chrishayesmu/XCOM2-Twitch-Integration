@@ -76,7 +76,7 @@ static private function XComGameState_TwitchConnection CreateOrModifyConnectionS
         ConnectionState = XComGameState_TwitchConnection(NewGameState.ModifyStateObject(class'XComGameState_TwitchConnection', ConnectionState.ObjectID));
     }
     else {
-	    ConnectionState = XComGameState_TwitchConnection(NewGameState.CreateStateObject(class'XComGameState_TwitchConnection'));
+	    ConnectionState = XComGameState_TwitchConnection(NewGameState.CreateNewStateObject(class'XComGameState_TwitchConnection'));
     }
 
     return ConnectionState;
