@@ -8,38 +8,40 @@ var localized string strButtonLabel;
 var localized string strDescription;
 var localized string strDialogTitle;
 
-// TODO need to stop storing these somehow since UISLs apparently don't get garbage collected
 var private UIArmory_MainMenu ArmoryMainMenu;
 var private delegate<OnItemSelectedCallback> OriginalOnItemClicked;
 var private delegate<OnItemSelectedCallback> OriginalOnSelectionChanged;
+
+var private UIBGBox BGBox;
 var private UIListItemString TwitchListItem;
+var private UIText Text;
 var private UIImage TwitchIcon;
 
-const LogScreenNames = false;
+const LogScreenNames = true;
 
 delegate OnItemSelectedCallback(UIList ContainerList, int ItemIndex);
 
-event OnInit(UIScreen Screen)
-{
-    `TILOGCLS("Init screen: " $ Screen.Class.Name, LogScreenNames);
+event OnInit(UIScreen Screen) {
+    `TILOGCLS("OnInit screen: " $ Screen.Class.Name, LogScreenNames);
 
-    CheckForArmoryMainMenuScreen(Screen);
-    CheckForUISoldierHeader(Screen);
+    RealizeUI(Screen);
 }
 
-event OnReceiveFocus(UIScreen Screen) {
+event OnReceiveFocus(UIScreen Screen)
+{
     `TILOGCLS("OnReceiveFocus screen: " $ Screen.Class.Name, LogScreenNames);
 
-    // The armory main menu UIList is regenerated every time the screen receives focus,
-    // so we need to keep injecting our menu item into it
-    CheckForArmoryMainMenuScreen(Screen);
+    RealizeUI(Screen);
 }
 
 event OnRemoved(UIScreen Screen) {
     if (UIArmory_MainMenu(Screen) != none) {
+        CleanUpUsernameElements(/* bCleanUpMainMenuList */ true);
+
+        // Clear references to things we don't own
+        ArmoryMainMenu = none;
         OriginalOnItemClicked = none;
         OriginalOnSelectionChanged = none;
-        TwitchListItem = none;
     }
 }
 
@@ -73,13 +75,7 @@ private function CheckForArmoryMainMenuScreen(UIScreen Screen) {
     }
 }
 
-private function CheckForUISoldierHeader(UIScreen Screen) {
-    local int ImageX;
-    local int ImageY;
-    local int UnitObjectID;
-    local UIBGBox BGBox;
-    local UIImage Image;
-    local UIText Text;
+private function bool CheckForUISoldierHeader(UIScreen Screen, out int ImageX, out int ImageY, out int UnitObjectID) {
     local XComGameState_TwitchObjectOwnership OwnershipState;
 
     // The UISoldierHeader's position doesn't appear to exist outside of Flash on some (all?) screens,
@@ -111,8 +107,42 @@ private function CheckForUISoldierHeader(UIScreen Screen) {
     }
 
     if (UnitObjectID <= 0) {
-        return;
+        return false;
     }
+
+    return true;
+}
+
+private function CleanUpUsernameElements(bool bCleanUpMainMenuList) {
+    // Destroy claims it's working but these elements are still visible, so to be safe we're hiding them first
+
+    if (BGBox != none) {
+        BGBox.Hide();
+        BGBox.Destroy();
+        BGBox = none;
+    }
+
+    if (Text != none) {
+        Text.Hide();
+        Text.Destroy();
+        Text = none;
+    }
+
+    if (TwitchIcon != none) {
+        TwitchIcon.Hide();
+        TwitchIcon.Destroy();
+        TwitchIcon = none;
+    }
+
+    if (TwitchListItem != none && bCleanUpMainMenuList) {
+        TwitchListItem.Hide();
+        TwitchListItem.Destroy();
+        TwitchListItem = none;
+    }
+}
+
+private function CreateUsernameElements(UIScreen Screen, int ImageX, int ImageY, int UnitObjectID) {
+    local XComGameState_TwitchObjectOwnership OwnershipState;
 
     OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(UnitObjectID);
 
@@ -123,12 +153,12 @@ private function CheckForUISoldierHeader(UIScreen Screen) {
     BGBox = Screen.Spawn(class'UIBGBox', Screen).InitBG(, ImageX - 6, ImageY - 6, /* TODO, dynamic width */ 180, 40);
     BGBox.SetAlpha(0.7);
 
-	Image = Screen.Spawn(class'UIImage', Screen).InitImage(, "img:///TwitchIntegration_UI.Icon_Twitch");
-    Image.SetPosition(ImageX, ImageY);
-    Image.SetSize(28, 28);
+	TwitchIcon = Screen.Spawn(class'UIImage', Screen).InitImage(, "img:///TwitchIntegration_UI.Icon_Twitch");
+    TwitchIcon.SetPosition(ImageX, ImageY);
+    TwitchIcon.SetSize(28, 28);
 
     Text = Screen.Spawn(class'UIText', Screen).InitText(, OwnershipState.TwitchLogin);
-    Text.SetPosition(Image.X + 34, ImageY - 5);
+    Text.SetPosition(TwitchIcon.X + 34, ImageY - 5);
 }
 
 private simulated function int GetMyItemIndex() {
@@ -189,11 +219,11 @@ private function OnNameInputBoxClosed(string Text) {
 
     // This callback is invoked after the input screen pops itself, so the main menu UI has already been rendered
     // without consideration for our newest game state
+    RealizeUI(`SCREENSTACK.GetCurrentScreen(), /* bInjectToMainMenu */ false);
+
     if (TwitchListItem != none) {
         TwitchListItem.NeedsAttention(Text == "");
     }
-
-    // TODO: update injectedname text also
 }
 
 private simulated function OnArmoryMainMenuItemClicked(UIList ContainerList, int ItemIndex) {
@@ -211,5 +241,27 @@ private simulated function OnArmoryMainMenuSelectionChanged(UIList ContainerList
     }
     else {
         OriginalOnSelectionChanged(ContainerList, ItemIndex);
+    }
+}
+
+private function RealizeUI(UIScreen Screen, bool bInjectToMainMenu = true) {
+    local int ImageX, ImageY, UnitObjectID;
+
+    // Logic for these UI elements is tricky: the most recent screen to receive focus
+    // isn't always the one being displayed for some reason. To handle that, we create the UI
+    // elements whenever an appropriate screen is focused, and only delete them if we're about to
+    // recreate them for another screen. Since they're parented to the UIScreen objects, they will
+    // automatically show and hide as needed whenever the parent does.
+    if (CheckForUISoldierHeader(Screen, ImageX, ImageY, UnitObjectID)) {
+        CleanUpUsernameElements(/* bCleanUpMainMenuList */ bInjectToMainMenu);
+
+        // When entering a Twitch name, the sequence of events is slightly off and causes us to remove and add
+        // our list item in the main menu multiple times, which makes the menu too large. Due to this we only touch
+        // the main menu if specifically requested.
+        if (bInjectToMainMenu) {
+            CheckForArmoryMainMenuScreen(Screen);
+        }
+
+        CreateUsernameElements(Screen, ImageX, ImageY, UnitObjectID);
     }
 }
