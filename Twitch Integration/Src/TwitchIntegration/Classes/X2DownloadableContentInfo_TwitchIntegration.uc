@@ -11,21 +11,19 @@
 class X2DownloadableContentInfo_TwitchIntegration extends X2DownloadableContentInfo
 	dependson(XComGameState_TwitchEventPoll);
 
-/// <summary>
-/// This method is run if the player loads a saved game that was created prior to this DLC / Mod being installed, and allows the
-/// DLC / Mod to perform custom processing in response. This will only be called once the first time a player loads a save that was
-/// create without the content installed. Subsequent saves will record that the content was installed.
-/// </summary>
-static event OnLoadedSavedGame()
+static event OnPreMission(XComGameState StartGameState, XComGameState_MissionSite MissionState)
 {
+    local XComGameState_TwitchObjectOwnership OwnershipState;
+
+    `TILOG("OnPreMission triggered: copying ownership objects to the tactical layer");
+
+    // Copy all ownership states from the strategy layer into tactical
+    foreach `XCOMHISTORY.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState, , /* bUnlimitedSearch */ true) {
+        StartGameState.ModifyStateObject(class'XComGameState_TwitchObjectOwnership', OwnershipState.ObjectID);
+    }
 }
 
-/// <summary>
-/// Called when the player starts a new campaign while this DLC / Mod is installed
-/// </summary>
-static event InstallNewCampaign(XComGameState StartState)
-{
-}
+// #region Console commands
 
 /// <summary>
 /// Casts a vote in the current poll as though it was cast by the specified viewer.
@@ -219,3 +217,5 @@ exec function TwitchReassignUnitUnderMouse(optional string ViewerLogin) {
 exec function TwitchStartPoll(ePollType PollType, int DurationInTurns) {
 	`TISTATEMGR.StartPoll(PollType, DurationInTurns);
 }
+
+// #endregion

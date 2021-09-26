@@ -19,7 +19,9 @@ static function DeleteOwnership(XComGameState_TwitchObjectOwnership Ownership) {
         Unit = XComGameState_Unit(NewGameState.ModifyStateObject(class'XComGameState_Unit', Unit.GetReference().ObjectID));
 
         if (Unit.IsCivilian()) {
-            Unit.SetUnitName("Name", "Deleted", ""); // we don't know what name they used to have
+            // We don't know what name civilians used to have
+            // TODO: maybe we can just generate a new one
+            Unit.SetUnitName("Name", "Deleted", "");
         }
         else {
             // Having no name set will cause it to fall back on the template name

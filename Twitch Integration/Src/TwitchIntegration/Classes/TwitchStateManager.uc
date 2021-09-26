@@ -208,9 +208,6 @@ function int RaffleViewer() {
         if (TwitchChatConn.Viewers[Index].OwnedObjectID <= 0) {
             NumAvailableViewers++;
         }
-        else {
-            `TILOGCLS("Viewer " $ `TIVIEWERNAME(TwitchChatConn.Viewers[Index]) $ " owns object ID " $ TwitchChatConn.Viewers[Index].OwnedObjectID);
-        }
     }
 
     if (NumAvailableViewers == 0) {
@@ -235,8 +232,6 @@ function int RaffleViewer() {
             AvailableIndex++;
         }
     }
-
-    `TILOGCLS("Raffled available viewer at index " $ Index);
 
     return Index;
 }

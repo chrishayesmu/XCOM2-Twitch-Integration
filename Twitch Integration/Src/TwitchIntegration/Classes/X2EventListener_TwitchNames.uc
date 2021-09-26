@@ -19,7 +19,7 @@ static function X2EventListenerTemplate CleanUpOwnershipStates() {
     Template.RegisterInStrategy = true;
     Template.RegisterInTactical = true;
     Template.AddEvent('OnTacticalBeginPlay', RemoveTransientOwnershipStates);
-    Template.AddEvent('TacticalGameEnd', RemoveTransientOwnershipStates);
+    Template.AddEvent('PreCompleteStrategyFromTacticalTransfer', RemoveTransientOwnershipStates);
 
     return Template;
 }
