@@ -116,7 +116,10 @@ exec function TwitchListRaffledViewers() {
         // First column is deliberately wider than its header due to non-fixed-width font
         Message =  `TI_RPAD(OwnershipState.OwnedObjectRef.ObjectID, " ", 14);
         Message $= `TI_RPAD(OwnershipState.TwitchLogin, " ", 35);
-        Message $= Unit.GetFullName();
+
+        if (Unit != none) {
+            Message $= Unit.GetFullName();
+        }
 
         class'Helpers'.static.OutputMsg(Message);
         `TILOGCLS(Message);

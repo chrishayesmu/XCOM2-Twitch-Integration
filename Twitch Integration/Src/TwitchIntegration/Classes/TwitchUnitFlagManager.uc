@@ -101,7 +101,7 @@ private function TwitchFlag CreateTwitchFlag(UIUnitFlag UnitFlag, XComGameState_
 
     // Random width; it'll be changed later when the viewer's name is set and realized
     TFlag.BGBox = Spawn(class'UIBGBox', UnitFlag).InitBG(,,, /* InitWidth */ 50, ICON_HEIGHT + 4);
-    TFlag.BGBox.SetAlpha(0.5);
+    TFlag.BGBox.SetAlpha(0.6);
 
     TFlag.TwitchIcon = Spawn(class'UIImage', UnitFlag).InitImage(, "img:///TwitchIntegration_UI.Icon_Twitch_3D");
     TFlag.TwitchIcon.SetSize(ICON_WIDTH, ICON_HEIGHT);

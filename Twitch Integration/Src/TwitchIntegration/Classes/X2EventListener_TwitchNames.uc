@@ -131,7 +131,7 @@ if (ViewerIndex != INDEX_NONE) {
     class'X2TwitchUtils'.static.SyncUnitFlag(Unit, OwnershipState);
 
     if (Unit.IsChosen()) {
-        UpdateChosenGameStateFromUnit(Unit, NewGameState);
+        UpdateChosenGameStateFromUnit(Unit, NewGameState, Viewer);
     }
 
     if (bCreatedGameState) {
@@ -326,13 +326,24 @@ static protected function bool IsOwnershipTransient(XComGameState_Unit Unit) {
     return true;
 }
 
-static protected function UpdateChosenGameStateFromUnit(XComGameState_Unit ChosenUnit, XComGameState NewGameState) {
+static protected function UpdateChosenGameStateFromUnit(XComGameState_Unit ChosenUnit, XComGameState NewGameState, TwitchViewer Viewer) {
     local XComGameState_AdventChosen ChosenState;
+
+    `TILOG("UpdateChosenGameStateFromUnit entered");
 
     // TODO: this might have to happen during transition back to strat layer
     foreach `XCOMHISTORY.IterateByClassType(class'XComGameState_AdventChosen', ChosenState) {
         if (ChosenState.GetChosenTemplate() == ChosenUnit.GetMyTemplate()) {
-            `TILOG("Identified Chosen from template: " $ `SHOWVAR(ChosenUnit.GetMyTemplate().CharacterGroupName));
+            break;
         }
 	}
+
+    `TILOG("Identified Chosen from template: " $ `SHOWVAR(ChosenUnit.GetMyTemplate().CharacterGroupName));
+
+    ChosenState = XComGameState_AdventChosen(NewGameState.ModifyStateObject(class'XComGameState_AdventChosen', ChosenState.ObjectID));
+    ChosenState.FirstName = "";
+    ChosenState.LastName = `TIVIEWERNAME(Viewer);
+    ChosenState.Nickname = "";
+
+    `TILOG("Chosen last name is now " $ ChosenState.LastName);
 }
