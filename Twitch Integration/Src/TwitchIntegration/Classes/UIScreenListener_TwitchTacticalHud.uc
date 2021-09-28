@@ -35,12 +35,10 @@ event OnRemoved(UIScreen Screen) {
 }
 
 protected function CheckUnitLosStatus() {
-    local bool bPermanentNameplatesEnabled, bCivilianNameplatesEnabled, bEnemyNameplatesEnabled, bSoldierNameplatesEnabled;
+    local bool bPermanentNameplatesEnabled, bCivilianNameplatesEnabled;
     local bool bShowNameplate;
-    local UIWorldMessageMgr WorldMessageMgr;
     local UIUnitFlagManager UnitFlagManager;
 	local UIUnitFlag UnitFlag;
-	local XComGameStateHistory History;
     local XGUnit Unit;
 
     UnitFlagManager = `PRES.m_kUnitFlagManager;
@@ -52,8 +50,6 @@ protected function CheckUnitLosStatus() {
 
     bPermanentNameplatesEnabled = `TI_CFG(bPermanentNameplatesEnabled);
     bCivilianNameplatesEnabled = `TI_CFG(bCivilianNameplatesEnabled);
-    bEnemyNameplatesEnabled = `TI_CFG(bEnemyNameplatesEnabled);
-    bSoldierNameplatesEnabled = `TI_CFG(bSoldierNameplatesEnabled);
 
     foreach `XCOMGAME.AllActors(class'XGUnit', Unit) {
         UnitFlag = UnitFlagManager.GetFlagForObjectID(Unit.ObjectID);
@@ -77,7 +73,7 @@ protected function CheckUnitLosStatus() {
         }
 
         if (!bShowNameplate) {
-            class'UIUtilities_Twitch'.static.HideTwitchName(Unit.ObjectID, WorldMessageMgr);
+            class'UIUtilities_Twitch'.static.HideTwitchName(Unit.ObjectID);
         }
         else if (bPermanentNameplatesEnabled)  {
             class'UIUtilities_Twitch'.static.ShowTwitchName(Unit.ObjectID, , /* bPermanent */ true);
@@ -128,14 +124,11 @@ private function SpawnStateManagerIfNeeded() {
 }
 
 private function ToggleNameplates() {
-    local bool bPermanentNameplatesEnabled, bUnitIsVisibleToSquad;
-    local UIWorldMessageMgr WorldMessageMgr;
-    local XGUnit Unit;
+    local bool bPermanentNameplatesEnabled;
 
     bPermanentNameplatesEnabled = !`TI_CFG(bPermanentNameplatesEnabled);
 
     class'TwitchIntegrationConfig'.default.bPermanentNameplatesEnabled = bPermanentNameplatesEnabled;
-    WorldMessageMgr = `PRES.m_kWorldMessageManager;
 
     `TILOGCLS("Twitch nameplates enabled: " $ bPermanentNameplatesEnabled);
 

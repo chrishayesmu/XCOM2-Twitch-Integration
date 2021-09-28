@@ -314,7 +314,6 @@ private function TwitchMessage ParseMessage(string Message, out TwitchViewer Vie
     //     @badges=;color=;display-name=swfDelicious;emotes=;message-id=1;thread-id=112511437_714298636;turbo=0;user-id=112511437;user-type= :swfdelicious!swfdelicious@swfdelicious.tmi.twitch.tv WHISPER swfdeliciousbot :sup
 	// ----------------------------
 	local string MessageType;
-    local string RoomString;
 	local string Sender;
 	local int index;
 	local TwitchMessage MessageStruct;
@@ -338,9 +337,8 @@ private function TwitchMessage ParseMessage(string Message, out TwitchViewer Vie
     MessageType = Left(Message, Index);
     Message = Mid(Message, Index + 1);
 
-    // Next is the room ID
+    // Next is the room ID; we don't care about it so we just skip past
     Index = Instr(Message, " ");
-    RoomString = Left(Message, Index);
     Message = Mid(Message, Index + 2); // +2 because the message body starts with a colon that we don't want
 
     // All that's left now should be the message body
@@ -473,6 +471,8 @@ private function ProcessMessageQueue() {
         MessageQueue.Remove(Index, 1);
         Index--;
     }
+
+    `TILOGCLS("Sent " $ NumChatMessagesSent $ " chat messages and " $ NumWhispersSent $ " whispers");
 }
 
 private function PurgeStaleViewers() {

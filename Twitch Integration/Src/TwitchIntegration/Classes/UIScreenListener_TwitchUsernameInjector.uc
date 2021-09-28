@@ -76,8 +76,6 @@ private function CheckForArmoryMainMenuScreen(UIScreen Screen) {
 }
 
 private function bool CheckForUISoldierHeader(UIScreen Screen, out int ImageX, out int ImageY, out int UnitObjectID) {
-    local XComGameState_TwitchObjectOwnership OwnershipState;
-
     // The UISoldierHeader's position doesn't appear to exist outside of Flash on some (all?) screens,
     // but it only appears in a few different spots, so we just have a hard-coded list of where those spots are
 
@@ -181,25 +179,25 @@ private simulated function OpenTwitchNameInputBox() {
     `PRESBASE.UIInputDialog(kData);
 }
 
-private function OnNameInputBoxClosed(string Text) {
+private function OnNameInputBoxClosed(string TextVal) {
     local XComGameState NewGameState;
     local XComGameState_TwitchObjectOwnership OwnershipState;
 
     OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(ArmoryMainMenu.UnitReference.ObjectID);
 
-    if (OwnershipState != none && OwnershipState.TwitchLogin == Text) {
+    if (OwnershipState != none && OwnershipState.TwitchLogin == TextVal) {
         // Player didn't change anything
         return;
     }
 
-    if (Text == "" && OwnershipState == none) {
+    if (TextVal == "" && OwnershipState == none) {
         // There was no owner before, and still isn't
         return;
     }
 
 	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Assign Twitch Owner From UI");
 
-    if (Text == "") {
+    if (TextVal == "") {
         // There was an owner but now is not
         NewGameState.RemoveStateObject(OwnershipState.ObjectID);
     }
@@ -212,7 +210,7 @@ private function OnNameInputBoxClosed(string Text) {
         }
 
         OwnershipState.OwnedObjectRef = ArmoryMainMenu.UnitReference;
-        OwnershipState.TwitchLogin = Text;
+        OwnershipState.TwitchLogin = TextVal;
     }
 
     `GAMERULES.SubmitGameState(NewGameState);
@@ -222,7 +220,7 @@ private function OnNameInputBoxClosed(string Text) {
     RealizeUI(`SCREENSTACK.GetCurrentScreen(), /* bInjectToMainMenu */ false);
 
     if (TwitchListItem != none) {
-        TwitchListItem.NeedsAttention(Text == "");
+        TwitchListItem.NeedsAttention(TextVal == "");
     }
 }
 

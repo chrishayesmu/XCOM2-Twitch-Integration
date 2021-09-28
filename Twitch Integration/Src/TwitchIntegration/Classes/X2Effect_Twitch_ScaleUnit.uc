@@ -2,13 +2,13 @@ class X2Effect_Twitch_ScaleUnit extends X2Effect_Persistent;
 
 var float ChangeInScale;
 
-static function X2Effect_Twitch_ScaleUnit CreateScaleUnitEffect(float ChangeInScale) {
+static function X2Effect_Twitch_ScaleUnit CreateScaleUnitEffect(float ScaleChange) {
 	local X2Effect_Twitch_ScaleUnit ScaleUnitEffect;
 	local X2Condition_UnitProperty UnitPropCondition;
 
 	ScaleUnitEffect = new class'X2Effect_Twitch_ScaleUnit';
 	ScaleUnitEffect.EffectName = 'ScaleUnitMesh';
-    ScaleUnitEffect.ChangeInScale = ChangeInScale;
+    ScaleUnitEffect.ChangeInScale = ScaleChange;
 	ScaleUnitEffect.BuildPersistentEffect(1,, false,,eGameRule_PlayerTurnBegin);
 	ScaleUnitEffect.SetDisplayInfo(ePerkBuff_Bonus, "Scale Changed", "TODO", "img:///UILibrary_PerkIcons.UIPerk_absorption_fields");
 	ScaleUnitEffect.VisualizationFn = ScaleUnitVisualization;
