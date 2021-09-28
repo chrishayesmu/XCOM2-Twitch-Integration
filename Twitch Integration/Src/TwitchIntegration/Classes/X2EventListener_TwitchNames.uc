@@ -6,7 +6,6 @@ static function array<X2DataTemplate> CreateTemplates() {
 
     Templates.AddItem(CleanUpOwnershipStates());
     Templates.AddItem(UnitAssignName());
-    Templates.AddItem(UnitShowName());
 
 	return Templates;
 }
@@ -31,20 +30,9 @@ static function X2EventListenerTemplate UnitAssignName() {
 
 	Template.RegisterInTactical = true;
 	Template.AddEvent('OnUnitBeginPlay', ChooseViewerName);
-    Template.AddEvent('UnitRemovedFromPlay', OnUnitRemovedFromPlay);
+    Template.AddEvent('UnitRemovedFromPlay', CarryOverFacelessOwnership);
 	Template.AddEvent('UnitSpawned', ChooseViewerName);
 	Template.AddCHEvent('TwitchAssignUnitNames', AssignNamesToUnits, ELD_Immediate);
-
-	return Template;
-}
-
-static function X2EventListenerTemplate UnitShowName() {
-	local CHEventListenerTemplate Template;
-
-	`CREATE_X2TEMPLATE(class'CHEventListenerTemplate', Template, 'ShowTwitchName');
-
-	Template.RegisterInTactical = true;
-	Template.AddCHEvent('EnemyGroupSighted', OnEnemyGroupSighted, ELD_OnVisualizationBlockStarted);
 
 	return Template;
 }
@@ -250,59 +238,7 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
 	return ELR_NoInterrupt;
 }
 
-static protected function EventListenerReturn OnEnemyGroupSighted(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
-    local TwitchViewer Viewer;
-	local VisualizationActionMetadata EmptyMetadata;
-	local VisualizationActionMetadata Metadata;
-	local Array<X2Action> arrActions;
-    local X2Action_Twitch_ToggleNameplate NameplateAction;
-    local X2Action_RevealAIBegin RevealAIAction;
-	local X2Action_PlaySoundAndFlyOver SoundAndFlyover;
-	local XComGameStateContext Context;
-	local XComGameStateHistory History;
-	local XComGameStateVisualizationMgr VisMgr;
-    local XComGameState_AIGroup AIGroupState;
-    local XComGameState_TwitchObjectOwnership OwnershipState;
-    local XComGameState_BaseObject OwnedObject;
-    local StateObjectReference UnitRef;
-
-    AIGroupState = XComGameState_AIGroup(EventData);
-	History = `XCOMHISTORY;
-	VisMgr = `XCOMVISUALIZATIONMGR;
-
-    VisMgr.GetNodesOfType(VisMgr.VisualizationTree, class'X2Action_RevealAIBegin', arrActions);
-    `TILOG("There are " $ arrActions.Length $ " RevealAIBegin actions in current vis tree");
-
-    // TODO: sometimes there are no RevealAIBegin actions in the vis tree for some reason (esp. spawning from psi gate?)
-    if (arrActions.Length == 0) {
-        return ELR_NoInterrupt;
-    }
-
-    RevealAIAction = X2Action_RevealAIBegin(arrActions[0]);
-    Context = RevealAIAction.StateChangeContext;
-
-    foreach AIGroupState.m_arrMembers(UnitRef) {
-        OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(UnitRef.ObjectID);
-
-        if (OwnershipState == none) {
-            continue;
-        }
-
-        OwnedObject = History.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID, eReturnType_Reference);
-
-	    Metadata = EmptyMetadata;
-	    Metadata.StateObject_OldState = OwnedObject;
-	    Metadata.StateObject_NewState = OwnedObject;
-	    Metadata.VisualizeActor = History.GetVisualizer(OwnedObject.ObjectID);
-
-        NameplateAction = X2Action_Twitch_ToggleNameplate(class'X2Action_Twitch_ToggleNameplate'.static.AddToVisualizationTree(Metadata, Context, false, RevealAIAction));
-        NameplateAction.bEnableNameplate = true;
-    }
-
-    return ELR_InterruptEvent;
-}
-
-static protected function EventListenerReturn OnUnitRemovedFromPlay(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
+static protected function EventListenerReturn CarryOverFacelessOwnership(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
     local StateObjectReference EffectRef;
 	local XComGameStateHistory History;
     local XComGameState NewGameState;
@@ -391,9 +327,9 @@ static protected function bool IsOwnershipTransient(XComGameState_Unit Unit) {
 }
 
 static protected function UpdateChosenGameStateFromUnit(XComGameState_Unit ChosenUnit) {
-	local name UnitTemplate;
     local XComGameState_AdventChosen ChosenState;
 
+    // TODO: this might have to happen during transition back to strat layer
     foreach `XCOMHISTORY.IterateByClassType(class'XComGameState_AdventChosen', ChosenState) {
         if (ChosenState.GetChosenTemplate() == ChosenUnit.GetMyTemplate()) {
             `TILOG("Identified Chosen from template: " $ `SHOWVAR(ChosenUnit.GetMyTemplate().CharacterGroupName));
