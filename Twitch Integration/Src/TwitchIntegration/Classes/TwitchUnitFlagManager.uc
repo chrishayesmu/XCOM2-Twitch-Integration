@@ -17,6 +17,24 @@ const ICON_HEIGHT = 28;
 const ICON_WIDTH = 28;
 const TEXT_HEIGHT = 48;
 
+function Initialize() {
+    local XComGameStateHistory History;
+    local XComGameState_TwitchObjectOwnership OwnershipState;
+    local XComGameState_Unit Unit;
+
+    History = `XCOMHISTORY;
+
+    `TILOG("OnLoadedSavedGameToTactical: generating UI");
+
+    // When loading into tactical, we need to make sure our UI is present
+    foreach History.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState) {
+        Unit = XComGameState_Unit(History.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID));
+
+        `TILOG("Syncing unit flag for unit " $ Unit.GetFullName() $ " to owner " $ OwnershipState.TwitchLogin);
+        AddOrUpdateFlag(Unit, OwnershipState);
+    }
+}
+
 function AddOrUpdateFlag(XComGameState_Unit Unit, optional XComGameState_TwitchObjectOwnership Ownership = none) {
     local int UnitObjID;
     local TwitchFlag TFlag;

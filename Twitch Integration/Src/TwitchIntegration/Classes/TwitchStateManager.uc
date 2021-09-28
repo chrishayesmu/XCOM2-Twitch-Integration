@@ -114,10 +114,11 @@ function Initialize() {
         default.BlacklistedViewerNames[Index] = Locs(default.BlacklistedViewerNames[Index]);
     }
 
-    TwitchFlagMgr = Spawn(class'TwitchUnitFlagManager');
-
 	// Connect to Twitch chat servers
     ConnectToTwitchChat();
+
+    TwitchFlagMgr = Spawn(class'TwitchUnitFlagManager');
+    TwitchFlagMgr.Initialize();
 
 	// Retrieve list of viewers from Twitch API at startup and periodically. It's heavily cached,
     // so we don't need to retrieve it very often.

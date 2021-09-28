@@ -131,7 +131,7 @@ if (ViewerIndex != INDEX_NONE) {
     class'X2TwitchUtils'.static.SyncUnitFlag(Unit, OwnershipState);
 
     if (Unit.IsChosen()) {
-        UpdateChosenGameStateFromUnit(Unit);
+        UpdateChosenGameStateFromUnit(Unit, NewGameState);
     }
 
     if (bCreatedGameState) {
@@ -326,7 +326,7 @@ static protected function bool IsOwnershipTransient(XComGameState_Unit Unit) {
     return true;
 }
 
-static protected function UpdateChosenGameStateFromUnit(XComGameState_Unit ChosenUnit) {
+static protected function UpdateChosenGameStateFromUnit(XComGameState_Unit ChosenUnit, XComGameState NewGameState) {
     local XComGameState_AdventChosen ChosenState;
 
     // TODO: this might have to happen during transition back to strat layer
