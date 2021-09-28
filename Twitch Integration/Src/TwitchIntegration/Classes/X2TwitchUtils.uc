@@ -81,19 +81,8 @@ static function GiveAbilityToUnit(Name AbilityName, XComGameState_Unit Unit, opt
 	}
 }
 
-static function SyncUnitFlag(XComGameState_Unit Unit) {
-    local XComPresentationLayer Pres;
-	local UIUnitFlag UnitFlag;
-
-    Pres = `PRES;
-    UnitFlag = Pres.m_kUnitFlagManager.GetFlagForObjectID(Unit.GetReference().ObjectID);
-
-    if (UnitFlag != none) {
-        UnitFlag.UpdateFromUnitState(Unit, true);
-    }
-    else {
-        Pres.m_kUnitFlagManager.AddFlag(Unit.GetReference());
-    }
+static function SyncUnitFlag(XComGameState_Unit Unit, optional XComGameState_TwitchObjectOwnership Ownership = none) {
+    `TISTATEMGR.TwitchFlagMgr.AddOrUpdateFlag(Unit, Ownership);
 }
 
 // --------------------------

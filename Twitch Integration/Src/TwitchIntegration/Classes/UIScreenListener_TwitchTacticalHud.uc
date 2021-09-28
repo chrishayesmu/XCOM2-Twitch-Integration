@@ -58,27 +58,22 @@ protected function CheckUnitLosStatus() {
     foreach `XCOMGAME.AllActors(class'XGUnit', Unit) {
         UnitFlag = UnitFlagManager.GetFlagForObjectID(Unit.ObjectID);
 
+        // We're putting the Twitch name in the unit flag as much as possible, so only show the name as
+        // a world message if we can't put it in the unit flag for some reason
+
         // If a unit flag exists, simply tie into its state; we'll want to match it as often as possible
         if (UnitFlag != none) {
-            bShowNameplate = UnitFlag.bIsVisible;
-        }
-        else if (Unit.IsDead()) {
-            // Never show nameplates on dead units
             bShowNameplate = false;
         }
         else {
             bShowNameplate = class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(Unit.ObjectID);
         }
 
-        if (Unit.GetTeam() == eTeam_XCom && Unit.IsSoldier()) {
-            bShowNameplate = bShowNameplate && bSoldierNameplatesEnabled;
-        }
-        else if (Unit.IsCivilianChar()) {
-            // TODO, player-controlled VIPs should maybe be handled differently
+        if (Unit.IsCivilianChar()) {
             bShowNameplate = bShowNameplate && bCivilianNameplatesEnabled;
         }
-        else if (Unit.GetTeam() == eTeam_Alien) {
-            bShowNameplate = bShowNameplate && bEnemyNameplatesEnabled;
+        else if (bShowNameplate) {
+            `TILOGCLS("WARNING: showing nameplate for a non-civilian unit with XGUnit object ID " $ Unit.ObjectID);
         }
 
         if (!bShowNameplate) {
@@ -144,18 +139,7 @@ private function ToggleNameplates() {
 
     `TILOGCLS("Twitch nameplates enabled: " $ bPermanentNameplatesEnabled);
 
-    foreach `XCOMGAME.AllActors(class'XGUnit', Unit) {
-        if (bPermanentNameplatesEnabled) {
-            bUnitIsVisibleToSquad = class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(Unit.ObjectID);
-
-            if (bUnitIsVisibleToSquad) {
-                class'UIUtilities_Twitch'.static.ShowTwitchName(Unit.ObjectID, , /* bPermanent */ true);
-            }
-        }
-        else {
-            class'UIUtilities_Twitch'.static.HideTwitchName(Unit.ObjectID, WorldMessageMgr);
-        }
-    }
+    CheckUnitLosStatus();
 }
 
 defaultproperties

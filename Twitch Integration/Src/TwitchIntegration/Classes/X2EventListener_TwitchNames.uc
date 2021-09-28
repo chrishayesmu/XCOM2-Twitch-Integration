@@ -136,11 +136,11 @@ if (ViewerIndex != INDEX_NONE) {
         }
 
         Unit.SetUnitName(FirstName, LastName, "");
-
-        // Update the unit flag so it reflects the new name
-        class'X2TwitchUtils'.static.SyncUnitFlag(Unit);
     }
 // #endregion
+
+    // Update our Twitch unit flag to show the viewer name
+    class'X2TwitchUtils'.static.SyncUnitFlag(Unit, OwnershipState);
 
     if (Unit.IsChosen()) {
         UpdateChosenGameStateFromUnit(Unit);

@@ -29,6 +29,7 @@ var private array<string> VotersInCurrentPoll;
 
 var private HttpGetRequest HttpGet;
 var privatewrite TwitchChatTcpLink TwitchChatConn;
+var privatewrite TwitchUnitFlagManager TwitchFlagMgr;
 var privatewrite UIChatLog ChatLog;
 
 var private array<X2PollEventTemplate> HarbingerEventTemplates;
@@ -112,6 +113,8 @@ function Initialize() {
     for (Index = 0; Index < default.BlacklistedViewerNames.Length; Index++) {
         default.BlacklistedViewerNames[Index] = Locs(default.BlacklistedViewerNames[Index]);
     }
+
+    TwitchFlagMgr = Spawn(class'TwitchUnitFlagManager');
 
 	// Connect to Twitch chat servers
     ConnectToTwitchChat();
