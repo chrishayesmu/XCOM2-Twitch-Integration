@@ -123,11 +123,13 @@ function DebugSendRawIrc(string IrcMessage) {
 // Retrieves the viewer with the given login, if connected. Returns their index in the
 // Viewers array if found, or INDEX_NONE if not.
 function int GetViewer(string Login, out TwitchViewer Viewer) {
+    local TwitchViewer Empty;
     local int Index;
 
     Index = Viewers.Find('Login', Login);
 
     if (Index == INDEX_NONE) {
+        Viewer = Empty;
         Viewer.Login = Login;
         return INDEX_NONE;
     }
