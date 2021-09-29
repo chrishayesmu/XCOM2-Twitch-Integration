@@ -240,6 +240,11 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
         return ELR_NoInterrupt;
     }
 
+    if (Unit.GetMyTemplate().CharacterGroupName == 'Faceless') {
+        `TILOG("Aborting ChooseViewerName: unit is a Faceless and should be carrying over ownership from a civilian");
+        return ELR_NoInterrupt;
+    }
+
     // Pick a viewer at random, if any available
     ViewerIndex = TwitchMgr.RaffleViewer();
 
