@@ -89,7 +89,7 @@ static function XComGameState_TwitchObjectOwnership FindForUser(string Login) {
     local XComGameState_TwitchObjectOwnership OwnershipState;
 
     foreach `XCOMHISTORY.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState) {
-        if (OwnershipState.TwitchLogin == Login) {
+        if (OwnershipState.TwitchLogin ~= Login) {
             return OwnershipState;
         }
     }
