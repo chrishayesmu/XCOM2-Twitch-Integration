@@ -4,6 +4,17 @@
 // username as part of the header.
 class UIScreenListener_TwitchUsernameInjector extends UIScreenListener;
 
+struct TUnitLabel {
+    var bool bAddBackground;
+    var int UnitObjectID;
+    var int PosX;
+    var int PosY;
+
+    var UIBGBox BGBox;
+    var UIText Text;
+    var UIImage TwitchIcon;
+};
+
 var localized string strButtonLabel;
 var localized string strDescription;
 var localized string strDialogTitle;
@@ -12,10 +23,8 @@ var private UIArmory_MainMenu ArmoryMainMenu;
 var private delegate<OnItemSelectedCallback> OriginalOnItemClicked;
 var private delegate<OnItemSelectedCallback> OriginalOnSelectionChanged;
 
-var private UIBGBox BGBox;
+var private array<TUnitLabel> m_kUnitLabels;
 var private UIListItemString TwitchListItem;
-var private UIText Text;
-var private UIImage TwitchIcon;
 
 const LogScreenNames = false;
 
@@ -75,36 +84,74 @@ private function CheckForArmoryMainMenuScreen(UIScreen Screen) {
     }
 }
 
-private function bool CheckForUISoldierHeader(UIScreen Screen, out int ImageX, out int ImageY, out int UnitObjectID) {
+private function bool CheckForUISoldierHeader(UIScreen Screen, out array<TUnitLabel> Labels) {
+    local TUnitLabel Label;
+
+    Labels.Length = 0;
+
     // The UISoldierHeader's position doesn't appear to exist outside of Flash on some (all?) screens,
     // but it only appears in a few different spots, so we just have a hard-coded list of where those spots are
 
     // Need to check UIArmory_PromotionHero first because it extends UIArmory_Promotion
     if (UIArmory_PromotionHero(Screen) != none) {
-        ImageX = 282;
-        ImageY = 31;
-        UnitObjectID = UIArmory(Screen).UnitReference.ObjectID;
+        Label.bAddBackground = true;
+        Label.PosX = 282;
+        Label.PosY = 31;
+        Label.UnitObjectID = UIArmory(Screen).UnitReference.ObjectID;
+
+        Labels.AddItem(Label);
     }
     else if (UISoldierBondScreen(Screen) != none) {
-        ImageX = 450;
-        ImageY = 74;
-        UnitObjectID = UISoldierBondScreen(Screen).UnitRef.ObjectID;
+        Label.bAddBackground = true;
+        Label.PosX = 450;
+        Label.PosY = 74;
+        Label.UnitObjectID = UISoldierBondScreen(Screen).UnitRef.ObjectID;
+
+        Labels.AddItem(Label);
     }
     else if (UIArmory_Loadout(Screen) != none
           || UIArmory_MainMenu(Screen) != none
           || UIArmory_Promotion(Screen) != none)
     {
-        ImageX = 1251;
-        ImageY = 82;
-        UnitObjectID = UIArmory(Screen).UnitReference.ObjectID;
+        Label.bAddBackground = true;
+        Label.PosX = 1251;
+        Label.PosY = 82;
+        Label.UnitObjectID = UIArmory(Screen).UnitReference.ObjectID;
+
+        Labels.AddItem(Label);
     }
     else if (UICustomize(Screen) != none) {
-        ImageX = 105;
-        ImageY = 82;
-        UnitObjectID = UICustomize(Screen).UnitRef.ObjectID;
+        Label.bAddBackground = true;
+        Label.PosX = 105;
+        Label.PosY = 82;
+        Label.UnitObjectID = UICustomize(Screen).UnitRef.ObjectID;
+
+        Labels.AddItem(Label);
+    }
+    else if (UISoldierCaptured(Screen) != none) {
+        Label.bAddBackground = false;
+        Label.PosX = 1015;
+        Label.PosY = 390;
+        Label.UnitObjectID = UISoldierCaptured(Screen).TargetRef.ObjectID;
+
+        Labels.AddItem(Label);
+    }
+    else if (UISoldierBondAlert(Screen) != none) {
+        Label.bAddBackground = false;
+        Label.PosX = 245;
+        Label.PosY = 390;
+        Label.UnitObjectID = UISoldierBondAlert(Screen).UnitRef1.ObjectID;
+
+        Labels.AddItem(Label);
+
+        Label.PosX = 245;
+        Label.PosY = 460;
+        Label.UnitObjectID = UISoldierBondAlert(Screen).UnitRef2.ObjectID;
+
+        Labels.AddItem(Label);
     }
 
-    if (UnitObjectID <= 0) {
+    if (Labels.Length == 0) {
         return false;
     }
 
@@ -112,53 +159,63 @@ private function bool CheckForUISoldierHeader(UIScreen Screen, out int ImageX, o
 }
 
 private function CleanUpUsernameElements(bool bCleanUpMainMenuList) {
+    local TUnitLabel Label;
+
     // Destroy claims it's working but these elements are still visible, so to be safe we're hiding them first
-
-    if (BGBox != none) {
-        BGBox.Hide();
-        BGBox.Destroy();
-        BGBox = none;
-    }
-
-    if (Text != none) {
-        Text.Hide();
-        Text.Destroy();
-        Text = none;
-    }
-
-    if (TwitchIcon != none) {
-        TwitchIcon.Hide();
-        TwitchIcon.Destroy();
-        TwitchIcon = none;
-    }
-
     if (TwitchListItem != none && bCleanUpMainMenuList) {
         TwitchListItem.Hide();
         TwitchListItem.Destroy();
         TwitchListItem = none;
     }
-}
 
-private function CreateUsernameElements(UIScreen Screen, int ImageX, int ImageY, int UnitObjectID) {
-    local XComGameState_TwitchObjectOwnership OwnershipState;
+    foreach m_kUnitLabels(Label) {
+        if (Label.BGBox != none) {
+            Label.BGBox.Hide();
+            Label.BGBox.Destroy();
+            Label.BGBox = none;
+        }
 
-    OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(UnitObjectID);
+        if (Label.Text != none) {
+            Label.Text.Hide();
+            Label.Text.Destroy();
+            Label.Text = none;
+        }
 
-    if (OwnershipState == none) {
-        return;
+        if (Label.TwitchIcon != none) {
+            Label.TwitchIcon.Hide();
+            Label.TwitchIcon.Destroy();
+            Label.TwitchIcon = none;
+        }
     }
 
-    BGBox = Screen.Spawn(class'UIBGBox', Screen).InitBG(, ImageX - 6, ImageY - 6, /* TODO, dynamic width */ 180, 40);
-    BGBox.SetAlpha(0.7);
+    m_kUnitLabels.Length = 0;
+}
 
-	TwitchIcon = Screen.Spawn(class'UIImage', Screen).InitImage(, "img:///TwitchIntegration_UI.Icon_Twitch_3D");
-    TwitchIcon.SetPosition(ImageX, ImageY);
-    TwitchIcon.SetSize(28, 28);
+private function CreateUsernameElements(UIScreen Screen, array<TUnitLabel> Labels) {
+    local TUnitLabel Label;
+    local XComGameState_TwitchObjectOwnership OwnershipState;
 
-    Text = Screen.Spawn(class'UIText', Screen);
-    Text.OnTextSizeRealized = OnTextSizeRealized;
-    Text.InitText(, OwnershipState.TwitchLogin);
-    Text.SetPosition(TwitchIcon.X + 34, ImageY - 5);
+    foreach Labels(Label) {
+        OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Label.UnitObjectID);
+
+        if (OwnershipState == none) {
+            continue;
+        }
+
+        if (Label.bAddBackground) {
+            Label.BGBox = Screen.Spawn(class'UIBGBox', Screen).InitBG(, Label.PosX - 6, Label.PosY - 6, /* width, will change when realized */ 180, 40);
+            Label.BGBox.SetAlpha(0.7);
+        }
+
+        Label.TwitchIcon = Screen.Spawn(class'UIImage', Screen).InitImage(, "img:///TwitchIntegration_UI.Icon_Twitch_3D");
+        Label.TwitchIcon.SetPosition(Label.PosX, Label.PosY);
+        Label.TwitchIcon.SetSize(28, 28);
+
+        Label.Text = Screen.Spawn(class'UIText', Screen);
+        Label.Text.OnTextSizeRealized = OnTextSizeRealized;
+        Label.Text.InitText(, OwnershipState.TwitchLogin);
+        Label.Text.SetPosition(Label.TwitchIcon.X + 34, Label.PosY - 2);
+    }
 }
 
 private simulated function int GetMyItemIndex() {
@@ -245,22 +302,25 @@ private simulated function OnArmoryMainMenuSelectionChanged(UIList ContainerList
 }
 
 private function OnTextSizeRealized() {
-    if (Text != none && BGBox != none) {
-        BGBox.SetWidth(Text.Width + /* icon width */ 28 + /* post-name padding */ 24);
+    local TUnitLabel Label;
+
+    foreach m_kUnitLabels(Label) {
+        if (Label.Text != none && Label.BGBox != none) {
+            Label.BGBox.SetWidth(Label.Text.Width + /* icon width */ 28 + /* post-name padding */ 24);
+        }
     }
 }
 
-private function RealizeUI(UIScreen Screen, bool bInjectToMainMenu = true) {
-    local int ImageX, ImageY, UnitObjectID;
+private function RealizeUI(UIScreen Screen, optional bool bInjectToMainMenu = true) {
+    // TODO: is cleanup necessary, or will these be deleted automatically because they're parented to a screen? (assuming we don't keep refs)
+    CleanUpUsernameElements(/* bCleanUpMainMenuList */ bInjectToMainMenu);
 
     // Logic for these UI elements is tricky: the most recent screen to receive focus
     // isn't always the one being displayed for some reason. To handle that, we create the UI
     // elements whenever an appropriate screen is focused, and only delete them if we're about to
     // recreate them for another screen. Since they're parented to the UIScreen objects, they will
     // automatically show and hide as needed whenever the parent does.
-    if (CheckForUISoldierHeader(Screen, ImageX, ImageY, UnitObjectID)) {
-        CleanUpUsernameElements(/* bCleanUpMainMenuList */ bInjectToMainMenu);
-
+    if (CheckForUISoldierHeader(Screen, m_kUnitLabels)) {
         // When entering a Twitch name, the sequence of events is slightly off and causes us to remove and add
         // our list item in the main menu multiple times, which makes the menu too large. Due to this we only touch
         // the main menu if specifically requested.
@@ -268,6 +328,6 @@ private function RealizeUI(UIScreen Screen, bool bInjectToMainMenu = true) {
             CheckForArmoryMainMenuScreen(Screen);
         }
 
-        CreateUsernameElements(Screen, ImageX, ImageY, UnitObjectID);
+        CreateUsernameElements(Screen, m_kUnitLabels);
     }
 }
