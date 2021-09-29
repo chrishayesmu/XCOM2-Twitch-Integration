@@ -151,11 +151,13 @@ private function CreateUsernameElements(UIScreen Screen, int ImageX, int ImageY,
     BGBox = Screen.Spawn(class'UIBGBox', Screen).InitBG(, ImageX - 6, ImageY - 6, /* TODO, dynamic width */ 180, 40);
     BGBox.SetAlpha(0.7);
 
-	TwitchIcon = Screen.Spawn(class'UIImage', Screen).InitImage(, "img:///TwitchIntegration_UI.Icon_Twitch");
+	TwitchIcon = Screen.Spawn(class'UIImage', Screen).InitImage(, "img:///TwitchIntegration_UI.Icon_Twitch_3D");
     TwitchIcon.SetPosition(ImageX, ImageY);
     TwitchIcon.SetSize(28, 28);
 
-    Text = Screen.Spawn(class'UIText', Screen).InitText(, OwnershipState.TwitchLogin);
+    Text = Screen.Spawn(class'UIText', Screen);
+    Text.OnTextSizeRealized = OnTextSizeRealized;
+    Text.InitText(, OwnershipState.TwitchLogin);
     Text.SetPosition(TwitchIcon.X + 34, ImageY - 5);
 }
 
@@ -239,6 +241,12 @@ private simulated function OnArmoryMainMenuSelectionChanged(UIList ContainerList
     }
     else {
         OriginalOnSelectionChanged(ContainerList, ItemIndex);
+    }
+}
+
+private function OnTextSizeRealized() {
+    if (Text != none && BGBox != none) {
+        BGBox.SetWidth(Text.Width + /* icon width */ 28 + /* post-name padding */ 24);
     }
 }
 
