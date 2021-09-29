@@ -45,11 +45,12 @@ function AddOrUpdateFlag(XComGameState_Unit Unit, optional XComGameState_TwitchO
     UnitObjID = Unit.GetReference().ObjectID;
     UnitFlag = Pres.m_kUnitFlagManager.GetFlagForObjectID(UnitObjID);
 
-    `TILOGCLS("AddOrUpdateFlag for unit " $ Unit.GetFullName());
-
     if (UnitFlag == none) {
-        `TILOGCLS("Unit doesn't have a unit flag to attach to");
-        return;
+        if (UnitFlag == none) {
+            Pres.m_kUnitFlagManager.AddFlag(Unit.GetReference());
+        }
+
+        UnitFlag = Pres.m_kUnitFlagManager.GetFlagForObjectID(UnitObjID);
     }
 
     if (Ownership == none) {
@@ -57,21 +58,16 @@ function AddOrUpdateFlag(XComGameState_Unit Unit, optional XComGameState_TwitchO
     }
 
     if (GetFlagForObject(UnitObjID, TFlag)) {
-        `TILOGCLS("Flag already exists");
-
         if (Ownership != none) {
-            `TILOGCLS("Owner found, updating text");
             TFlag.TwitchName.SetText(Ownership.TwitchLogin);
             TFlag.TwitchName.Show();
         }
         else {
-            `TILOGCLS("No owner found, hiding text");
             TFlag.TwitchName.SetText("");
             TFlag.TwitchName.Hide();
         }
     }
     else if (Ownership != none) {
-        `TILOGCLS("Flag does not exist, creating new");
         TFlag = CreateTwitchFlag(UnitFlag, Unit, Ownership);
 
         m_kTwitchFlags.AddItem(TFlag);

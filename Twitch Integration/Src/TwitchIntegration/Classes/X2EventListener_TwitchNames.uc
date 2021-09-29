@@ -121,6 +121,10 @@ if (ViewerIndex != INDEX_NONE) {
 // #endregion
 
 // #region Modify unit attributes as needed
+    // Update our Twitch unit flag to show the viewer name. We want to do this *before* changing
+    // the unit name, because we want the unit flag to show the original unit name, with our nameplate underneath.
+    class'X2TwitchUtils'.static.SyncUnitFlag(Unit, OwnershipState);
+
     if (Unit.GetTeam() == eTeam_XCom && ( Unit.IsSoldier() || Unit.GetMyTemplate().bIsCosmetic )) {
         // Don't do anything in this case; we don't modify soldiers because the player has full agency to do that
         // TODO: need to check if this is a cosmetic unit also (i.e. Gremlin)
@@ -143,9 +147,6 @@ if (ViewerIndex != INDEX_NONE) {
         Unit.SetUnitName(FirstName, LastName, "");
     }
 // #endregion
-
-    // Update our Twitch unit flag to show the viewer name
-    class'X2TwitchUtils'.static.SyncUnitFlag(Unit, OwnershipState);
 
     // For Chosen, we need a little extra info and have to modify a more global game state
     if (Unit.IsChosen()) {
