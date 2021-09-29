@@ -11,15 +11,35 @@
 class X2DownloadableContentInfo_TwitchIntegration extends X2DownloadableContentInfo
 	dependson(XComGameState_TwitchEventPoll);
 
+/// <summary>
+/// Called just before the player launches into a tactical a mission while this DLC / Mod is installed.
+/// Allows dlcs/mods to modify the start state before launching into the mission
+/// </summary>
 static event OnPreMission(XComGameState StartGameState, XComGameState_MissionSite MissionState)
 {
+    `TILOG("OnPreMission triggered");
+    CopyStateObjectsToNewState(StartGameState);
+}
+
+/// <summary>
+/// Called when the player is doing a direct tactical->tactical mission transfer. Allows mods to modify the
+/// start state of the new transfer mission if needed
+/// </summary>
+static event ModifyTacticalTransferStartState(XComGameState TransferStartState)
+{
+    `TILOG("ModifyTacticalTransferStartState triggered");
+    CopyStateObjectsToNewState(TransferStartState);
+}
+
+static function CopyStateObjectsToNewState(XComGameState NewGameState) {
     local XComGameState_TwitchObjectOwnership OwnershipState;
 
-    `TILOG("OnPreMission triggered: copying ownership objects to the tactical layer");
+    `TILOG("Copying ownership objects to new game state");
 
-    // Copy all ownership states from the strategy layer into tactical
+    // Copy all ownership states
+    // TODO: make sure we don't copy transient states
     foreach `XCOMHISTORY.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState, , /* bUnlimitedSearch */ true) {
-        StartGameState.ModifyStateObject(class'XComGameState_TwitchObjectOwnership', OwnershipState.ObjectID);
+        NewGameState.ModifyStateObject(class'XComGameState_TwitchObjectOwnership', OwnershipState.ObjectID);
     }
 }
 

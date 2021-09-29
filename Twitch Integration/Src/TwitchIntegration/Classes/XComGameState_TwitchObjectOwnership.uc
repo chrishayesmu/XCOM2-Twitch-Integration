@@ -3,6 +3,33 @@ class XComGameState_TwitchObjectOwnership extends XComGameState_BaseObject;
 var string TwitchLogin;
 var StateObjectReference OwnedObjectRef;
 
+// These fields are used for ownership of the Chosen, since their object ref doesn't remain valid between missions like soldiers do.
+var bool bIsChosenUnit;
+var Name ChosenCharacterGroupName;
+
+function XComGameState_TwitchObjectOwnership ChangeObjectRef(StateObjectReference NewObjectRef, optional XComGameState NewGameState) {
+    local bool bCreatedGameState;
+    local XComGameState_TwitchObjectOwnership ModifiedState;
+
+    if (NewObjectRef.ObjectID == OwnedObjectRef.ObjectID) {
+        return self;
+    }
+
+    if (NewGameState == none) {
+    	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Update Object Ref");
+        bCreatedGameState = true;
+    }
+
+    ModifiedState = XComGameState_TwitchObjectOwnership(NewGameState.ModifyStateObject(class'XComGameState_TwitchObjectOwnership', self.ObjectID));
+    ModifiedState.OwnedObjectRef = NewObjectRef;
+
+    if (bCreatedGameState) {
+        `GAMERULES.SubmitGameState(NewGameState);
+    }
+
+    return ModifiedState;
+}
+
 static function DeleteOwnership(XComGameState_TwitchObjectOwnership Ownership) {
 	local XComGameState NewGameState;
 	local XComGameState_Unit Unit;
@@ -32,6 +59,18 @@ static function DeleteOwnership(XComGameState_TwitchObjectOwnership Ownership) {
     }
 
     `GAMERULES.SubmitGameState(NewGameState);
+}
+
+static function XComGameState_TwitchObjectOwnership FindForChosen(Name CharacterGroupName) {
+    local XComGameState_TwitchObjectOwnership OwnershipState;
+
+    foreach `XCOMHISTORY.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState) {
+        if (OwnershipState.bIsChosenUnit && OwnershipState.ChosenCharacterGroupName == CharacterGroupName) {
+            return OwnershipState;
+        }
+    }
+
+    return none;
 }
 
 static function XComGameState_TwitchObjectOwnership FindForObject(int ObjID) {

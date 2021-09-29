@@ -18,7 +18,7 @@ static function X2EventListenerTemplate CleanUpOwnershipStates() {
     Template.RegisterInStrategy = true;
     Template.RegisterInTactical = true;
     Template.AddEvent('OnTacticalBeginPlay', RemoveTransientOwnershipStates);
-    Template.AddEvent('PreCompleteStrategyFromTacticalTransfer', RemoveTransientOwnershipStates);
+    Template.AddCHEvent('PreCompleteStrategyFromTacticalTransfer', OnPreCompleteStrategyFromTacticalTransfer, ELD_Immediate);
 
     return Template;
 }
@@ -53,7 +53,28 @@ static function XComGameState_TwitchObjectOwnership AssignOwnership(string Viewe
     local XComGameState_TwitchObjectOwnership OwnershipState;
 	local XComGameState_Unit Unit;
 
+    StateMgr = `TISTATEMGR;
+    ViewerIndex = StateMgr.TwitchChatConn.GetViewer(ViewerLogin, Viewer);
+    Unit = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(ObjID));
+
 // #region Check if either unit or viewer already has associated ownership
+    // Start by handling the Chosen units specially, because their ownership needs to persist between missions
+    // but it needs separate logic to do so
+    if (Unit.IsChosen()) {
+        OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForChosen(Unit.GetMyTemplate().CharacterGroupName);
+
+        if (OwnershipState != none) {
+            // If the ownership is from a previous mission, we'll need to change object IDs
+            if (Unit.GetReference().ObjectID != OwnershipState.OwnedObjectRef.ObjectID) {
+                OwnershipState = OwnershipState.ChangeObjectRef(Unit.GetReference(), NewGameState);
+            }
+
+            class'X2TwitchUtils'.static.SyncUnitFlag(Unit);
+
+            return OwnershipState;
+        }
+    }
+
     OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForUser(ViewerLogin);
 
     if (OwnershipState != none && !AllowMultipleOwnership) {
@@ -72,10 +93,6 @@ static function XComGameState_TwitchObjectOwnership AssignOwnership(string Viewe
         return OwnershipState;
     }
 // #endregion
-
-    StateMgr = `TISTATEMGR;
-    ViewerIndex = StateMgr.TwitchChatConn.GetViewer(ViewerLogin, Viewer);
-    Unit = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(ObjID));
 
     if (NewGameState == none) {
     	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Assign Twitch Owner");
@@ -130,7 +147,11 @@ if (ViewerIndex != INDEX_NONE) {
     // Update our Twitch unit flag to show the viewer name
     class'X2TwitchUtils'.static.SyncUnitFlag(Unit, OwnershipState);
 
+    // For Chosen, we need a little extra info and have to modify a more global game state
     if (Unit.IsChosen()) {
+        OwnershipState.bIsChosenUnit = true;
+        OwnershipState.ChosenCharacterGroupName = Unit.GetMyTemplate().CharacterGroupName;
+
         UpdateChosenGameStateFromUnit(Unit, NewGameState, Viewer);
     }
 
@@ -272,31 +293,77 @@ static protected function EventListenerReturn CarryOverFacelessOwnership(Object 
         // TODO: probably need to delete the nameplate of the civilian and create a new one attached to the Faceless object ID
 
         `GAMERULES.SubmitGameState(NewGameState);
-
         break;
     }
 
     return ELR_NoInterrupt;
 }
 
-static protected function EventListenerReturn RemoveTransientOwnershipStates(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
+static protected function EventListenerReturn OnPreCompleteStrategyFromTacticalTransfer(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
+    local int HistoryIndex;
 	local XComGameStateHistory History;
-    local XComGameState NewGameState;
+    local XComGameState OldGameState, NewGameState;
     local XComGameState_TwitchObjectOwnership OwnershipState;
     local XComGameState_Unit Unit;
 
-    `TILOG("Cleaning up transient ownership states for event " $ Event);
-
+    // When this event occurs, there's already an archive state and a strat start state in history and everything prior is gone.
+    // We have to go back to the archive state to find our ownership objects.
     History = `XCOMHISTORY;
-	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Delete Transient Twitch Ownership");
+    HistoryIndex = History.GetCurrentHistoryIndex() - 1;
+    OldGameState = History.GetGameStateFromHistory(HistoryIndex);
+	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Transfer Ownership to Strategy");
 
-    foreach History.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState, , /* bUnlimitedSearch */ true) {
+    `TILOG("Copying ownership states to strat layer. Looking at history index " $ HistoryIndex);
+
+    foreach OldGameState.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState) {
+        `TILOG("Looking at ownership state for viewer " $ OwnershipState.TwitchLogin);
         Unit = XComGameState_Unit(History.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID, eReturnType_Reference));
 
-        if (!IsOwnershipTransient(Unit)) {
+        if (IsOwnershipTransient(Unit)) {
+            `TILOG("Skipping transient unit " $ Unit.GetFullName());
             continue;
         }
 
+        `TILOG("Copying non-transient state object: Unit is " $ Unit.GetFullName() $ " and owner is " $ OwnershipState.TwitchLogin);
+        NewGameState.ModifyStateObject(class'XComGameState_TwitchObjectOwnership', OwnershipState.ObjectID);
+    }
+
+    if (NewGameState.GetNumGameStateObjects() > 0) {
+        `TILOG("Transferring " $ NewGameState.GetNumGameStateObjects() $ " state objects back to strat layer");
+		`GAMERULES.SubmitGameState(NewGameState);
+	}
+    else {
+        `TILOG("No game state objects remained to transfer to strat layer");
+		`XCOMHISTORY.CleanupPendingGameState(NewGameState);
+    }
+
+    return ELR_NoInterrupt;
+}
+
+static protected function EventListenerReturn RemoveTransientOwnershipStates(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
+    local int HistoryIndex;
+	local XComGameStateHistory History;
+    local XComGameState OldGameState, NewGameState;
+    local XComGameState_TwitchObjectOwnership OwnershipState;
+    local XComGameState_Unit Unit;
+
+    History = `XCOMHISTORY;
+	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Delete Transient Twitch Ownership");
+    HistoryIndex = History.GetCurrentHistoryIndex() - 1;
+    OldGameState = History.GetGameStateFromHistory(HistoryIndex);
+
+    `TILOG("Cleaning up transient ownership states for event " $ Event $ ". Looking at history index " $ HistoryIndex);
+
+    foreach OldGameState.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState) {
+        `TILOG("Looking at ownership state for viewer " $ OwnershipState.TwitchLogin);
+        Unit = XComGameState_Unit(History.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID, eReturnType_Reference));
+
+        if (!IsOwnershipTransient(Unit)) {
+            `TILOG("Skipping non-transient unit " $ Unit.GetFullName());
+            continue;
+        }
+
+        `TILOG("Removing transient state object: Unit is " $ Unit.GetFullName() $ " and owner is " $ OwnershipState.TwitchLogin);
         NewGameState.RemoveStateObject(OwnershipState.ObjectID);
     }
 
@@ -313,13 +380,9 @@ static protected function EventListenerReturn RemoveTransientOwnershipStates(Obj
 }
 
 static protected function bool IsOwnershipTransient(XComGameState_Unit Unit) {
-    // Friendly soldiers and cosmetic units (i.e. Gremlins) have permanent ownership
-    if (Unit.GetTeam() == eTeam_XCom && ( Unit.IsSoldier() || Unit.GetMyTemplate().bIsCosmetic )) {
-        return false;
-    }
-
-    // TODO XComGameState_AdventChosen
-    if (Unit.IsChosen()) {
+    // Friendly soldiers and the Chosen have permanent ownership
+    // TODO: soldiers may be created in the tac-to-strat transition (rewards/rescues?)
+    if (Unit.IsSoldier() || Unit.IsChosen()) {
         return false;
     }
 
