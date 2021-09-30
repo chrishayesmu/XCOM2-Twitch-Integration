@@ -24,23 +24,36 @@ var private delegate<OnItemSelectedCallback> OriginalOnItemClicked;
 var private delegate<OnItemSelectedCallback> OriginalOnSelectionChanged;
 
 var private array<TUnitLabel> m_kUnitLabels;
+var private array<TUnitLabel> m_kPersonnelListLabels;
 var private UIListItemString TwitchListItem;
 
-const LogScreenNames = false;
+var private bool bRegisteredForEvents;
+
+const LogScreenNames = true;
 
 delegate OnItemSelectedCallback(UIList ContainerList, int ItemIndex);
 
 event OnInit(UIScreen Screen) {
+    local Object ThisObj;
+
     `TILOGCLS("OnInit screen: " $ Screen.Class.Name, LogScreenNames);
 
-    RealizeUI(Screen);
+    // FIXME: for some reason, if we don't register every time OnInit is called, our event listener is lost
+    ThisObj = self;
+    `XEVENTMGR.RegisterForEvent(ThisObj, 'UIPersonnel_OnSortFinished', OnScreenSorted, ELD_Immediate);
+
+    if (UIPersonnel(Screen) == none) {
+        RealizeUI(Screen);
+    }
 }
 
 event OnReceiveFocus(UIScreen Screen)
 {
     `TILOGCLS("OnReceiveFocus screen: " $ Screen.Class.Name, LogScreenNames);
 
-    RealizeUI(Screen);
+    if (UIPersonnel(Screen) == none) {
+        RealizeUI(Screen);
+    }
 }
 
 event OnRemoved(UIScreen Screen) {
@@ -52,6 +65,23 @@ event OnRemoved(UIScreen Screen) {
         OriginalOnItemClicked = none;
         OriginalOnSelectionChanged = none;
     }
+
+    if (UIPersonnel(Screen) != none) {
+        // Zero out length so these labels become eligible for garbage collection
+        m_kPersonnelListLabels.Length = 0;
+    }
+}
+
+private function EventListenerReturn OnScreenSorted(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
+    local UIScreen Screen;
+
+    Screen = UIScreen(EventSource);
+
+    if (Screen != none) {
+        RealizeUI(Screen);
+    }
+
+    return ELR_NoInterrupt;
 }
 
 private function CheckForArmoryMainMenuScreen(UIScreen Screen) {
@@ -81,6 +111,81 @@ private function CheckForArmoryMainMenuScreen(UIScreen Screen) {
         TwitchListItem = ArmoryMainMenu.Spawn(class'UIListItemString', ArmoryMainMenu.List.ItemContainer);
         TwitchListItem.InitListItem(strButtonLabel)
                       .NeedsAttention(OwnershipState == none);
+    }
+}
+
+private function ParseUIPersonnelScreen(UIPersonnel Screen, out UIList List, out array<int> ObjectIDs, out array<UIPanel> ParentPanels) {
+    local UIPanel Panel;
+    local UIPersonnel_SoldierListItem ListItem;
+
+    List = Screen.m_kList;
+
+    foreach List.itemContainer.ChildPanels(Panel) {
+        ListItem = UIPersonnel_SoldierListItem(Panel);
+
+        if (ListItem == none) {
+            continue;
+        }
+
+        ObjectIDs.AddItem(ListItem.UnitRef.ObjectID);
+        ParentPanels.AddItem(ListItem);
+    }
+}
+
+private function ParseUISoldierBondScreen(UISoldierBondScreen Screen, out UIList List, out array<int> ObjectIDs, out array<UIPanel> ParentPanels) {
+    local UIPanel Panel;
+    local UISoldierBondListItem ListItem;
+
+    List = Screen.List;
+
+    foreach List.itemContainer.ChildPanels(Panel) {
+        ListItem = UISoldierBondListItem(Panel);
+
+        if (ListItem == none) {
+            continue;
+        }
+
+        ObjectIDs.AddItem(ListItem.UnitRef.ObjectID);
+        ParentPanels.AddItem(ListItem);
+    }
+}
+
+private function CheckForSoldierList(UIScreen Screen) {
+    local int Index;
+    local array<int> ObjectIDs;
+    local TUnitLabel EmptyLabel, Label;
+    local UIList List;
+    local array<UIPanel> ParentPanels;
+
+    // TODO: handle type eUIPersonnel_Deceased
+    // TODO: support UISoldierBondScreen with UISoldierBondListItem
+    // TODO: sorting list regenerates it and deletes our UI
+    if (UIPersonnel(Screen) != none && UIPersonnel(Screen).m_eListType == eUIPersonnel_Soldiers) {
+        ParseUIPersonnelScreen(UIPersonnel(Screen), List, ObjectIDs, ParentPanels);
+    }
+    else if (UISoldierBondScreen(Screen) != none) {
+        ParseUISoldierBondScreen(UISoldierBondScreen(Screen), List, ObjectIDs, ParentPanels);
+    }
+    else {
+        return;
+    }
+
+    // Increase the list's mask size so that we can go outside of it with our UI elements
+    List.LeftMaskOffset = -1000;
+    List.RealizeMaskAndScrollbar();
+
+    m_kPersonnelListLabels.Length = 0;
+
+    for (Index = 0; Index < ObjectIDs.Length; Index++) {
+        Label.bAddBackground = true;
+        Label.PosX = -100;
+        Label.PosY = 13;
+        Label.UnitObjectID = ObjectIDs[Index];
+
+        CreateTwitchUI(ParentPanels[Index], Label, OnPersonnelListTextSizeRealized);
+
+        m_kPersonnelListLabels.AddItem(Label);
+        Label = EmptyLabel;
     }
 }
 
@@ -191,30 +296,40 @@ private function CleanUpUsernameElements(bool bCleanUpMainMenuList) {
     m_kUnitLabels.Length = 0;
 }
 
-private function CreateUsernameElements(UIScreen Screen, array<TUnitLabel> Labels) {
-    local TUnitLabel Label;
+private function CreateTwitchUI(UIPanel ParentPanel, out TUnitLabel Label, delegate<UIText.OnTextSizeRealized> TextSizeRealizedDelegate) {
     local XComGameState_TwitchObjectOwnership OwnershipState;
 
-    foreach Labels(Label) {
-        OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Label.UnitObjectID);
+    OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Label.UnitObjectID);
 
-        if (OwnershipState == none) {
-            continue;
-        }
+    if (OwnershipState == none) {
+        return;
+    }
 
-        if (Label.bAddBackground) {
-            Label.BGBox = Screen.Spawn(class'UIBGBox', Screen).InitBG(, Label.PosX - 6, Label.PosY - 6, /* width, will change when realized */ 180, 40);
-            Label.BGBox.SetAlpha(0.7);
-        }
+    if (Label.bAddBackground) {
+        Label.BGBox = ParentPanel.Spawn(class'UIBGBox', ParentPanel).InitBG(, Label.PosX - 6, Label.PosY - 6, /* width, will change when realized */ 180, 40);
+        Label.BGBox.SetAlpha(0.7);
+    }
 
-        Label.TwitchIcon = Screen.Spawn(class'UIImage', Screen).InitImage(, "img:///TwitchIntegration_UI.Icon_Twitch_3D");
-        Label.TwitchIcon.SetPosition(Label.PosX, Label.PosY);
-        Label.TwitchIcon.SetSize(28, 28);
+    Label.TwitchIcon = ParentPanel.Spawn(class'UIImage', ParentPanel).InitImage(, "img:///TwitchIntegration_UI.Icon_Twitch_3D");
+    Label.TwitchIcon.SetPosition(Label.PosX, Label.PosY);
+    Label.TwitchIcon.SetSize(28, 28);
 
-        Label.Text = Screen.Spawn(class'UIText', Screen);
-        Label.Text.OnTextSizeRealized = OnTextSizeRealized;
-        Label.Text.InitText(, OwnershipState.TwitchLogin);
-        Label.Text.SetPosition(Label.TwitchIcon.X + 34, Label.PosY - 2);
+    Label.Text = ParentPanel.Spawn(class'UIText', ParentPanel);
+    Label.Text.OnTextSizeRealized = TextSizeRealizedDelegate;
+    Label.Text.InitText(, OwnershipState.TwitchLogin);
+    Label.Text.SetPosition(Label.TwitchIcon.X + 34, Label.PosY - 2);
+}
+
+private function CreateUsernameElements(UIScreen Screen, out array<TUnitLabel> Labels) {
+    local int Index;
+    local TUnitLabel Label;
+
+    for (Index = 0; Index < Labels.Length; Index++) {
+        Label = Labels[Index];
+
+        CreateTwitchUI(Screen, Label, OnTextSizeRealized);
+
+        Labels[Index] = Label;
     }
 }
 
@@ -301,6 +416,21 @@ private simulated function OnArmoryMainMenuSelectionChanged(UIList ContainerList
     }
 }
 
+private function OnPersonnelListTextSizeRealized() {
+    local TUnitLabel Label;
+
+    foreach m_kPersonnelListLabels(Label) {
+        if (Label.Text != none && Label.BGBox != none) {
+            Label.BGBox.SetWidth(Label.Text.Width + /* icon width */ 28 + /* post-name padding */ 24);
+
+            // Move everything left so they don't overlap the list itself
+            Label.BGBox.SetX(-1 * Label.BGBox.Width - 10);
+            Label.TwitchIcon.SetX(Label.BGBox.X + 6);
+            Label.Text.SetPosition(Label.TwitchIcon.X + 34, Label.PosY - 2);
+        }
+    }
+}
+
 private function OnTextSizeRealized() {
     local TUnitLabel Label;
 
@@ -312,15 +442,16 @@ private function OnTextSizeRealized() {
 }
 
 private function RealizeUI(UIScreen Screen, optional bool bInjectToMainMenu = true) {
-    // TODO: is cleanup necessary, or will these be deleted automatically because they're parented to a screen? (assuming we don't keep refs)
-    CleanUpUsernameElements(/* bCleanUpMainMenuList */ bInjectToMainMenu);
+    local array<TUnitLabel> NewLabels;
 
-    // Logic for these UI elements is tricky: the most recent screen to receive focus
-    // isn't always the one being displayed for some reason. To handle that, we create the UI
-    // elements whenever an appropriate screen is focused, and only delete them if we're about to
-    // recreate them for another screen. Since they're parented to the UIScreen objects, they will
-    // automatically show and hide as needed whenever the parent does.
-    if (CheckForUISoldierHeader(Screen, m_kUnitLabels)) {
+    CheckForSoldierList(Screen);
+
+    if (CheckForUISoldierHeader(Screen, NewLabels)) {
+        // TODO: is cleanup necessary, or will these be deleted automatically because they're parented to a screen? (assuming we don't keep refs)
+        CleanUpUsernameElements(/* bCleanUpMainMenuList */ bInjectToMainMenu);
+
+        m_kUnitLabels = NewLabels;
+
         // When entering a Twitch name, the sequence of events is slightly off and causes us to remove and add
         // our list item in the main menu multiple times, which makes the menu too large. Due to this we only touch
         // the main menu if specifically requested.
