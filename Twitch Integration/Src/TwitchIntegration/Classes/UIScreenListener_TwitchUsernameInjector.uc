@@ -29,7 +29,7 @@ var private UIListItemString TwitchListItem;
 
 var private bool bRegisteredForEvents;
 
-const LogScreenNames = true;
+const LogScreenNames = false;
 
 delegate OnItemSelectedCallback(UIList ContainerList, int ItemIndex);
 
@@ -111,6 +111,35 @@ private function CheckForArmoryMainMenuScreen(UIScreen Screen) {
         TwitchListItem = ArmoryMainMenu.Spawn(class'UIListItemString', ArmoryMainMenu.List.ItemContainer);
         TwitchListItem.InitListItem(strButtonLabel)
                       .NeedsAttention(OwnershipState == none);
+    }
+}
+
+private function HandleSquadSelectScreen(UISquadSelect Screen, out array<TUnitLabel> Labels) {
+    local int Index;
+    local TUnitLabel EmptyLabel, Label;
+    local UIList_SquadEditor List;
+    local UISquadSelect_ListItem ListItem;
+
+    List = Screen.m_kSlotList;
+
+    `TILOGCLS("In HandleSquadSelectScreen; list has " $ List.GetItemCount() $ " items");
+
+    for (Index = 0; Index < List.GetItemCount(); Index++) {
+        ListItem = UISquadSelect_ListItem(List.GetItem(Index));
+
+        Label.bAddBackground = true;
+        Label.PosX = 0;
+        Label.PosY = 365;
+        Label.UnitObjectID = ListItem.GetUnitRef().ObjectID;
+
+        CreateTwitchUI(ListItem, Label, OnTextSizeRealized_SquadSelect);
+
+        // Needs to be narrower than normal to fit
+        Label.BGBox.SetHeight(32);
+        Label.BGBox.SetY(Label.PosY - 2);
+
+        Labels.AddItem(Label);
+        Label = EmptyLabel;
     }
 }
 
@@ -255,6 +284,13 @@ private function bool CheckForUISoldierHeader(UIScreen Screen, out array<TUnitLa
 
         Labels.AddItem(Label);
     }
+    else if (UISquadSelect(Screen) != none) {
+        `TILOGCLS("UISquadSelect detected");
+
+        // This one needs to create its own UI, so handle it a little differently
+        HandleSquadSelectScreen(UISquadSelect(Screen), Labels);
+        return true;
+    }
 
     if (Labels.Length == 0) {
         return false;
@@ -326,6 +362,10 @@ private function CreateUsernameElements(UIScreen Screen, out array<TUnitLabel> L
 
     for (Index = 0; Index < Labels.Length; Index++) {
         Label = Labels[Index];
+
+        if (Label.BGBox != none || Label.Text != none || Label.TwitchIcon != none) {
+            continue;
+        }
 
         CreateTwitchUI(Screen, Label, OnTextSizeRealized);
 
@@ -421,12 +461,10 @@ private function OnPersonnelListTextSizeRealized() {
 
     foreach m_kPersonnelListLabels(Label) {
         if (Label.Text != none && Label.BGBox != none) {
-            Label.BGBox.SetWidth(Label.Text.Width + /* icon width */ 28 + /* post-name padding */ 24);
+            ScaleBGBoxToText(Label);
 
             // Move everything left so they don't overlap the list itself
-            Label.BGBox.SetX(-1 * Label.BGBox.Width - 10);
-            Label.TwitchIcon.SetX(Label.BGBox.X + 6);
-            Label.Text.SetPosition(Label.TwitchIcon.X + 34, Label.PosY - 2);
+            MoveLabel(Label, -1 * Label.BGBox.Width - 10);
         }
     }
 }
@@ -435,9 +473,20 @@ private function OnTextSizeRealized() {
     local TUnitLabel Label;
 
     foreach m_kUnitLabels(Label) {
-        if (Label.Text != none && Label.BGBox != none) {
-            Label.BGBox.SetWidth(Label.Text.Width + /* icon width */ 28 + /* post-name padding */ 24);
-        }
+        ScaleBGBoxToText(Label);
+    }
+}
+
+private function OnTextSizeRealized_SquadSelect() {
+    local TUnitLabel Label;
+    local float PosX;
+
+    foreach m_kUnitLabels(Label) {
+        ScaleBGBoxToText(Label);
+
+        // The UI panel we're parented to doesn't actually know its own width, so it's just hardcoded here
+        PosX = (286 - Label.BGBox.Width) / 2;
+        MoveLabel(Label, PosX);
     }
 }
 
@@ -460,5 +509,17 @@ private function RealizeUI(UIScreen Screen, optional bool bInjectToMainMenu = tr
         }
 
         CreateUsernameElements(Screen, m_kUnitLabels);
+    }
+}
+
+private function MoveLabel(TUnitLabel Label, float NewPosX) {
+    Label.BGBox.SetX(NewPosX);
+    Label.TwitchIcon.SetX(Label.BGBox.X + 6);
+    Label.Text.SetX(Label.TwitchIcon.X + 34);
+}
+
+private function ScaleBGBoxToText(TUnitLabel Label) {
+    if (Label.Text != none && Label.BGBox != none) {
+        Label.BGBox.SetWidth(Label.Text.Width + /* icon width */ 28 + /* post-name padding */ 24);
     }
 }
