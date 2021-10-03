@@ -30,7 +30,7 @@ static function X2EventListenerTemplate UnitAssignName() {
 
 	Template.RegisterInTactical = true;
 	Template.AddEvent('OnUnitBeginPlay', ChooseViewerName);
-    Template.AddEvent('UnitRemovedFromPlay', CarryOverFacelessOwnership);
+    Template.AddCHEvent('UnitRemovedFromPlay', CarryOverFacelessOwnership);
 	Template.AddEvent('UnitSpawned', ChooseViewerName);
 	Template.AddCHEvent('TwitchAssignUnitNames', AssignNamesToUnits, ELD_Immediate);
 
@@ -94,7 +94,7 @@ static function XComGameState_TwitchObjectOwnership AssignOwnership(string Viewe
     }
 // #endregion
 
-    if (NewGameState == none) {
+    if (NewGameState == none || NewGameState.bReadOnly) {
     	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Assign Twitch Owner");
         bCreatedGameState = true;
     }
@@ -191,6 +191,7 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
     local TwitchChatTcpLink TwitchConn;
     local TwitchStateManager TwitchMgr;
     local TwitchViewer Viewer;
+    local UnitValue UnitVal;
 	local XComGameState_Unit Unit;
     local XComGameState_TwitchObjectOwnership OwnershipState;
 
@@ -202,7 +203,13 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
     TwitchConn = TwitchMgr.TwitchChatConn;
 	Unit = XComGameState_Unit(EventSource);
 
-    `TILOG("In ChooseViewerName for unit " $ Unit.GetFullName());
+    `TILOG("In ChooseViewerName for event " $ Event $ " and unit " $ Unit.GetFullName());
+
+    // If this is spawned from something else, we'll carry over the first unit's ownership elsewhere
+    if (IsSpawnedFromExistingUnit(Unit, GameState)) {
+        `TILOG("Aborting ChooseViewerName: Unit appears to be spawned from something else");
+		return ELR_NoInterrupt;
+    }
 
     // UnitBeginPlay events can fire before we have a chance to initialize the TwitchStateManager
 	if (TwitchMgr == none) {
@@ -240,11 +247,6 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
         return ELR_NoInterrupt;
     }
 
-    if (Unit.GetMyTemplate().CharacterGroupName == 'Faceless') {
-        `TILOG("Aborting ChooseViewerName: unit is a Faceless and should be carrying over ownership from a civilian");
-        return ELR_NoInterrupt;
-    }
-
     // Pick a viewer at random, if any available
     ViewerIndex = TwitchMgr.RaffleViewer();
 
@@ -266,12 +268,14 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
 }
 
 static protected function EventListenerReturn CarryOverFacelessOwnership(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
+    local bool bCreatedGameState;
     local StateObjectReference EffectRef;
 	local XComGameStateHistory History;
     local XComGameState NewGameState;
 	local XComGameState_Effect EffectState;
     local XComGameState_TwitchObjectOwnership Ownership;
     local XComGameState_Unit CivUnitState;
+	local UnitValue SpawnedUnitValue;
 
     CivUnitState = XComGameState_Unit(EventData);
 
@@ -280,25 +284,37 @@ static protected function EventListenerReturn CarryOverFacelessOwnership(Object 
         return ELR_NoInterrupt;
     }
 
+    `TILOG("CarryOverFacelessOwnership: Attempting to find Faceless spawn effect");
+
     History = `XCOMHISTORY;
     Ownership = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(CivUnitState.GetReference().ObjectID);
 
     foreach CivUnitState.AffectedByEffects(EffectRef) {
-        EffectState = XComGameState_Effect(History.GetGameStateForObjectID(EffectRef.ObjectID));
+        EffectState = XComGameState_Effect(GameState.GetGameStateForObjectID(EffectRef.ObjectID));
 
         if (!EffectState.GetX2Effect().IsA('X2Effect_SpawnFaceless')) {
             continue;
         }
 
-    	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Faceless Owner Swap");
-        AssignOwnership(Ownership.TwitchLogin, EffectState.CreatedObjectReference.ObjectID, NewGameState, , true);
+        `TILOG("CarryOverFacelessOwnership: Effect found, carrying ownership over to new unit");
+
+        if (GameState != none && !GameState.bReadOnly) {
+            NewGameState = GameState;
+        }
+        else {
+    	    NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Faceless Owner Swap");
+            bCreatedGameState = true;
+        }
+
+        AssignOwnership(Ownership.TwitchLogin, EffectState.CreatedObjectReference.ObjectID, NewGameState, , /* AllowMultipleOwnership */ true);
 
         // Need to delete ownership of the original civilian unit
         NewGameState.RemoveStateObject(Ownership.ObjectID);
 
-        // TODO: probably need to delete the nameplate of the civilian and create a new one attached to the Faceless object ID
+        if (bCreatedGameState) {
+            `GAMERULES.SubmitGameState(NewGameState);
+        }
 
-        `GAMERULES.SubmitGameState(NewGameState);
         break;
     }
 
@@ -415,4 +431,29 @@ static protected function UpdateChosenGameStateFromUnit(XComGameState_Unit Chose
     ChosenState.Nickname = "";
 
     `TILOG("Chosen last name is now " $ ChosenState.LastName);
+}
+
+static function bool IsSpawnedFromExistingUnit(XComGameState_Unit NewUnit, XComGameState GameState) {
+    local UnitValue UnitVal;
+    local XComGameState_Unit Unit;
+
+    // Check for our own flag first, which is needed because not all events include the source unit
+    NewUnit.GetUnitValue('Twitch_SpawnedFrom', UnitVal);
+
+    if (UnitVal.fValue > 0) {
+        return true;
+    }
+
+    // X2Effect_SpawnUnit always sets a unit value with the new unit's object ID
+    foreach GameState.IterateByClassType(class'XComGameState_Unit', Unit) {
+        Unit.GetUnitValue(class'X2Effect_SpawnUnit'.default.SpawnedUnitValueName, UnitVal);
+
+        if (UnitVal.fValue > 0 && int(UnitVal.fValue) == NewUnit.GetReference().ObjectID) {
+            // Set this for later reference; we shouldn't need it past the next turn
+            NewUnit.SetUnitFloatValue('Twitch_SpawnedFrom', Unit.GetReference().ObjectID, eCleanup_BeginTurn);
+            return true;
+        }
+    }
+
+    return false;
 }
