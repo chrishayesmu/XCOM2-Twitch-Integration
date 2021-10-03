@@ -20,7 +20,14 @@ function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer
 	local XComGameState_TwitchXSay XSayGameState;
 	local XComGameState_Unit Unit;
 
-    Unit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(Viewer.Login);
+    if (`TI_IS_STRAT_GAME) {
+        // Strat game: if you own a unit, you can chat
+        Unit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(Viewer.Login);
+    }
+    else {
+        // Tac game: your unit has to be on the mission
+        Unit = GetViewerUnitOnMission(Viewer.Login);
+    }
 
     if (Unit == none) {
         return;

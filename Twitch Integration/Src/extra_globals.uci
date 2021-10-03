@@ -9,4 +9,7 @@
 `define TI_CFG_GetValue(DefaultVal, ConfigVal) ( (class'TwitchIntegrationConfigDefaults'.default.ConfigVersion > class'TwitchIntegrationConfig'.default.ConfigVersion) ? `DefaultVal : `ConfigVal)
 `define TI_CFG(CfgName) (`TI_CFG_GetValue(class'TwitchIntegrationConfigDefaults'.default.`CfgName, class'TwitchIntegrationConfig'.default.`CfgName))
 
+`define TI_IS_STRAT_GAME (`HQPRES != none)
+`define TI_IS_TAC_GAME ((XComTacticalGRI(WorldInfo.GRI) != none))
+
 `define TI_RPAD(S, padding, length) class'UIUtilities_Twitch'.static.RPad(`S, `padding, `length)
