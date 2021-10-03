@@ -14,6 +14,13 @@ event OnInit(UIScreen Screen) {
         return;
     }
 
+    `TILOGCLS("OnInit");
+
+    // Add our mid-battle rename UI
+    if (!HasUITwitchTacticalRenamePanel()) {
+        Screen.Spawn(class'UITwitchTacticalRename', Screen).InitPanel();
+    }
+
     TacticalHud.Movie.Stack.SubscribeToOnInputForScreen(TacticalHud, OnTacticalHudInput);
 
     // Wait a few seconds; when the tactical HUD first loads there may still be a cinematic or loading
@@ -32,6 +39,16 @@ event OnRemoved(UIScreen Screen) {
 
     // Remove timers so we don't leak
     `BATTLE.ClearTimer(nameof(CheckUnitLosStatus), self);
+}
+
+protected function bool HasUITwitchTacticalRenamePanel() {
+    local UITwitchTacticalRename TacRename;
+
+    foreach `XCOMGAME.AllActors(class'UITwitchTacticalRename', TacRename) {
+        return true;
+    }
+
+    return false;
 }
 
 protected function CheckUnitLosStatus() {
@@ -68,8 +85,9 @@ protected function CheckUnitLosStatus() {
         if (Unit.IsCivilianChar()) {
             bShowNameplate = bShowNameplate && bCivilianNameplatesEnabled;
         }
-        else if (bShowNameplate) {
-            `TILOGCLS("WARNING: showing nameplate for a non-civilian unit with XGUnit object ID " $ Unit.ObjectID);
+        else {
+            // Other non-civilians keep showing up and I can't tell what they are
+            bShowNameplate = false;
         }
 
         if (!bShowNameplate) {
