@@ -191,7 +191,6 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
     local TwitchChatTcpLink TwitchConn;
     local TwitchStateManager TwitchMgr;
     local TwitchViewer Viewer;
-    local UnitValue UnitVal;
 	local XComGameState_Unit Unit;
     local XComGameState_TwitchObjectOwnership OwnershipState;
 
@@ -270,12 +269,10 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
 static protected function EventListenerReturn CarryOverFacelessOwnership(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
     local bool bCreatedGameState;
     local StateObjectReference EffectRef;
-	local XComGameStateHistory History;
     local XComGameState NewGameState;
 	local XComGameState_Effect EffectState;
     local XComGameState_TwitchObjectOwnership Ownership;
     local XComGameState_Unit CivUnitState;
-	local UnitValue SpawnedUnitValue;
 
     CivUnitState = XComGameState_Unit(EventData);
 
@@ -286,7 +283,6 @@ static protected function EventListenerReturn CarryOverFacelessOwnership(Object 
 
     `TILOG("CarryOverFacelessOwnership: Attempting to find Faceless spawn effect");
 
-    History = `XCOMHISTORY;
     Ownership = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(CivUnitState.GetReference().ObjectID);
 
     foreach CivUnitState.AffectedByEffects(EffectRef) {
