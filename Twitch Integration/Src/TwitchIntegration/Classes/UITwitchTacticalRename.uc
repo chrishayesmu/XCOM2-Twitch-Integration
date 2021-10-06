@@ -78,6 +78,7 @@ function OnChangeOwnerInputClosed(string Value) {
 
 function RealizeUI() {
     local string ViewerName;
+    local TwitchViewer Viewer;
     local XComGameState_TwitchObjectOwnership OwnershipState;
 	local XGUnit ActiveUnit;
 
@@ -99,12 +100,11 @@ function RealizeUI() {
 
     if (OwnershipState == none) {
         `TILOGCLS("Ownership state not found");
-        ViewerName = "<Unowned>";
+        ViewerName = "&lt;Unowned&gt;";
     }
     else {
-        // TODO get viewer name
-        `TILOGCLS("Showing with viewer login " $ OwnershipState.TwitchLogin);
-        ViewerName = OwnershipState.TwitchLogin;
+        `TISTATEMGR.TwitchChatConn.GetViewer(OwnershipState.TwitchLogin, Viewer);
+        ViewerName = `TIVIEWERNAME(Viewer);
     }
 
     Text.SetText(ViewerName);

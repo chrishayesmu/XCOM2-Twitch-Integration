@@ -12,6 +12,18 @@ class X2DownloadableContentInfo_TwitchIntegration extends X2DownloadableContentI
 	dependson(XComGameState_TwitchEventPoll);
 
 /// <summary>
+/// This method is run when the player loads a saved game directly into Strategy while this DLC is installed
+/// </summary>
+static event OnLoadedSavedGameToStrategy()
+{
+    `TILOG("OnLoadedSavedGameToStrategy");
+
+    if (`TISTATEMGR == none) {
+	    `XCOMGAME.Spawn(class'TwitchStateManager').Initialize();
+    }
+}
+
+/// <summary>
 /// Called just before the player launches into a tactical a mission while this DLC / Mod is installed.
 /// Allows dlcs/mods to modify the start state before launching into the mission
 /// </summary>

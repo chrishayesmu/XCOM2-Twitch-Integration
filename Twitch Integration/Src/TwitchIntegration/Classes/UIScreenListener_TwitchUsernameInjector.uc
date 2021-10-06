@@ -29,7 +29,7 @@ var private UIListItemString TwitchListItem;
 
 var private bool bRegisteredForEvents;
 
-const LogScreenNames = false;
+const LogScreenNames = true;
 
 delegate OnItemSelectedCallback(UIList ContainerList, int ItemIndex);
 

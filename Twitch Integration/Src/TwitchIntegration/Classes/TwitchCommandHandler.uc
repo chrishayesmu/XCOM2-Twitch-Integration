@@ -6,6 +6,9 @@ class TwitchCommandHandler extends Object
 // (i.e. "xsay" rather than "!xsay")
 var config array<string> CommandAliases;
 
+var config bool bEnableInStrategy;
+var config bool bEnableInTactical;
+
 function Initialize(TwitchStateManager StateMgr) {
 }
 

@@ -10,33 +10,50 @@ const LookAtDurationMin = 1.5;
 const LookAtDurationMax = 2.75; // after this point the text has faded anyway
 const LookAtDurationPerChar = 0.02; // 1 second per 50 characters
 
+struct TNarrativeQueueItem {
+    var XComGameState_TwitchXSay GameState;
+    var bool bHasBeenSentToNarrativeMgr;
+};
+
 const MaxFlyoverLength = 45;
 const MaxToastLength = 40;
+const MaxNarrativeQueueLength = 5;
+
+var private array<TNarrativeQueueItem> PendingNarrativeItems;
+var private XComNarrativeMoment NarrativeMoment;
 
 function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer Viewer) {
-    local bool bUnitIsVisibleToSquad;
+    local bool bIsTacticalGame, bShowInCommLink, bUnitIsVisibleToSquad;
+    local TNarrativeQueueItem NarrativeItem;
     local XComGameState NewGameState;
 	local XComGameStateContext_ChangeContainer NewContext;
 	local XComGameState_TwitchXSay XSayGameState;
 	local XComGameState_Unit Unit;
 
-    if (`TI_IS_STRAT_GAME) {
-        // Strat game: if you own a unit, you can chat
-        Unit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(Viewer.Login);
-    }
-    else {
+    bIsTacticalGame = `TI_IS_TAC_GAME;
+    bShowInCommLink = true; // TODO: hook up to config
+
+    if (bIsTacticalGame) {
         // Tac game: your unit has to be on the mission
         Unit = GetViewerUnitOnMission(Viewer.Login);
     }
+    else {
+        // Strat game: if you own a unit, you can chat
+        // TODO: how should we handle dead units on strat layer? esp Chosen
+        Unit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(Viewer.Login);
+    }
 
     if (Unit == none) {
+        `TILOGCLS("Did not find a unit for viewer " $ Viewer.Login $ ", aborting");
         return;
     }
 
-    bUnitIsVisibleToSquad = class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(Unit.ObjectID);
+    if (bIsTacticalGame && bRequireUnitInLOS) {
+        bUnitIsVisibleToSquad = class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(Unit.ObjectID);
 
-    if (bRequireUnitInLOS && !bUnitIsVisibleToSquad) {
-        return;
+        if (!bUnitIsVisibleToSquad) {
+            return;
+        }
     }
 
 	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("XSay From " $ Viewer.Login);
@@ -44,19 +61,32 @@ function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer
 	XSayGameState = XComGameState_TwitchXSay(NewGameState.CreateNewStateObject(class'XComGameState_TwitchXSay'));
 	XSayGameState.MessageBody = GetCommandBody(Command);
 	XSayGameState.Sender = Viewer.Login;
+    XSayGameState.SendingUnitObjectID = Unit.GetReference().ObjectID;
     XSayGameState.TwitchMessageId = Command.MsgId;
 
     // Need to include a new game state for the unit or else the visualizer may think it's still
     // visualizing an old ability and fail to do the flyover
     Unit = XComGameState_Unit(NewGameState.ModifyStateObject(class'XComGameState_Unit', Unit.ObjectID));
 
-	NewContext = XComGameStateContext_ChangeContainer(NewGameState.GetContext());
-	NewContext.BuildVisualizationFn = XSay_BuildVisualization;
+    if (bIsTacticalGame) {
+        NewContext = XComGameStateContext_ChangeContainer(NewGameState.GetContext());
+	    NewContext.BuildVisualizationFn = BuildVisualization_TacLayer;
+    }
 
     `GAMERULES.SubmitGameState(NewGameState);
+
+    if (bShowInCommLink && PendingNarrativeItems.Length < MaxNarrativeQueueLength) {
+        NarrativeItem.GameState = XSayGameState;
+        NarrativeItem.bHasBeenSentToNarrativeMgr = false;
+
+        // TODO: on tac layer move this to visualization so it lines up with the other vis
+        // TODO don't set timer if it's already on
+        PendingNarrativeItems.AddItem(NarrativeItem);
+        StateMgr.SetTimer(0.1, /* inbLoop */ true, nameof(EnqueueNextCommLink), self);
+    }
 }
 
-protected function XSay_BuildVisualization(XComGameState VisualizeGameState) {
+protected function BuildVisualization_TacLayer(XComGameState VisualizeGameState) {
     local bool bUnitIsVisibleToSquad;
     local string SanitizedMessageBody;
     local string ViewerName;
@@ -114,7 +144,7 @@ protected function XSay_BuildVisualization(XComGameState VisualizeGameState) {
     }
     else {
         // If we aren't doing a flyover, we need to prevent the tactical controller from automatically panning back to the selected unit.
-        // The only way to do that is to make it think the player selected a different unit while
+        // The only way to do that is to make it think the player selected a different unit while visualizing.
         LocalController = XComTacticalController(class'WorldInfo'.static.GetWorldInfo().GetALocalPlayerController());
         LocalController.bManuallySwitchedUnitsWhileVisualizerBusy = true;
     }
@@ -154,4 +184,232 @@ private function string TruncateMessage(string Message, int MaxLength) {
     }
 
     return Message;
+}
+
+private function EnqueueNextCommLink() {
+	local UINarrativeMgr kNarrativeMgr;
+
+    if (PendingNarrativeItems.Length == 0) {
+        `TILOGCLS("EnqueueNextCommLink: No XSays are pending display; clearing timers");
+        `TISTATEMGR.ClearTimer(nameof(EnqueueNextCommLink), self);
+
+        return;
+    }
+
+    if (PendingNarrativeItems[0].bHasBeenSentToNarrativeMgr) {
+        return;
+    }
+
+	kNarrativeMgr = `PRES.m_kNarrativeUIMgr;
+
+    if (kNarrativeMgr.AnyActiveConversations()) {
+        `TILOGCLS("Active conversations found, not queuing XSay yet");
+        return;
+    }
+
+    // We're clear to add our message now, but don't remove it from queue; that's the job of OverrideCommLinkFields
+    if (NarrativeMoment == none) {
+        NarrativeMoment = XComNarrativeMoment(DynamicLoadObject("TwitchIntegration_UI.XSayBlank", class'XComNarrativeMoment'));
+    }
+
+    PendingNarrativeItems[0].bHasBeenSentToNarrativeMgr = true;
+
+    `TILOGCLS("EnqueueNextCommLink: sending NarrativeMoment");
+    `PRESBASE.UINarrative(NarrativeMoment, /* kFocusActor */ , OnNarrativeCompleteCallback);
+
+    `TISTATEMGR.SetTimer(0.1, /* inbLoop */ true, nameof(OverrideCommLinkFields), self);
+    `TISTATEMGR.ClearTimer(nameof(EnqueueNextCommLink), self);
+}
+
+private function string GetUnitPortrait(XComGameState_Unit Unit) {
+    local Name CharGroupName;
+    local XComGameState_Unit SourceUnit;
+
+    if (Unit.IsSoldier()) {
+        `TILOGCLS("Soldier passed to GetUnitPortrait. This should be handled earlier!");
+        return "";
+    }
+
+    CharGroupName = Unit.GetMyTemplate().CharacterGroupName;
+
+    if (CharGroupName == 'PsiZombie' || CharGroupName == 'SpectralZombie') {
+        `TILOGCLS("Looking for source unit for char group " $ CharGroupName);
+        SourceUnit = class'X2TwitchUtils'.static.FindSourceUnitFromSpawnEffect(Unit);
+
+        if (SourceUnit != none) {
+            CharGroupName = SourceUnit.GetMyTemplate().CharacterGroupName;
+            `TILOGCLS("Found source unit with group " $ CharGroupName);
+        }
+    }
+
+    // Most unit types are a simple 1-to-1 mapping
+    switch (CharGroupName) {
+        case 'AdventCaptain':
+            return "UILibrary_XPACK_StrategyImages.challenge_AdvCaptain";
+        case 'AdventMEC':
+            return "UILibrary_XPACK_StrategyImages.challenge_AdvMec";
+        case 'AdventPriest':
+            return "UILibrary_XPACK_StrategyImages.challenge_AdvPriest";
+        case 'AdventPsiWitch': // Avatar
+            return "TwitchIntegration_UI.Speaker_Avatar";
+        case 'AdventPurifier':
+            return "UILibrary_XPACK_StrategyImages.challenge_AdvPurifier";
+        case 'AdventShieldbearer':
+            return "UILibrary_XPACK_StrategyImages.challenge_AdvShield";
+        case 'AdventStunLancer':
+        case 'SpectralStunLancer':
+            return "UILibrary_XPACK_StrategyImages.challenge_AdvStunLancer";
+        case 'AdventTrooper':
+            return "UILibrary_XPACK_StrategyImages.challenge_AdvTrooper";
+        case 'AdventTurret':
+            return "TwitchIntegration_UI.Speaker_AdventTurret";
+        case 'Andromedon':
+            return "UILibrary_XPACK_StrategyImages.challenge_Andromedon";
+        case 'AndromedonRobot':
+            return "TwitchIntegration_UI.Speaker_AndromedonRobot";
+        case 'Archon':
+            return "UILibrary_XPACK_StrategyImages.challenge_Archon";
+        case 'ArchonKing':
+            return "CIN_Icons.ICON_Archon";
+        case 'Berserker':
+        case 'BerserkerQueen':
+            return "UILibrary_XPACK_StrategyImages.challenge_Berserker";
+        case 'ChosenAssassin':
+            return "img:///UILibrary_XPACK_Common.Head_Chosen_Assassin";
+        case 'ChosenSniper':
+            return "img:///UILibrary_XPACK_Common.Head_Chosen_Hunter";
+        case 'ChosenWarlock':
+            return "img:///UILibrary_XPACK_Common.Head_Chosen_Warlock";
+        case 'CivilianMilitia':
+            break;
+            //return ""; // TODO
+        case 'Cyberus': // Codex
+            return "UILibrary_XPACK_StrategyImages.challenge_Codex";
+        case 'Chryssalid':
+            return "UILibrary_XPACK_StrategyImages.challenge_Cryssalid";
+        case 'Faceless':
+            return "UILibrary_XPACK_StrategyImages.challenge_Faceless";
+        case 'Gatekeeper':
+            return "UILibrary_XPACK_StrategyImages.challenge_Gatekeeper";
+        case 'TheLost':
+            return "TwitchIntegration_UI.Speaker_TheLost";
+        case 'Muton':
+            return "UILibrary_XPACK_StrategyImages.challenge_Muton";
+        case 'Sectoid':
+            return "UILibrary_XPACK_StrategyImages.challenge_Sectoid";
+        case 'Sectopod':
+            return "UILibrary_XPACK_StrategyImages.challenge_Sectopod";
+        case 'Shadowbind': // Shadow of a soldier created by a Spectre; ideally would use soldier's headshot but Spectre's okay for now
+        case 'Spectre':
+            return "UILibrary_XPACK_StrategyImages.challenge_Spectre";
+        case 'Viper':
+        case 'ViperNeonate':
+            return "UILibrary_XPACK_StrategyImages.challenge_Viper";
+        case 'ViperKing':
+            return "TwitchIntegration_UI.Speaker_ViperKing";
+    }
+
+    // Non-militia civilians don't have a CharacterGroupName
+    if (Unit.IsCivilian()) {
+        //return ""; // TODO
+    }
+
+    return "TwitchIntegration_UI.AlienCowboy_A";
+}
+
+private function OnNarrativeCompleteCallback() {
+	local UINarrativeMgr kNarrativeMgr;
+
+    `TILOGCLS("Narrative is complete. Dequeuing item and resetting timer");
+
+    // Normally when a conversation completes, if subtitles are enabled, the narrative manager waits to
+    // end the conversation so the subtitles can last a little longer. This doesn't work well at all with
+    // the way we're queuing conversations, so we cut it off. Otherwise the timer will fire and end our
+    // next conversation (if there's one queued).
+	kNarrativeMgr = `PRES.m_kNarrativeUIMgr;
+
+    if (kNarrativeMgr.IsTimerActive('EndCurrentConversation')) {
+        kNarrativeMgr.ClearTimer('EndCurrentConversation');
+        kNarrativeMgr.EndCurrentConversation();
+    }
+
+    PendingNarrativeItems.Remove(0, 1);
+
+    if (PendingNarrativeItems.Length > 0) {
+        `TISTATEMGR.SetTimer(0.1, /* inbLoop */ true, nameof(EnqueueNextCommLink), self);
+    }
+}
+
+private function OverrideCommLinkFields() {
+    local string UnitPortrait;
+    local UINarrativeCommLink CommLink;
+	local UINarrativeMgr kNarrativeMgr;
+    local XComGameState_Unit Unit;
+
+    `TILOGCLS("In OverrideCommLinkFields");
+
+    if (PendingNarrativeItems.Length == 0) {
+        `TILOGCLS("No XSays are pending display; clearing timer");
+        `TISTATEMGR.ClearTimer(nameof(OverrideCommLinkFields), self);
+
+        return;
+    }
+
+    CommLink = `PRESBASE.GetUIComm();
+	kNarrativeMgr = CommLink.Movie.Pres.m_kNarrativeUIMgr;
+
+    // Make sure the narrative manager has advanced to something we queued
+    if (kNarrativeMgr.CurrentOutput.strTitle != "Twitch_Chat") {
+        `TILOGCLS("Current output shouldn't be overridden: " $ kNarrativeMgr.CurrentOutput.strTitle);
+        return;
+    }
+
+    Unit = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(PendingNarrativeItems[0].GameState.SendingUnitObjectID));
+
+    // Swap in our XSay data. We aren't using CurrentOutput ourselves, but if the comm link UI refreshes for some reason,
+    // we want to be sure our data is there.
+    kNarrativeMgr.CurrentOutput.strTitle = PendingNarrativeItems[0].GameState.Sender;
+    kNarrativeMgr.CurrentOutput.strText = PendingNarrativeItems[0].GameState.MessageBody;
+    kNarrativeMgr.CurrentOutput.strImage = "img:///TwitchIntegration_UI.Icon_Twitch_3D";
+
+    // Call the AS functions directly, because if we call AS_SetPortrait too much the UI gets weird and moves to the wrong part of the screen
+    CommLink.AS_SetTitle(PendingNarrativeItems[0].GameState.Sender);
+    CommLink.AS_SetText(PendingNarrativeItems[0].GameState.MessageBody);
+    CommLink.AS_ShowSubtitles(); // since we have no audio, we need the text shown regardless of global subtitle settings
+
+    // TODO: if on tac layer, we can still try to load a headshot if one exists
+    if (Unit.IsSoldier() && `TI_IS_STRAT_GAME) {
+        `TILOGCLS("Requesting soldier headshot");
+		`HQPRES.GetPhotoboothAutoGen().AddHeadShotRequest(Unit.GetReference(), 512, 512, OnHeadshotReady, , , /* bHighPriority */ true);
+		`HQPRES.GetPhotoboothAutoGen().RequestPhotos();
+    }
+    else {
+        UnitPortrait = GetUnitPortrait(Unit);
+        `TILOGCLS("Using unit portrait: " $ UnitPortrait);
+
+        if (UnitPortrait != "") {
+            CommLink.AS_SetPortrait("img:///" $ UnitPortrait);
+        }
+    }
+
+    // Don't call this again until another XSay state has been sent to the narrative manager
+    `TISTATEMGR.ClearTimer(nameof(OverrideCommLinkFields), self);
+}
+
+simulated function OnHeadshotReady(StateObjectReference UnitRef) {
+    local Texture2D HeadshotTex;
+    local UINarrativeCommLink CommLink;
+	local UINarrativeMgr kNarrativeMgr;
+	local XComGameState_CampaignSettings SettingsState;
+
+    CommLink = `PRESBASE.GetUIComm();
+	kNarrativeMgr = CommLink.Movie.Pres.m_kNarrativeUIMgr;
+
+	SettingsState = XComGameState_CampaignSettings(`XCOMHISTORY.GetSingleGameStateObjectForClass(class'XComGameState_CampaignSettings'));
+    HeadshotTex = `XENGINE.m_kPhotoManager.GetHeadshotTexture(SettingsState.GameIndex, UnitRef.ObjectID, 512, 512);
+
+    kNarrativeMgr.CurrentOutput.strImage = class'UIUtilities_Image'.static.ValidateImagePath(PathName(HeadshotTex));
+
+    `TILOGCLS("Headshot ready, updating display; kNarrativeMgr.CurrentOutput.fDuration = " $ kNarrativeMgr.CurrentOutput.fDuration);
+    CommLink.AS_SetPortrait(kNarrativeMgr.CurrentOutput.strImage);
 }

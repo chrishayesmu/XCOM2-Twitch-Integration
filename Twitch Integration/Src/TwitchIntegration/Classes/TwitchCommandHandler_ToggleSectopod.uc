@@ -12,7 +12,7 @@ function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer
         return;
     }
 
-	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("BigBoy From " $ Viewer.Login);
+	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Toggle Sectopod From " $ Viewer.Login);
 
     Unit = XComGameState_Unit(NewGameState.ModifyStateObject(class'XComGameState_Unit', Unit.ObjectID));
 

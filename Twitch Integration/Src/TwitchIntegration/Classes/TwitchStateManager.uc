@@ -57,6 +57,7 @@ static function TwitchStateManager GetStateManager() {
 // Public functions
 
 function Initialize() {
+    local bool bIsTacticalGame;
     local string CommandHandlerName;
     local Class CommandHandlerClass;
     local TwitchCommandHandler CommandHandler;
@@ -70,6 +71,7 @@ function Initialize() {
 
 	`TILOGCLS("Initializing state manager");
 
+    bIsTacticalGame = !`TI_IS_STRAT_GAME;
     ThisObj = self;
 	EventManager = `XEVENTMGR;
 	EventManager.RegisterForEvent(ThisObj, 'PlayerTurnBegun', OnPlayerTurnBegun, ELD_OnStateSubmitted);
@@ -117,8 +119,10 @@ function Initialize() {
 	// Connect to Twitch chat servers
     ConnectToTwitchChat();
 
-    TwitchFlagMgr = Spawn(class'TwitchUnitFlagManager');
-    TwitchFlagMgr.Initialize();
+    if (bIsTacticalGame) {
+        TwitchFlagMgr = Spawn(class'TwitchUnitFlagManager');
+        TwitchFlagMgr.Initialize();
+    }
 
 	// Retrieve list of viewers from Twitch API at startup and periodically. It's heavily cached,
     // so we don't need to retrieve it very often.
@@ -188,7 +192,16 @@ function HandleChatCommand(TwitchMessage Command, TwitchViewer Viewer) {
 
 	foreach CommandHandlers(CommandHandler) {
 		if (CommandHandler.CommandAliases.Find(CommandAlias) != INDEX_NONE) {
-			CommandHandler.Handle(self, Command, Viewer);
+            // Only forward the command to the handler if it should be enabled right now
+            if ( (CommandHandler.bEnableInStrategy && `TI_IS_STRAT_GAME)
+              || (CommandHandler.bEnableInTactical && !`TI_IS_STRAT_GAME) ) {
+    			CommandHandler.Handle(self, Command, Viewer);
+            }
+            else {
+                `TILOGCLS("Handler for alias " $ CommandAlias $ " is not supported in current game layer; is strat = " $ `TI_IS_STRAT_GAME);
+            }
+
+            // Regardless of whether the command is enabled, each alias only belongs to one command
 			break;
 		}
 	}
@@ -340,7 +353,7 @@ private function bool FilterRelevantTemplates(X2DataTemplate Template) {
 }
 
 private function OnConnectedToTwitchChat() {
-    if (ChatLog == none) {
+    if (ChatLog == none && !`TI_IS_STRAT_GAME) {
         // We always create a chat log, and let that component worry about hiding itself based on config
         ChatLog = Spawn(class'UIChatLog', `SCREENSTACK.GetFirstInstanceOf(class'UITacticalHud')).InitChatLog(10, 225, 475, 210);
         ChatLog.AnchorTopLeft();
