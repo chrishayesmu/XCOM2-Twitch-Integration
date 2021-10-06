@@ -54,11 +54,10 @@ static function DeleteOwnership(XComGameState_TwitchObjectOwnership Ownership) {
             // Having no name set will cause it to fall back on the template name
             Unit.SetUnitName("", "", "");
         }
-
-        class'X2TwitchUtils'.static.SyncUnitFlag(Unit);
     }
 
     `GAMERULES.SubmitGameState(NewGameState);
+    class'X2TwitchUtils'.static.SyncUnitFlag(Unit);
 }
 
 static function XComGameState_TwitchObjectOwnership FindForChosen(Name CharacterGroupName) {

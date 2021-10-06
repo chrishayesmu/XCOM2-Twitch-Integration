@@ -24,13 +24,13 @@ function Initialize() {
 
     History = `XCOMHISTORY;
 
-    `TILOG("OnLoadedSavedGameToTactical: generating UI");
+    `TILOGCLS("Creating Twitch unit flags");
 
     // When loading into tactical, we need to make sure our UI is present
     foreach History.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState) {
         Unit = XComGameState_Unit(History.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID));
 
-        `TILOG("Syncing unit flag for unit " $ Unit.GetFullName() $ " to owner " $ OwnershipState.TwitchLogin);
+        `TILOGCLS("Syncing unit flag for unit " $ Unit.GetFullName() $ " to owner " $ OwnershipState.TwitchLogin);
         AddOrUpdateFlag(Unit, OwnershipState);
     }
 }
@@ -46,10 +46,7 @@ function AddOrUpdateFlag(XComGameState_Unit Unit, optional XComGameState_TwitchO
     UnitFlag = Pres.m_kUnitFlagManager.GetFlagForObjectID(UnitObjID);
 
     if (UnitFlag == none) {
-        if (UnitFlag == none) {
-            Pres.m_kUnitFlagManager.AddFlag(Unit.GetReference());
-        }
-
+        Pres.m_kUnitFlagManager.AddFlag(Unit.GetReference());
         UnitFlag = Pres.m_kUnitFlagManager.GetFlagForObjectID(UnitObjID);
     }
 
@@ -64,6 +61,8 @@ function AddOrUpdateFlag(XComGameState_Unit Unit, optional XComGameState_TwitchO
         }
         else {
             TFlag.TwitchName.SetText("");
+            TFlag.BGBox.Hide();
+            TFlag.TwitchIcon.Hide();
             TFlag.TwitchName.Hide();
         }
     }
