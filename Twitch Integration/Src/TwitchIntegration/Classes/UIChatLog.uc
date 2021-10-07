@@ -132,7 +132,7 @@ private function string FormatMessageBody(ChatMessage Message) {
     }
 
     if (Message.bUnitWasDead && `TI_CFG(bFormatDeadMessages)) {
-        Body = "..." @ LOCS(Body) @ "...";
+        Body = class'UIUtilities_Twitch'.static.FormatDeadMessage(Body);
     }
 
     return Body;

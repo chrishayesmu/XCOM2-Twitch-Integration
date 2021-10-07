@@ -10,6 +10,14 @@ static function string RPad(coerce string S, string Padding, int Length) {
     return S;
 }
 
+/**
+ * Formats the given string in a style befitting a dead unit. Does not check whether
+ * the corresponding config option is enabled; the caller must do that.
+ */
+static function string FormatDeadMessage(string S) {
+    return "..." @ Locs(S) @ "...";
+}
+
 static function HideTwitchName(int ObjectID, optional UIWorldMessageMgr MessageMgr) {
     if (MessageMgr == none) {
         MessageMgr = `PRES.m_kWorldMessageManager;

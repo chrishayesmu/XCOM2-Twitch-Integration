@@ -13,6 +13,7 @@ const LookAtDurationPerChar = 0.02; // 1 second per 50 characters
 struct TNarrativeQueueItem {
     var XComGameState_TwitchXSay GameState;
     var bool bHasBeenSentToNarrativeMgr;
+    var bool bUnitWasDead;
 };
 
 const MaxFlyoverLength = 45;
@@ -85,6 +86,7 @@ function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer
     if (bShowInCommLink && PendingNarrativeItems.Length < MaxNarrativeQueueLength) {
         NarrativeItem.GameState = XSayGameState;
         NarrativeItem.bHasBeenSentToNarrativeMgr = false;
+        NarrativeItem.bUnitWasDead = Unit.IsDead();
 
         // TODO: on tac layer move this to visualization so it lines up with the other vis
         // TODO don't set timer if it's already on
@@ -192,7 +194,6 @@ private function float CalcLookAtDuration(string Message) {
 
 function EventListenerReturn OnMessageDeleted(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
     local bool bCreatedNewGameState, bHasGameState;
-    local int Index;
     local string MsgId;
     local XComGameState_TwitchXSay XSayGameState;
     local XComLWTuple Tuple;
@@ -277,6 +278,18 @@ private function EnqueueNextCommLink() {
 
     `TISTATEMGR.SetTimer(0.1, /* inbLoop */ true, nameof(OverrideCommLinkFields), self);
     `TISTATEMGR.ClearTimer(nameof(EnqueueNextCommLink), self);
+}
+
+private function string GetMessageBody(TNarrativeQueueItem NarrativeItem) {
+    local string Body;
+
+    Body = class'TextUtilities_Twitch'.static.SanitizeText(NarrativeItem.GameState.MessageBody);
+
+    if (NarrativeItem.bUnitWasDead && `TI_CFG(bFormatDeadMessages)) {
+        Body = class'UIUtilities_Twitch'.static.FormatDeadMessage(Body);
+    }
+
+    return Body;
 }
 
 private function string GetUnitPortrait(XComGameState_Unit Unit) {
@@ -427,12 +440,12 @@ private function OverrideCommLinkFields() {
     // Swap in our XSay data. We aren't using CurrentOutput ourselves, but if the comm link UI refreshes for some reason,
     // we want to be sure our data is there.
     kNarrativeMgr.CurrentOutput.strTitle = PendingNarrativeItems[0].GameState.Sender;
-    kNarrativeMgr.CurrentOutput.strText = PendingNarrativeItems[0].GameState.MessageBody;
+    kNarrativeMgr.CurrentOutput.strText = GetMessageBody(PendingNarrativeItems[0]);
     kNarrativeMgr.CurrentOutput.strImage = "img:///TwitchIntegration_UI.Icon_Twitch_3D";
 
     // Call the AS functions directly, because if we call AS_SetPortrait too much the UI gets weird and moves to the wrong part of the screen
-    CommLink.AS_SetTitle(PendingNarrativeItems[0].GameState.Sender);
-    CommLink.AS_SetText(PendingNarrativeItems[0].GameState.MessageBody);
+    CommLink.AS_SetTitle(kNarrativeMgr.CurrentOutput.strTitle);
+    CommLink.AS_SetText(kNarrativeMgr.CurrentOutput.strText);
     CommLink.AS_ShowSubtitles(); // since we have no audio, we need the text shown regardless of global subtitle settings
 
     // TODO: if on tac layer, we can still try to load a headshot if one exists
