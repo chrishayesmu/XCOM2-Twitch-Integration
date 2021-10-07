@@ -11,6 +11,9 @@ struct ChatMessage {
     var string Body;
     var string MsgId;
     var XComGameState_Unit Unit;
+
+    var bool bUnitWasDead; // Whether the unit was dead when this message was sent
+    var ETeam UnitTeam;
 };
 
 var private int XPos;
@@ -66,6 +69,13 @@ function AddMessage(string Sender, string Body, optional XComGameState_Unit Unit
     Message.Unit = Unit;
     Message.MsgId = MsgId;
 
+    if (Unit != none) {
+        Message.bUnitWasDead = Unit.IsDead();
+        Message.UnitTeam = Unit.GetTeam();
+    }
+
+    `TILOGCLS("Adding message to chat log. Unit is none: " $ (Unit == none) $ "; " $ `SHOWVAR(Message.bUnitWasDead) $ "; " $ `SHOWVAR(Message.UnitTeam));
+
     // TODO: probably a good idea to have a max chat history size at some point?
     Messages.AddItem(Message);
 
@@ -112,39 +122,43 @@ function bool IsCollapsed() {
     return X < 0;
 }
 
-private function string FormatMessageBody(string Body, optional XComGameState_Unit Unit) {
-    Body = class'TextUtilities_Twitch'.static.SanitizeText(Body);
+private function string FormatMessageBody(ChatMessage Message) {
+    local string Body;
 
-    if (Unit == none) {
+    Body = class'TextUtilities_Twitch'.static.SanitizeText(Message.Body);
+
+    if (Message.Unit == none) {
         return Body;
     }
 
-    if (`TI_CFG(bFormatDeadMessages) && Unit.IsDead()) {
+    if (Message.bUnitWasDead && `TI_CFG(bFormatDeadMessages)) {
         Body = "..." @ LOCS(Body) @ "...";
     }
 
     return Body;
 }
 
-private function string FormatSenderName(string Sender, optional XComGameState_Unit Unit) {
+private function string FormatSenderName(ChatMessage Message) {
     local bool bIsFriendlyUnit;
-    local string SenderColor;
+    local string SenderColor, Sender;
     local eTwitchConfig_ChatLogColorScheme ColorScheme;
     local eTwitchConfig_ChatLogNameFormat NameFormat;
     local TwitchViewer Viewer;
     local XComGameState_TwitchObjectOwnership Ownership;
 
-    if (Unit == none) {
+    Sender = Message.Sender;
+
+    if (Message.Unit == none) {
         return Sender;
     }
 
-    bIsFriendlyUnit = Unit.GetTeam() == eTeam_XCom;
+    bIsFriendlyUnit = Message.UnitTeam == eTeam_XCom;
     NameFormat = bIsFriendlyUnit ? `TI_CFG(ChatLogFriendlyNameFormat) : `TI_CFG(ChatLogEnemyNameFormat);
-    Ownership = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Unit.GetReference().ObjectID);
+    Ownership = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Message.Unit.GetReference().ObjectID);
 
     // Only use full name for friendly units, or visible enemy units
-    if (NameFormat == ETC_UnitNameOnly && (bIsFriendlyUnit || class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(Unit.ObjectID))) {
-        Sender = Unit.GetFullName();
+    if (NameFormat == ETC_UnitNameOnly && (bIsFriendlyUnit || class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(Message.Unit.ObjectID))) {
+        Sender = Message.Unit.GetFullName();
     }
 
     ColorScheme = `TI_CFG(ChatLogColorScheme);
@@ -155,7 +169,7 @@ private function string FormatSenderName(string Sender, optional XComGameState_U
         }
     }
     else if (ColorScheme == ETC_TeamColors) {
-        switch (Unit.GetTeam()) {
+        switch (Message.UnitTeam) {
             case eTeam_Alien:
                 SenderColor = class'UIUtilities_Colors'.const.BAD_HTML_COLOR;
                 break;
@@ -169,7 +183,7 @@ private function string FormatSenderName(string Sender, optional XComGameState_U
     }
 
     // bFormatDeadMessages takes priority over other color options
-    if (`TI_CFG(bFormatDeadMessages) && Unit.IsDead()) {
+    if (`TI_CFG(bFormatDeadMessages) && Message.bUnitWasDead) {
         SenderColor = class'UIUtilities_Colors'.const.DISABLED_HTML_COLOR;
     }
 
@@ -216,7 +230,7 @@ private function UpdateUI() {
     Show();
 
     foreach Messages(Message) {
-        FormattedMessage = FormatSenderName(Message.Sender, Message.Unit) $ ": " $ FormatMessageBody(Message.Body, Message.Unit);
+        FormattedMessage = FormatSenderName(Message) $ ": " $ FormatMessageBody(Message);
 
         if (FullChat == "") {
             FullChat = FormattedMessage;

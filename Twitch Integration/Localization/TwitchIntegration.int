@@ -73,6 +73,9 @@ strChatLogFriendlyNameFormatTooltip="How to format names when viewers are chatti
 strChatLogNameFormat_TwitchName="Twitch Name"
 strChatLogNameFormat_UnitName="Unit Name"
 
+strChatLogFormatDeadMessagesLabel="Format Messages from Dead Units"
+strChatLogFormatDeadMessagesTooltip="Formats messages from dead units so that they are all lowercase and surrounded by '...' characters."
+
 strNameplateSettingsGroupTitle="Nameplates"
 strPermanentNameplatesEnabledLabel="Always Show Nameplates"
 strPermanentNameplatesEnabledTooltip="If enabled, always show Twitch names above units. Can be toggled on the fly during missions by pressing Ctrl+Alt+T."

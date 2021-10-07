@@ -57,6 +57,9 @@ var localized string strChatLogFriendlyNameFormatTooltip;
 var localized string strChatLogNameFormat_TwitchName;
 var localized string strChatLogNameFormat_UnitName;
 
+var localized string strChatLogFormatDeadMessagesLabel;
+var localized string strChatLogFormatDeadMessagesTooltip;
+
 // #endregion
 
 // #region Nameplate strings
@@ -196,6 +199,8 @@ function ClientModCallback(MCM_API_Instance ConfigAPI, int GameMode) {
     ChatLogNameFormatOptions[1] = strChatLogNameFormat_UnitName;
     Group.AddDropdown(nameof(ChatLogEnemyNameFormat), strChatLogEnemyNameFormatLabel, strChatLogEnemyNameFormatTooltip, ChatLogNameFormatOptions, ChatLogNameFormatToString(ChatLogEnemyNameFormat), SaveChatLogEnemyNameFormat);
     Group.AddDropdown(nameof(ChatLogFriendlyNameFormat), strChatLogFriendlyNameFormatLabel, strChatLogFriendlyNameFormatTooltip, ChatLogNameFormatOptions, ChatLogNameFormatToString(ChatLogFriendlyNameFormat), SaveChatLogFriendlyNameFormat);
+
+    Group.AddCheckbox(nameof(bFormatDeadMessages), strChatLogFormatDeadMessagesLabel, strChatLogFormatDeadMessagesTooltip, bFormatDeadMessages, FormatDeadMessagesSaveHandler);
 
     DisableGroupWhenFalseHandler(Setting, bShowChatLog);
 
@@ -408,6 +413,7 @@ private function OnTwitchUsernameInputBoxClosed(string Text) {
 `MCM_API_BasicCheckboxSaveHandler(SoldierNameplatesSaveHandler, bSoldierNameplatesEnabled);
 `MCM_API_BasicCheckboxSaveHandler(EnablePollsSaveHandler, bEnablePolls);
 `MCM_API_BasicCheckboxSaveHandler(ShowChatLogSaveHandler, bShowChatLog);
+`MCM_API_BasicCheckboxSaveHandler(FormatDeadMessagesSaveHandler, bFormatDeadMessages);
 `MCM_API_BasicCheckboxSaveHandler(AssignUnitNamesSaveHandler, bAssignUnitNames);
 `MCM_API_BasicCheckboxSaveHandler(AssignChosenNamesSaveHandler, bAssignChosenNames);
 `MCM_API_BasicCheckboxSaveHandler(ChosenNamesArePersistentSaveHandler, bChosenNamesArePersistent);
