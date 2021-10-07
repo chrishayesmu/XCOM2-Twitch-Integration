@@ -4,6 +4,7 @@ var string MessageBody;
 var string Sender;
 var int SendingUnitObjectID;
 var string TwitchMessageId;
+var bool bMessageDeleted;
 
 defaultproperties
 {

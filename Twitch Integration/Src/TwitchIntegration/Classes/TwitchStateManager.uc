@@ -435,9 +435,17 @@ private function EventListenerReturn OnPlayerTurnBegun(Object EventData, Object 
 }
 
 private function OnTwitchMessageReceived(TwitchMessage Message, TwitchViewer FromViewer) {
+    local XComLWTuple Tuple;
+
     // Handle deleted messages specially
-    if (Message.MessageType == eTwitchMessageType_ClearMessage && ChatLog != none) {
-        ChatLog.DeleteMessage(Message.MsgId);
+    if (Message.MessageType == eTwitchMessageType_ClearMessage) {
+        Tuple = new class'XComLWTuple';
+        Tuple.Id = 'TwitchChatMessageDeleted';
+        Tuple.Data.Add(1);
+        Tuple.Data[0].kind = XComLWTVString;
+        Tuple.Data[0].s = Message.MsgId;
+
+        `XEVENTMGR.TriggerEvent('TwitchChatMessageDeleted', Tuple);
         return;
     }
 

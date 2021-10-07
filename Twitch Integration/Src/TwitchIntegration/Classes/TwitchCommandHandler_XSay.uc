@@ -22,6 +22,13 @@ const MaxNarrativeQueueLength = 5;
 var private array<TNarrativeQueueItem> PendingNarrativeItems;
 var private XComNarrativeMoment NarrativeMoment;
 
+function Initialize(TwitchStateManager StateMgr) {
+    local Object ThisObj;
+
+    ThisObj = self;
+    `XEVENTMGR.RegisterForEvent(ThisObj, 'TwitchChatMessageDeleted', OnMessageDeleted, ELD_Immediate);
+}
+
 function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer Viewer) {
     local bool bIsTacticalGame, bShowInCommLink, bUnitIsVisibleToSquad;
     local TNarrativeQueueItem NarrativeItem;
@@ -107,6 +114,11 @@ protected function BuildVisualization_TacLayer(XComGameState VisualizeGameState)
 		break;
 	}
 
+    // Make sure this message wasn't deleted from Twitch chat before we visualize it
+    if (XSayGameState.bMessageDeleted) {
+        return;
+    }
+
     `TISTATEMGR.TwitchChatConn.GetViewer(XSayGameState.Sender, Viewer);
     ViewerName = `TIVIEWERNAME(Viewer);
     Unit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(Viewer.Login);
@@ -178,6 +190,45 @@ private function float CalcLookAtDuration(string Message) {
     return Clamp(Len(Message) * LookAtDurationPerChar, LookAtDurationMin, LookAtDurationMax);
 }
 
+function EventListenerReturn OnMessageDeleted(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
+    local bool bCreatedNewGameState, bHasGameState;
+    local int Index;
+    local string MsgId;
+    local XComGameState_TwitchXSay XSayGameState;
+    local XComLWTuple Tuple;
+
+    Tuple = XComLWTuple(EventData);
+    MsgId = Tuple.Data[0].s;
+
+    // Check if there's an XSay tied to this message
+    foreach `XCOMHISTORY.IterateByClassType(class'XComGameState_TwitchXSay', XSayGameState) {
+        if (XSayGameState.TwitchMessageId == MsgId) {
+            bHasGameState = true;
+            break;
+        }
+    }
+
+    if (!bHasGameState) {
+        `TILOGCLS("Didn't find an XSayGameState for MsgId " $ MsgId);
+        return ELR_NoInterrupt;
+    }
+
+    // Need to submit a new version of the object so we don't visualize something that got deleted
+    if (GameState == none || GameState.bReadOnly) {
+        GameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Mark XSay Deleted");
+        bCreatedNewGameState = true;
+    }
+
+    XSayGameState = XComGameState_TwitchXSay(GameState.ModifyStateObject(class'XComGameState_TwitchXSay', XSayGameState.ObjectID));
+    XSayGameState.bMessageDeleted = true;
+
+    if (bCreatedNewGameState) {
+        `GAMERULES.SubmitGameState(GameState);
+    }
+
+    return ELR_NoInterrupt;
+}
+
 private function string TruncateMessage(string Message, int MaxLength) {
     if (Len(Message) > MaxLength) {
         Message = Left(Message, MaxLength) $ " ...";
@@ -192,6 +243,13 @@ private function EnqueueNextCommLink() {
     if (PendingNarrativeItems.Length == 0) {
         `TILOGCLS("EnqueueNextCommLink: No XSays are pending display; clearing timers");
         `TISTATEMGR.ClearTimer(nameof(EnqueueNextCommLink), self);
+
+        return;
+    }
+
+    if (PendingNarrativeItems[0].GameState.bMessageDeleted) {
+        `TILOGCLS("Next narrative item has been deleted from Twitch; dequeuing it");
+        PendingNarrativeItems.Remove(0, 1);
 
         return;
     }

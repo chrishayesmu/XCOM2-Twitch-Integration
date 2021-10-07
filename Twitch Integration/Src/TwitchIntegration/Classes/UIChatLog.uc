@@ -1,6 +1,6 @@
 class UIChatLog extends UIPanel
     config(TwitchChatCommands)
-    dependson(TwitchIntegrationConfig);
+    dependson(TwitchChatTcpLink, TwitchIntegrationConfig);
 
 var localized string ClearButtonLabel;
 
@@ -45,6 +45,7 @@ function UIChatLog InitChatLog(int InitX, int InitY, int InitWidth, int InitHeig
     m_ExpandCollapseButton.SetSize(28, 28);
 
     ThisObj = self;
+	`XEVENTMGR.RegisterForEvent(ThisObj, 'TwitchChatMessageDeleted', OnMessageDeleted, ELD_Immediate);
 	`XEVENTMGR.RegisterForEvent(ThisObj, 'TwitchModConfigSaved', OnModConfigChanged, ELD_Immediate);
 
     Collapse();
@@ -78,15 +79,19 @@ function AddMessage(string Sender, string Body, optional XComGameState_Unit Unit
     }
 }
 
-function DeleteMessage(string MsgId) {
+function EventListenerReturn OnMessageDeleted(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
     local int Index;
+    local XComLWTuple Tuple;
 
-    Index = Messages.Find('MsgId', MsgId);
+    Tuple = XComLWTuple(EventData);
+    Index = Messages.Find('MsgId', Tuple.Data[0].s);
 
     if (Index != INDEX_NONE) {
         Messages.Remove(Index, 1);
         UpdateUI();
     }
+
+    return ELR_NoInterrupt;
 }
 
 function Collapse() {
