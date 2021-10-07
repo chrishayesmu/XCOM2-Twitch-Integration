@@ -30,7 +30,6 @@ static function X2EventListenerTemplate UnitAssignName() {
 
 	Template.RegisterInTactical = true;
 	Template.AddEvent('OnUnitBeginPlay', ChooseViewerName);
-    Template.AddCHEvent('UnitRemovedFromPlay', CarryOverFacelessOwnership);
 	Template.AddEvent('UnitSpawned', ChooseViewerName);
 	Template.AddCHEvent('TwitchAssignUnitNames', AssignNamesToUnits, ELD_Immediate);
 
@@ -75,7 +74,7 @@ static function XComGameState_TwitchObjectOwnership AssignOwnership(string Viewe
         }
     }
 
-    OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForUser(ViewerLogin);
+    OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForUser(ViewerLogin, NewGameState);
 
     if (OwnershipState != none && !AllowMultipleOwnership) {
         `TILOG("Viewer " $ ViewerLogin $ " already owns something: " $ `SHOWVAR(OwnershipState.OwnedObjectRef.ObjectID));
@@ -159,6 +158,8 @@ if (ViewerIndex != INDEX_NONE) {
     if (bCreatedGameState) {
         `GAMERULES.SubmitGameState(NewGameState);
     }
+
+    return OwnershipState;
 }
 
 /// <summary>
@@ -191,7 +192,7 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
     local TwitchChatTcpLink TwitchConn;
     local TwitchStateManager TwitchMgr;
     local TwitchViewer Viewer;
-	local XComGameState_Unit Unit;
+	local XComGameState_Unit OriginalUnit, Unit;
     local XComGameState_TwitchObjectOwnership OwnershipState;
 
     if (!`TI_CFG(bAssignUnitNames)) {
@@ -203,12 +204,6 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
 	Unit = XComGameState_Unit(EventSource);
 
     `TILOG("In ChooseViewerName for event " $ Event $ " and unit " $ Unit.GetFullName());
-
-    // If this is spawned from something else, we'll carry over the first unit's ownership elsewhere
-    if (IsSpawnedFromExistingUnit(Unit, GameState)) {
-        `TILOG("Aborting ChooseViewerName: Unit appears to be spawned from something else");
-		return ELR_NoInterrupt;
-    }
 
     // UnitBeginPlay events can fire before we have a chance to initialize the TwitchStateManager
 	if (TwitchMgr == none) {
@@ -239,11 +234,23 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
         return ELR_NoInterrupt;
     }
 
-    // Don't give names to player Avatars
-    // TODO: make this configurable
+    // Don't give names to player Avatars; let player assign them manually
     if (Unit.GetTeam() == eTeam_XCom && Unit.GetMyTemplate().CharacterGroupName == 'AdventPsiWitch') {
         `TILOG("Aborting ChooseViewerName: unit is non-raffleable XCOM Avatar");
         return ELR_NoInterrupt;
+    }
+
+    OriginalUnit = class'X2TwitchUtils'.static.FindSourceUnitFromSpawnEffect(Unit, GameState);
+
+    if (OriginalUnit != none) {
+        `TILOG("Unit appears to be spawned from something else. Attempting to transfer ownership");
+
+        if (TransferOwnershipFromOriginal(OriginalUnit, Unit)) {
+            `TILOG("Ownership transferred successfully.");
+    		return ELR_NoInterrupt;
+        }
+
+        `TILOG("Failed to transfer ownership. Raffle proceeding normally.");
     }
 
     // Pick a viewer at random, if any available
@@ -264,57 +271,6 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
     }
 
 	return ELR_NoInterrupt;
-}
-
-static protected function EventListenerReturn CarryOverFacelessOwnership(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
-    local bool bCreatedGameState;
-    local StateObjectReference EffectRef;
-    local XComGameState NewGameState;
-	local XComGameState_Effect EffectState;
-    local XComGameState_TwitchObjectOwnership Ownership;
-    local XComGameState_Unit CivUnitState;
-
-    CivUnitState = XComGameState_Unit(EventData);
-
-    // Check that this civilian is a Faceless
-    if (!CivUnitState.IsCivilian() || !CivUnitState.IsAlien()) {
-        return ELR_NoInterrupt;
-    }
-
-    `TILOG("CarryOverFacelessOwnership: Attempting to find Faceless spawn effect");
-
-    Ownership = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(CivUnitState.GetReference().ObjectID);
-
-    foreach CivUnitState.AffectedByEffects(EffectRef) {
-        EffectState = XComGameState_Effect(GameState.GetGameStateForObjectID(EffectRef.ObjectID));
-
-        if (!EffectState.GetX2Effect().IsA('X2Effect_SpawnFaceless')) {
-            continue;
-        }
-
-        `TILOG("CarryOverFacelessOwnership: Effect found, carrying ownership over to new unit");
-
-        if (GameState != none && !GameState.bReadOnly) {
-            NewGameState = GameState;
-        }
-        else {
-    	    NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Faceless Owner Swap");
-            bCreatedGameState = true;
-        }
-
-        AssignOwnership(Ownership.TwitchLogin, EffectState.CreatedObjectReference.ObjectID, NewGameState, , /* AllowMultipleOwnership */ true);
-
-        // Need to delete ownership of the original civilian unit
-        NewGameState.RemoveStateObject(Ownership.ObjectID);
-
-        if (bCreatedGameState) {
-            `GAMERULES.SubmitGameState(NewGameState);
-        }
-
-        break;
-    }
-
-    return ELR_NoInterrupt;
 }
 
 static protected function EventListenerReturn OnPreCompleteStrategyFromTacticalTransfer(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
@@ -405,6 +361,33 @@ static protected function bool IsOwnershipTransient(XComGameState_Unit Unit) {
     }
 
     return true;
+}
+
+static protected function bool TransferOwnershipFromOriginal(XComGameState_Unit OriginalUnit, XComGameState_Unit NewUnit) {
+    local string TwitchLogin;
+    local XComGameState NewGameState;
+    local XComGameState_TwitchObjectOwnership OwnershipState;
+
+    OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(OriginalUnit.GetReference().ObjectID);
+
+    if (OwnershipState == none) {
+        `TILOG("Didn't find an original ownership state to transfer");
+
+        // Original unit didn't have an owner, so raffle this unit off
+        return false;
+    }
+
+    NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Transfer Ownership To Spawned Unit");
+
+    TwitchLogin = OwnershipState.TwitchLogin;
+    class'XComGameState_TwitchObjectOwnership'.static.DeleteOwnership(OwnershipState, NewGameState);
+
+    `TILOG("Assigning ownership state to new unit");
+    OwnershipState = AssignOwnership(TwitchLogin, NewUnit.GetReference().ObjectID, NewGameState, , /* AllowMultipleOwnership */ true);
+
+    `GAMERULES.SubmitGameState(NewGameState);
+
+    return (OwnershipState != none);
 }
 
 static protected function UpdateChosenGameStateFromUnit(XComGameState_Unit ChosenUnit, XComGameState NewGameState, TwitchViewer Viewer) {

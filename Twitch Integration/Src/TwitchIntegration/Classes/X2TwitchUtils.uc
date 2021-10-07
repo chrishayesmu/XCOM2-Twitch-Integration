@@ -22,20 +22,32 @@ static function X2TwitchEventActionTemplate GetTwitchEventActionTemplate(Name Te
     return X2TwitchEventActionTemplate(TemplateMgr.FindEventListenerTemplate(TemplateName));
 }
 
-static function XComGameState_Unit FindSourceUnitFromSpawnEffect(XComGameState_Unit SpawnedUnit) {
+static function XComGameState_Unit FindSourceUnitFromSpawnEffect(XComGameState_Unit SpawnedUnit, optional XComGameState GameState) {
     local int TargetObjID;
     local UnitValue UnitVal;
     local XComGameState_Unit Unit;
 
     TargetObjID = SpawnedUnit.GetReference().ObjectID;
 
-    foreach `XCOMHISTORY.IterateByClassType(class'XComGameState_Unit', Unit) {
-        Unit.GetUnitValue(class'X2Effect_SpawnUnit'.default.SpawnedUnitValueName, UnitVal);
+    if (GameState != none) {
+        foreach GameState.IterateByClassType(class'XComGameState_Unit', Unit) {
+            Unit.GetUnitValue(class'X2Effect_SpawnUnit'.default.SpawnedUnitValueName, UnitVal);
 
-        if (UnitVal.fValue > 0 && int(UnitVal.fValue) == TargetObjID) {
-            return Unit;
+            if (UnitVal.fValue > 0 && int(UnitVal.fValue) == TargetObjID) {
+                return Unit;
+            }
         }
     }
+    else {
+        foreach `XCOMHISTORY.IterateByClassType(class'XComGameState_Unit', Unit) {
+            Unit.GetUnitValue(class'X2Effect_SpawnUnit'.default.SpawnedUnitValueName, UnitVal);
+
+            if (UnitVal.fValue > 0 && int(UnitVal.fValue) == TargetObjID) {
+                return Unit;
+            }
+        }
+    }
+
 
     return none;
 }

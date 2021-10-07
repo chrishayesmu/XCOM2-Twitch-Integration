@@ -30,20 +30,27 @@ function XComGameState_TwitchObjectOwnership ChangeObjectRef(StateObjectReferenc
     return ModifiedState;
 }
 
-static function DeleteOwnership(XComGameState_TwitchObjectOwnership Ownership) {
-	local XComGameState NewGameState;
+static function DeleteOwnership(XComGameState_TwitchObjectOwnership Ownership, optional XComGameState GameState) {
+    local bool bCreatedGameState;
 	local XComGameState_Unit Unit;
 
     Unit = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(Ownership.OwnedObjectRef.ObjectID));
     `TILOG("Requested to delete ownership of unit " $ Unit.GetFullName() $ " from viewer " $ Ownership.TwitchLogin);
 
-    NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Remove Twitch Ownership");
-    NewGameState.RemoveStateObject(Ownership.ObjectID);
+    if (GameState == none || GameState.bReadOnly) {
+        `TILOG("Creating new game state");
+        GameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Remove Twitch Ownership");
+        bCreatedGameState = true;
+    }
+
+    `TILOG("Removing ownership state object");
+    GameState.RemoveStateObject(Ownership.ObjectID);
 
     // After deleting the ownership, we need to rename the unit in case the viewer had a bad name (except for soldiers,
     // since any custom soldier name was done manually by the player)
     if (!Unit.IsSoldier()) {
-        Unit = XComGameState_Unit(NewGameState.ModifyStateObject(class'XComGameState_Unit', Unit.GetReference().ObjectID));
+        `TILOG("Going to update unit name");
+        Unit = XComGameState_Unit(GameState.ModifyStateObject(class'XComGameState_Unit', Unit.GetReference().ObjectID));
 
         if (Unit.IsCivilian()) {
             // We don't know what name civilians used to have
@@ -56,7 +63,13 @@ static function DeleteOwnership(XComGameState_TwitchObjectOwnership Ownership) {
         }
     }
 
-    `GAMERULES.SubmitGameState(NewGameState);
+    if (bCreatedGameState) {
+        `TILOG("Submitting newly-created game state");
+        `GAMERULES.SubmitGameState(GameState);
+    }
+
+    // TODO need to pass new game state through here too
+    `TILOG("Requesting unit flag update");
     class'X2TwitchUtils'.static.SyncUnitFlag(Unit);
 }
 
@@ -84,12 +97,21 @@ static function XComGameState_TwitchObjectOwnership FindForObject(int ObjID) {
     return none;
 }
 
-static function XComGameState_TwitchObjectOwnership FindForUser(string Login) {
+static function XComGameState_TwitchObjectOwnership FindForUser(string Login, optional XComGameState NewGameState) {
     local XComGameState_TwitchObjectOwnership OwnershipState;
 
-    foreach `XCOMHISTORY.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState) {
-        if (OwnershipState.TwitchLogin ~= Login) {
-            return OwnershipState;
+    if (NewGameState != none) {
+        foreach NewGameState.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState) {
+            if (OwnershipState.TwitchLogin ~= Login) {
+                return OwnershipState;
+            }
+        }
+    }
+    else {
+        foreach `XCOMHISTORY.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState) {
+            if (OwnershipState.TwitchLogin ~= Login) {
+                return OwnershipState;
+            }
         }
     }
 
