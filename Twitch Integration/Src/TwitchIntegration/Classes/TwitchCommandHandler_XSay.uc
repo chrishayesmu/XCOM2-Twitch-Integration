@@ -388,6 +388,310 @@ private function string GetUnitPortrait(XComGameState_Unit Unit) {
     return "TwitchIntegration_UI.AlienCowboy_A";
 }
 
+private function AkBaseSoundObject GetUnitSound(TNarrativeQueueItem NarrativeItem, XComGameState_Unit Unit) {
+    local bool bUnitIsFemale;
+    local Name CharGroupName;
+
+    if (NarrativeItem.GameState.MessageBody ~= "bogos binted" || NarrativeItem.GameState.MessageBody ~= "bogos binted?") {
+        return LoadTwitchSoundCue('Bogos_Binted_Cue');
+    }
+    else if (NarrativeItem.GameState.MessageBody ~= "crum") {
+        return LoadTwitchSoundCue('Crum_Cue');
+    }
+    else if (NarrativeItem.GameState.MessageBody ~= "crumming") {
+        return LoadTwitchSoundCue('Crumming_Cue');
+    }
+    else if (NarrativeItem.GameState.MessageBody ~= "oh my god i'm fucking crumming") {
+        return LoadTwitchSoundCue('OhMyGodImFuckingCrumming_Cue');
+    }
+
+    if (Unit.IsSoldier()) {
+        // TODO: see XCOMGameState_Unit.kAppearance.nmVoice and XComHumanPawn.SetVoice
+        return none;
+    }
+
+    CharGroupName = Unit.GetMyTemplate().CharacterGroupName;
+    bUnitIsFemale = Unit.kAppearance.iGender == 2;
+
+    // Most unit types are a simple 1-to-1 mapping
+    switch (CharGroupName) {
+        case 'AdventCaptain':
+        case 'AdventPriest':
+        case 'AdventPurifier':
+        case 'AdventShieldbearer':
+        case 'AdventStunLancer':
+        case 'AdventTrooper':
+        case 'SpectralStunLancer':
+            // We're going to hear ADVENT cues a *lot*, so use every one we can find
+            switch (`SYNC_RAND(8)) {
+                case 0:
+                    return bUnitIsFemale ? SoundCue'SoundAdventVoxFemale.AdventFemaleTargetSightedCue' : SoundCue'SoundAdventVoxMale.AdventMaleTargetSightedCue';
+                case 1:
+                    return bUnitIsFemale ? SoundCue'SoundAdventFX.ADVENTF01_Moving_Cue' : SoundCue'SoundAdventVoxMale.AdventMaleMovingCue';
+                case 2:
+                    return bUnitIsFemale ? SoundCue'SoundAdventVoxFemale.AdventFemaleEngagingHostilesCue' : SoundCue'SoundAdventVoxMale.AdventMaleEngagingHostilesCue';
+                case 3:
+                    return bUnitIsFemale ? SoundCue'SoundAdventVoxFemale.AdventFemaleMovingCue' : SoundCue'SoundAdventVoxMale.AdventMaleMovingCue';
+                case 4:
+                    return bUnitIsFemale ? SoundCue'SoundAdventVoxFemale.AdventFemaleHaltStopCue' : SoundCue'SoundAdventVoxMale.AdventMaleHaltStopCue';
+                case 5:
+                    return bUnitIsFemale ? SoundCue'SoundAdventVoxFemale.AdventFemaleRequestReinforcementsCue' : SoundCue'SoundAdventVoxMale.AdventMaleRequestReinforcementsCue';
+                case 6:
+                    return SoundCue'CIN_XP_PreIntro_AUDIO.Captain.X2_XP_CAPN_CIN_PreIntro_2_Cue';
+                default:
+                    return SoundCue'CIN_XP_PreIntro_AUDIO.Captain.X2_XP_CAPN_CIN_PreIntro_3_Cue';
+            }
+        case 'AdventMEC':
+            switch (`SYNC_RAND(2)) {
+                case 0:
+                    return AkEvent'SoundAdventFX.AdvMEC_Speak';
+                default:
+                    return AkEvent'SoundAdventFX.AdvMEC_Speak_POD';
+            }
+        case 'AdventPsiWitch': // Avatar
+            return AkEvent'SoundX2AvatarFX.Avatar_POD_Reveal_ChargePowers';
+        case 'AdventTurret':
+            switch (`SYNC_RAND(3)) {
+                case 0:
+                    return AkEvent'SoundMagneticWeapons.Turret_Crouch2Stand_Advent';
+                case 1:
+                    return AkEvent'SoundMagneticWeapons.Turret_Crouch2Stand_Xcom';
+                default:
+                    return AkEvent'SoundMagneticWeapons.Turret_Stand2Crouch_Hacked';
+            }
+        case 'Andromedon':
+        case 'AndromedonRobot':
+            switch (`SYNC_RAND(4)) {
+                case 0:
+                    return AkEvent'SoundX2AndromedonFX.Andromedon_Power_On_Sweetener';
+                case 1:
+                    return AkEvent'SoundX2AndromedonFX.Andromedon_Speak';
+                case 2:
+                    return AkEvent'SoundX2AndromedonFX.Andromedon_Hacked_Short';
+                default:
+                    return AkEvent'SoundX2AndromedonFX.Andromedon_TakeDamage_VOX';
+            }
+        case 'Archon':
+        case 'ArchonKing':
+            switch (`SYNC_RAND(5)) {
+                case 0:
+                    return AkEvent'SoundX2ArchonFX.Archon_Death_Scream';
+                case 1:
+                    return AkEvent'SoundX2ArchonFX.Archon_Hurt_Scream';
+                case 2:
+                    return AkEvent'SoundX2ArchonFX.Archon_Misc_Vocals';
+                case 3:
+                    return AkEvent'SoundX2ArchonFX.Archon_Whoosh';
+                default:
+                    return AkEvent'SoundX2ArchonFX.Archon_Take_Damage';
+            }
+        case 'Berserker':
+            switch (`SYNC_RAND(5)) {
+                case 0:
+                    return AkEvent'SoundX2BerserkerFX.Berserker_Scream';
+                case 1:
+                    return AkEvent'SoundX2BerserkerFX.Berserker_Snif';
+                case 2:
+                    return AkEvent'SoundX2BerserkerFX.BerserkerBellowShort';
+                case 3:
+                    return AkEvent'SoundX2BerserkerFX.BerserkerDeathScream';
+                default:
+                    return AkEvent'SoundX2BerserkerFX.BerserkerTakesDamage';
+            }
+        case 'BerserkerQueen':
+            switch (`SYNC_RAND(4)) {
+                case 0:
+                    return AkEvent'DLC_60_SoundBerserkerQueen.Berserker_Queen_FaithBreaker';
+                case 1:
+                    return AkEvent'DLC_60_SoundBerserkerQueen.BerserkerQueen_Idle_Grunt';
+                case 2:
+                    return AkEvent'DLC_60_SoundBerserkerQueen.BerserkerQueen_Quake_Chargeup';
+                default:
+                    return AkEvent'DLC_60_SoundBerserkerQueen.BerserkerQueen_Escape';
+            }
+        case 'ChosenAssassin':
+        case 'ChosenSniper':
+            return none;
+        case 'ChosenWarlock':
+            switch (`SYNC_RAND(4)) {
+                case 0:
+                    return LoadTwitchSoundCue('Warlock_GreatestChampion_01_Cue');
+                case 1:
+                    return LoadTwitchSoundCue('Warlock_GreatestChampion_02_Cue');
+                case 2:
+                    return LoadTwitchSoundCue('Warlock_GreatestChampion_03_Cue');
+                default:
+                    return LoadTwitchSoundCue('Warlock_GreatestChampion_04_Cue');
+            }
+        case 'Chryssalid':
+            switch (`SYNC_RAND(7)) {
+                case 0:
+                    return AkEvent'SoundX2ChryssalidFX.ChryssalidCallOthers';
+                case 1:
+                    return AkEvent'SoundX2ChryssalidFX.ChryssalidDeath';
+                case 2:
+                    return AkEvent'SoundX2ChryssalidFX.ChryssalidFlinchVox';
+                case 3:
+                    return AkEvent'SoundX2ChryssalidFX.ChryssalidHatchVox';
+                case 4:
+                    return AkEvent'SoundX2ChryssalidFX.ChryssalidHurt';
+                case 5:
+                    return AkEvent'SoundX2ChryssalidFX.ChryssalidMovementSweetener';
+                default:
+                    return AkEvent'SoundX2ChryssalidFX.ChryssalidPossessed';
+            }
+        case 'CivilianMilitia':
+            return none; // No SFX found yet
+        case 'Cyberus': // Codex
+            switch (`SYNC_RAND(2)) {
+                case 0:
+                    return AkEvent'SoundX2CyberusFX.Cyberus_Ability_Teleport_In';
+                default:
+                    return AkEvent'SoundX2CyberusFX.Cyberus_Pod_Glitch_Long';
+            }
+        case 'Faceless':
+            switch (`SYNC_RAND(5)) {
+                case 0:
+                    return AkEvent'SoundX2FacelessFX.FacelessCallOthers';
+                case 1:
+                    return AkEvent'SoundX2FacelessFX.FacelessGenericVox';
+                case 2:
+                    return AkEvent'SoundX2FacelessFX.FacelessGenericVoxShort';
+                case 3:
+                    return AkEvent'SoundX2FacelessFX.FacelessTakesDamage';
+                default:
+                    return AkEvent'SoundX2FacelessFX.FacelessDeath';
+            }
+        case 'Gatekeeper':
+            switch (`SYNC_RAND(3)) {
+                case 0:
+                    return AkEvent'SoundX2GatekeeperFX.GatekeeperMoveBurst';
+                case 1:
+                    return AkEvent'SoundX2GatekeeperFX.GatekeeperProbe';
+                default:
+                    return AkEvent'SoundX2GatekeeperFX.GatekeeperMoveBurst';
+            }
+        case 'TheLost':
+            switch (`SYNC_RAND(8)) {
+                case 0:
+                    return AkEvent'SoundX2ZombieFX.Lost_Howl';
+                case 1:
+                    return AkEvent'SoundX2ZombieFX.Lost_Howl_2D';
+                case 2:
+                    return AkEvent'SoundX2ZombieFX.Lost_Attack_Vox_PodReveal';
+                case 3:
+                    return AkEvent'SoundX2ZombieFX.Lost_DeathScream';
+                case 4:
+                    return AkEvent'SoundX2ZombieFX.Lost_Breathing_PodReveal';
+                case 5:
+                    return AkEvent'SoundX2ZombieFX.Lost_Reinforcements_Call';
+                case 6:
+                    return AkEvent'XPACK_SoundCharacterFX.TheLost_Attack_VOX';
+                default:
+                    return AkEvent'SoundX2ZombieFX.LostDasher_DashVox';
+            }
+        case 'Muton':
+            switch (`SYNC_RAND(4)) {
+                case 0:
+                    return AkEvent'SoundX2MutonFX.Muton_Scream';
+                case 1:
+                    return AkEvent'SoundX2MutonFX.MutonDeathScream';
+                case 2:
+                    return SoundCue'SoundX2MutonFX.X2MutonHiddenMovementVox_Cue';
+                default:
+                    return AkEvent'SoundX2MutonFX.MutonTakesDamage';
+            }
+        case 'Sectoid':
+            switch (`SYNC_RAND(3)) {
+                case 0:
+                    return SoundCue'SoundNewSectoidFX.SectoidVocalizationCue';
+                case 1:
+                    return SoundCue'SoundNewSectoidFX.SectoidTakesDmamgeCue'; // sic
+                default:
+                    return SoundCue'SoundNewSectoidFX.SectoidDeathScreamCue';
+            }
+        case 'Sectopod':
+            switch (`SYNC_RAND(4)) {
+                case 0:
+                    return AkEvent'SoundX2SectopodFX.Sectopod_Speak';
+                case 1:
+                    return AkEvent'SoundX2SectopodFX.Sectopod_Stand2Crouch';
+                case 2:
+                    return AkEvent'SoundUnreal3DSounds.Unreal3DSounds_SectopodSteamBurst';
+                default:
+                    return AkEvent'SoundX2SectopodFX.Sectopod_Crouch2Stand';
+            }
+        case 'Shadowbind':
+        case 'Spectre':
+            switch (`SYNC_RAND(3)) {
+                case 0:
+                    return AkEvent'XPACK_SoundSpectreFX.Spectre_Dissolve_End';
+                case 1:
+                    return AkEvent'XPACK_SoundSpectreFX.Spectre_Horror_Recovery';
+                case 2:
+                    return AkEvent'XPACK_SoundSpectreFX.Spectre_Vanish_Start';
+                default:
+                    return AkEvent'XPACK_SoundSpectreFX.Spectre_Vanish_End';
+            }
+        case 'Viper':
+        case 'ViperNeonate':
+            switch (`SYNC_RAND(10)) {
+                case 0:
+                    return AkEvent'SoundX2ViperFX.Viper_Bind';
+                case 1:
+                    return AkEvent'SoundX2ViperFX.Viper_Death';
+                case 2:
+                    return AkEvent'SoundX2ViperFX.Viper_Vox_Pod_Reveals';
+                case 3:
+                    return AkEvent'SoundX2ViperFX.ViperMadHiss';
+                case 4:
+                    return AkEvent'SoundX2ViperFX.ViperVox_EngagingHostiles';
+                case 5:
+                    return AkEvent'SoundX2ViperFX.ViperVox_HaltStop';
+                case 6:
+                    return AkEvent'SoundX2ViperFX.ViperVox_Identify';
+                case 7:
+                    return AkEvent'SoundX2ViperFX.ViperVox_Moving';
+                case 8:
+                    return AkEvent'SoundX2ViperFX.ViperVox_RequestingReinforcements';
+                default:
+                    return AkEvent'SoundX2ViperFX.ViperVox_TargetSighted';
+            }
+        case 'ViperKing':
+            switch (`SYNC_RAND(3)) {
+                case 0:
+                    return AkEvent'DLC_60_SoundViperKing.ViperKing_Hurt';
+                case 1:
+                    return AkEvent'DLC_60_SoundViperKing.ViperKing_MovementHiss';
+                case 2:
+                    return AkEvent'DLC_60_SoundViperKing.ViperKing_Reveal_Scream1';
+                case 3:
+                    return AkEvent'DLC_60_SoundViperKing.ViperKing_Reveal_Scream2';
+                case 4:
+                    return AkEvent'DLC_60_SoundViperKing.ViperKing_Scream';
+            }
+    }
+
+    // Non-militia civilians don't have a CharacterGroupName
+    if (Unit.IsCivilian()) {
+        // TODO: these screams are going to get old really fast
+        switch (`SYNC_RAND(3)) {
+            case 0:
+                return bUnitIsFemale ? SoundCue'SoundX2CharacterFX.CivilianScaredScreamFemale_Cue' : SoundCue'SoundX2CharacterFX.CivilianScaredScreamMale_Cue';
+            case 1:
+                return bUnitIsFemale ? SoundCue'SoundCivilianFemaleScreams.CivilianFemaleScreamsCue' : SoundCue'SoundCivilianMaleScreams.CivilianMaleScreamsCue';
+            default:
+                return bUnitIsFemale ? SoundCue'SoundCivilianFemaleScreams.CivFemaleScreamsOffscreenCue' : SoundCue'SoundCivilianMaleScreams.CivMaleScreamsOffscreenCue';
+        }
+    }
+
+    return none;
+}
+
+private function SoundCue LoadTwitchSoundCue(Name CueName) {
+    return SoundCue(DynamicLoadObject("TwitchIntegration_UI." $ string(CueName), class'SoundCue'));
+}
+
 private function OnNarrativeCompleteCallback() {
 	local UINarrativeMgr kNarrativeMgr;
 
@@ -400,6 +704,7 @@ private function OnNarrativeCompleteCallback() {
 	kNarrativeMgr = `PRES.m_kNarrativeUIMgr;
 
     if (kNarrativeMgr.IsTimerActive('EndCurrentConversation')) {
+        `TILOGCLS("Clearing EndCurrentConversation timer and ending conversation");
         kNarrativeMgr.ClearTimer('EndCurrentConversation');
         kNarrativeMgr.EndCurrentConversation();
     }
@@ -413,6 +718,7 @@ private function OnNarrativeCompleteCallback() {
 
 private function OverrideCommLinkFields() {
     local string UnitPortrait;
+    local AkBaseSoundObject Sound;
     local UINarrativeCommLink CommLink;
 	local UINarrativeMgr kNarrativeMgr;
     local XComGameState_Unit Unit;
@@ -431,14 +737,13 @@ private function OverrideCommLinkFields() {
 
     // Make sure the narrative manager has advanced to something we queued
     if (kNarrativeMgr.CurrentOutput.strTitle != "Twitch_Chat") {
-        `TILOGCLS("Current output shouldn't be overridden: " $ kNarrativeMgr.CurrentOutput.strTitle);
         return;
     }
 
     Unit = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(PendingNarrativeItems[0].GameState.SendingUnitObjectID));
 
     // Swap in our XSay data. We aren't using CurrentOutput ourselves, but if the comm link UI refreshes for some reason,
-    // we want to be sure our data is there.
+    // we want to be sure our data is there. (Opening and closing the menu is one way this can happen.)
     kNarrativeMgr.CurrentOutput.strTitle = PendingNarrativeItems[0].GameState.Sender;
     kNarrativeMgr.CurrentOutput.strText = GetMessageBody(PendingNarrativeItems[0]);
     kNarrativeMgr.CurrentOutput.strImage = "img:///TwitchIntegration_UI.Icon_Twitch_3D";
@@ -459,8 +764,16 @@ private function OverrideCommLinkFields() {
         `TILOGCLS("Using unit portrait: " $ UnitPortrait);
 
         if (UnitPortrait != "") {
-            CommLink.AS_SetPortrait("img:///" $ UnitPortrait);
+            kNarrativeMgr.CurrentOutput.strImage = "img:///" $ UnitPortrait;
+            CommLink.AS_SetPortrait(kNarrativeMgr.CurrentOutput.strImage);
         }
+    }
+
+    // Now that we know our dialogue's on the UI, play the associated sound
+    Sound = GetUnitSound(PendingNarrativeItems[0], Unit);
+
+    if (Sound != none) {
+        class'WorldInfo'.static.GetWorldInfo().PlaySoundBase(Sound, true);
     }
 
     // Don't call this again until another XSay state has been sent to the narrative manager

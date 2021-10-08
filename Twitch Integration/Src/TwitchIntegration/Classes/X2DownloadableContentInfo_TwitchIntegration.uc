@@ -86,6 +86,13 @@ exec function TwitchChatCommand(string Command, string ViewerLogin, string Comma
     StateMgr.HandleChatCommand(Message, Viewer);
 }
 
+exec function TwitchBinted() {
+    TwitchChatCommand("xsay", "cyberdiscluvr", "Hey, just wondering if you got your photos printed?");
+    TwitchChatCommand("xsay", "crumlord", "bogos binted?");
+    TwitchChatCommand("xsay", "cyberdiscluvr", "What");
+    TwitchChatCommand("xsay", "crumlord", " ");
+}
+
 /// <summary>
 /// Connects to Twitch chat, forcibly disconnecting first if bForceReconnect is true.
 /// </summary>
