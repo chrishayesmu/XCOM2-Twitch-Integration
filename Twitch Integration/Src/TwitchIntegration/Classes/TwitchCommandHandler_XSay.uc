@@ -12,7 +12,7 @@ const LookAtDurationPerChar = 0.02; // 1 second per 50 characters
 
 struct TNarrativeQueueItem {
     var XComGameState_TwitchXSay GameState;
-    var bool bHasBeenSentToNarrativeMgr;
+    var XComNarrativeMoment NarrativeMoment;
     var bool bUnitWasDead;
 };
 
@@ -21,10 +21,57 @@ const MaxToastLength = 40;
 const MaxNarrativeQueueLength = 5;
 
 var private array<TNarrativeQueueItem> PendingNarrativeItems;
-var private XComNarrativeMoment NarrativeMoment;
+
+// Need multiple narrative moments in order to cycle between them
+var private XComNarrativeMoment NarrativeMomentShort01;
+var private XComNarrativeMoment NarrativeMomentShort02;
+var private XComNarrativeMoment NarrativeMomentMedium01;
+var private XComNarrativeMoment NarrativeMomentMedium02;
+var private XComNarrativeMoment NarrativeMomentLong01;
+var private XComNarrativeMoment NarrativeMomentLong02;
+
+var private XComNarrativeMoment NextNarrativeMomentShort;
+var private XComNarrativeMoment NextNarrativeMomentMedium;
+var private XComNarrativeMoment NextNarrativeMomentLong;
 
 function Initialize(TwitchStateManager StateMgr) {
     local Object ThisObj;
+
+    if (NarrativeMomentShort01 == none) {
+        NarrativeMomentShort01 = XComNarrativeMoment(DynamicLoadObject("TwitchIntegration_UI.XSayBlank_Short_01", class'XComNarrativeMoment'));
+    }
+
+    if (NarrativeMomentShort02 == none) {
+        NarrativeMomentShort02 = XComNarrativeMoment(DynamicLoadObject("TwitchIntegration_UI.XSayBlank_Short_02", class'XComNarrativeMoment'));
+    }
+
+    if (NarrativeMomentMedium01 == none) {
+        NarrativeMomentMedium01 = XComNarrativeMoment(DynamicLoadObject("TwitchIntegration_UI.XSayBlank_Medium_01", class'XComNarrativeMoment'));
+    }
+
+    if (NarrativeMomentMedium02 == none) {
+        NarrativeMomentMedium02 = XComNarrativeMoment(DynamicLoadObject("TwitchIntegration_UI.XSayBlank_Medium_02", class'XComNarrativeMoment'));
+    }
+
+    if (NarrativeMomentLong01 == none) {
+        NarrativeMomentLong01 = XComNarrativeMoment(DynamicLoadObject("TwitchIntegration_UI.XSayBlank_Long_01", class'XComNarrativeMoment'));
+    }
+
+    if (NarrativeMomentLong02 == none) {
+        NarrativeMomentLong02 = XComNarrativeMoment(DynamicLoadObject("TwitchIntegration_UI.XSayBlank_Long_02", class'XComNarrativeMoment'));
+    }
+
+    if (NextNarrativeMomentShort == none) {
+        NextNarrativeMomentShort = NarrativeMomentShort01;
+    }
+
+    if (NextNarrativeMomentMedium == none) {
+        NextNarrativeMomentMedium = NarrativeMomentMedium01;
+    }
+
+    if (NextNarrativeMomentLong == none) {
+        NextNarrativeMomentLong = NarrativeMomentLong01;
+    }
 
     ThisObj = self;
     `XEVENTMGR.RegisterForEvent(ThisObj, 'TwitchChatMessageDeleted', OnMessageDeleted, ELD_Immediate);
@@ -85,13 +132,9 @@ function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer
 
     if (bShowInCommLink && PendingNarrativeItems.Length < MaxNarrativeQueueLength) {
         NarrativeItem.GameState = XSayGameState;
-        NarrativeItem.bHasBeenSentToNarrativeMgr = false;
         NarrativeItem.bUnitWasDead = Unit.IsDead();
 
-        // TODO: on tac layer move this to visualization so it lines up with the other vis
-        // TODO don't set timer if it's already on
-        PendingNarrativeItems.AddItem(NarrativeItem);
-        StateMgr.SetTimer(0.1, /* inbLoop */ true, nameof(EnqueueNextCommLink), self);
+        EnqueueCommLink(NarrativeItem);
     }
 }
 
@@ -238,46 +281,15 @@ private function string TruncateMessage(string Message, int MaxLength) {
     return Message;
 }
 
-private function EnqueueNextCommLink() {
-	local UINarrativeMgr kNarrativeMgr;
+private function EnqueueCommLink(TNarrativeQueueItem NarrativeItem) {
+    NarrativeItem.NarrativeMoment = PickNarrativeMoment(NarrativeItem.GameState.MessageBody);
+    PendingNarrativeItems.AddItem(NarrativeItem);
 
-    if (PendingNarrativeItems.Length == 0) {
-        `TILOGCLS("EnqueueNextCommLink: No XSays are pending display; clearing timers");
-        `TISTATEMGR.ClearTimer(nameof(EnqueueNextCommLink), self);
-
-        return;
-    }
-
-    if (PendingNarrativeItems[0].GameState.bMessageDeleted) {
-        `TILOGCLS("Next narrative item has been deleted from Twitch; dequeuing it");
-        PendingNarrativeItems.Remove(0, 1);
-
-        return;
-    }
-
-    if (PendingNarrativeItems[0].bHasBeenSentToNarrativeMgr) {
-        return;
-    }
-
-	kNarrativeMgr = `PRES.m_kNarrativeUIMgr;
-
-    if (kNarrativeMgr.AnyActiveConversations()) {
-        `TILOGCLS("Active conversations found, not queuing XSay yet");
-        return;
-    }
-
-    // We're clear to add our message now, but don't remove it from queue; that's the job of OverrideCommLinkFields
-    if (NarrativeMoment == none) {
-        NarrativeMoment = XComNarrativeMoment(DynamicLoadObject("TwitchIntegration_UI.XSayBlank", class'XComNarrativeMoment'));
-    }
-
-    PendingNarrativeItems[0].bHasBeenSentToNarrativeMgr = true;
-
-    `TILOGCLS("EnqueueNextCommLink: sending NarrativeMoment");
-    `PRESBASE.UINarrative(NarrativeMoment, /* kFocusActor */ , OnNarrativeCompleteCallback);
+    // Add our message, but don't remove it from queue; that's the job of OverrideCommLinkFields
+    `TILOGCLS("EnqueueCommLink: sending NarrativeMoment with sound cue " $ NarrativeItem.NarrativeMoment.arrConversations[0]);
+    `PRESBASE.UINarrative(NarrativeItem.NarrativeMoment, /* kFocusActor */ , OnNarrativeCompleteCallback);
 
     `TISTATEMGR.SetTimer(0.1, /* inbLoop */ true, nameof(OverrideCommLinkFields), self);
-    `TISTATEMGR.ClearTimer(nameof(EnqueueNextCommLink), self);
 }
 
 private function string GetMessageBody(TNarrativeQueueItem NarrativeItem) {
@@ -695,7 +707,7 @@ private function SoundCue LoadTwitchSoundCue(Name CueName) {
 private function OnNarrativeCompleteCallback() {
 	local UINarrativeMgr kNarrativeMgr;
 
-    `TILOGCLS("Narrative is complete. Dequeuing item and resetting timer");
+    `TILOGCLS("Narrative is complete");
 
     // Normally when a conversation completes, if subtitles are enabled, the narrative manager waits to
     // end the conversation so the subtitles can last a little longer. This doesn't work well at all with
@@ -704,15 +716,10 @@ private function OnNarrativeCompleteCallback() {
 	kNarrativeMgr = `PRES.m_kNarrativeUIMgr;
 
     if (kNarrativeMgr.IsTimerActive('EndCurrentConversation')) {
-        `TILOGCLS("Clearing EndCurrentConversation timer and ending conversation");
-        kNarrativeMgr.ClearTimer('EndCurrentConversation');
-        kNarrativeMgr.EndCurrentConversation();
-    }
-
-    PendingNarrativeItems.Remove(0, 1);
-
-    if (PendingNarrativeItems.Length > 0) {
-        `TISTATEMGR.SetTimer(0.1, /* inbLoop */ true, nameof(EnqueueNextCommLink), self);
+        `TILOGCLS("EndCurrentConversation timer is active");
+        //`TILOGCLS("Clearing EndCurrentConversation timer and ending conversation");
+        //kNarrativeMgr.ClearTimer('EndCurrentConversation');
+        //kNarrativeMgr.EndCurrentConversation();
     }
 }
 
@@ -722,8 +729,6 @@ private function OverrideCommLinkFields() {
     local UINarrativeCommLink CommLink;
 	local UINarrativeMgr kNarrativeMgr;
     local XComGameState_Unit Unit;
-
-    `TILOGCLS("In OverrideCommLinkFields");
 
     if (PendingNarrativeItems.Length == 0) {
         `TILOGCLS("No XSays are pending display; clearing timer");
@@ -761,7 +766,6 @@ private function OverrideCommLinkFields() {
     }
     else {
         UnitPortrait = GetUnitPortrait(Unit);
-        `TILOGCLS("Using unit portrait: " $ UnitPortrait);
 
         if (UnitPortrait != "") {
             kNarrativeMgr.CurrentOutput.strImage = "img:///" $ UnitPortrait;
@@ -776,24 +780,62 @@ private function OverrideCommLinkFields() {
         class'WorldInfo'.static.GetWorldInfo().PlaySoundBase(Sound, true);
     }
 
-    // Don't call this again until another XSay state has been sent to the narrative manager
-    `TISTATEMGR.ClearTimer(nameof(OverrideCommLinkFields), self);
+    PendingNarrativeItems.Remove(0, 1);
+
+    if (PendingNarrativeItems.Length == 0) {
+        // Don't call this again until another XSay state has been sent to the narrative manager
+        `TISTATEMGR.ClearTimer(nameof(OverrideCommLinkFields), self);
+    }
+}
+
+function XComNarrativeMoment PickNarrativeMoment(string Message) {
+    local XComNarrativeMoment NarrativeMoment;
+
+    if (Len(Message) < 50) {
+        `TILOGCLS("Using short narrative moment");
+
+        NarrativeMoment = NextNarrativeMomentShort;
+        NextNarrativeMomentShort = NextNarrativeMomentShort == NarrativeMomentShort01 ? NarrativeMomentShort02 : NarrativeMomentShort01;
+    }
+    else if (Len(Message) < 250) {
+        `TILOGCLS("Using medium narrative moment");
+
+        NarrativeMoment = NextNarrativeMomentMedium;
+        NextNarrativeMomentMedium = NextNarrativeMomentMedium == NarrativeMomentMedium01 ? NarrativeMomentMedium02 : NarrativeMomentMedium01;
+    }
+    else {
+        `TILOGCLS("Using long narrative moment");
+
+        NarrativeMoment = NextNarrativeMomentLong;
+        NextNarrativeMomentLong = NextNarrativeMomentLong == NarrativeMomentLong01 ? NarrativeMomentLong02 : NarrativeMomentLong01;
+    }
+
+    return NarrativeMoment;
+}
+
+function string GetSoldierHeadshot(int UnitObjectID) {
+    local Texture2D HeadshotTex;
+	local XComGameState_CampaignSettings SettingsState;
+
+	SettingsState = XComGameState_CampaignSettings(`XCOMHISTORY.GetSingleGameStateObjectForClass(class'XComGameState_CampaignSettings'));
+    HeadshotTex = `XENGINE.m_kPhotoManager.GetHeadshotTexture(SettingsState.GameIndex, UnitObjectID, 512, 512);
+
+    if (HeadshotTex != none) {
+        return class'UIUtilities_Image'.static.ValidateImagePath(PathName(HeadshotTex));
+    }
+
+    return "";
 }
 
 simulated function OnHeadshotReady(StateObjectReference UnitRef) {
-    local Texture2D HeadshotTex;
     local UINarrativeCommLink CommLink;
 	local UINarrativeMgr kNarrativeMgr;
-	local XComGameState_CampaignSettings SettingsState;
 
     CommLink = `PRESBASE.GetUIComm();
 	kNarrativeMgr = CommLink.Movie.Pres.m_kNarrativeUIMgr;
 
-	SettingsState = XComGameState_CampaignSettings(`XCOMHISTORY.GetSingleGameStateObjectForClass(class'XComGameState_CampaignSettings'));
-    HeadshotTex = `XENGINE.m_kPhotoManager.GetHeadshotTexture(SettingsState.GameIndex, UnitRef.ObjectID, 512, 512);
+    kNarrativeMgr.CurrentOutput.strImage = GetSoldierHeadshot(UnitRef.ObjectID);
 
-    kNarrativeMgr.CurrentOutput.strImage = class'UIUtilities_Image'.static.ValidateImagePath(PathName(HeadshotTex));
-
-    `TILOGCLS("Headshot ready, updating display; kNarrativeMgr.CurrentOutput.fDuration = " $ kNarrativeMgr.CurrentOutput.fDuration);
+    `TILOGCLS("Headshot ready, updating display");
     CommLink.AS_SetPortrait(kNarrativeMgr.CurrentOutput.strImage);
 }
