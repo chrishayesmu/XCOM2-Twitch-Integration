@@ -14,8 +14,6 @@ event OnInit(UIScreen Screen) {
         return;
     }
 
-    `TILOGCLS("OnInit");
-
     // Add our mid-battle rename UI
     if (!HasUITwitchTacticalRenamePanel()) {
         Screen.Spawn(class'UITwitchTacticalRename', Screen).InitPanel();
@@ -90,11 +88,11 @@ protected function CheckUnitLosStatus() {
             bShowNameplate = false;
         }
 
-        if (!bShowNameplate) {
-            class'UIUtilities_Twitch'.static.HideTwitchName(Unit.ObjectID);
-        }
-        else if (bPermanentNameplatesEnabled)  {
+        if (bShowNameplate && bPermanentNameplatesEnabled) {
             class'UIUtilities_Twitch'.static.ShowTwitchName(Unit.ObjectID, , /* bPermanent */ true);
+        }
+        else {
+            class'UIUtilities_Twitch'.static.HideTwitchName(Unit.ObjectID);
         }
     }
 }
