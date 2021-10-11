@@ -395,8 +395,6 @@ private function OnNamesListReceived(HttpResponse Response) {
 
     `TILOGCLS("Received names list, parsing response");
 
-    // TODO: rewrite this without JsonObject because it crashes on large payloads
-
 	JsonObj = class'JsonObject'.static.DecodeJson(Response.Body);
 	JsonObj = JsonObj.GetObject("chatters");
 

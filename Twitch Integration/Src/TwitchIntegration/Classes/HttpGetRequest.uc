@@ -137,9 +137,14 @@ event ReceivedText(string Text)
 
 	CRLF = chr(13) $ chr(10);
 
-    // Trim any leading CRLF, which chunks sometimes start with for some reason
+    // Trim any leading CRLF, which chunks sometimes start with
     if (Left(Text, 2) == CRLF) {
         Text = Mid(Text, 2);
+    }
+
+    // Chunks can also start with just LF due to buffering
+    if (Left(Text, 1) == chr(10)) {
+        Text = Mid(Text, 1);
     }
 
     `TILOGCLS("Received text: " $ Text, LogRequest);
@@ -203,6 +208,14 @@ event ReceivedText(string Text)
             return;
         }
 
+        // If we're not expecting more bytes in the current chunk, this should start with a new chunk size
+        if (RemainingBytesInChunk == 0) {
+            ChunkSizeInHex = Left(Text, Instr(Text, CRLF));
+            RemainingBytesInChunk = HexToInt(ChunkSizeInHex);
+
+            Text = Mid(Text, Instr(Text, CRLF) + 2);
+        }
+
         // We might get multiple chunks concatenated thanks to TcpLink buffering, so we need to be able to identify a new chunk mid-stream
         if (Len(Text) > RemainingBytesInChunk) {
             Response.Body $= Left(Text, RemainingBytesInChunk);
@@ -212,16 +225,23 @@ event ReceivedText(string Text)
         }
 
         if (RemainingBytesInChunk == 0) {
-            // Previous chunk is done; we're about to start a new one, or end completely
+            // Previous chunk is done; we may be about to start a new one, or end completely
             ChunkSizeInHex = Left(Text, Instr(Text, CRLF));
-            RemainingBytesInChunk = HexToInt(ChunkSizeInHex);
 
-            if (RemainingBytesInChunk == 0) {
-                bLastChunkReceived = true;
-                return;
+            if (ChunkSizeInHex != "") {
+                RemainingBytesInChunk = HexToInt(ChunkSizeInHex);
+
+                if (RemainingBytesInChunk == 0) {
+                    bLastChunkReceived = true;
+                    return;
+                }
+
+                ChunkBody = Split(Text, CRLF, /* bOmitSplitStr */ true);
             }
-
-            ChunkBody = Split(Text, CRLF, /* bOmitSplitStr */ true);
+            else {
+                // If there's nothing, then the chunk size is coming in the next message
+                ChunkBody = "";
+            }
         }
         else {
             ChunkBody = Text;
@@ -231,8 +251,10 @@ event ReceivedText(string Text)
         Response.Body $= ChunkBody;
         RemainingBytesInChunk -= Len(ChunkBody);
 
+        `TILOGCLS("Chunk processed. Remaining bytes: " $ RemainingBytesInChunk, LogRequest);
+
         if (RemainingBytesInChunk < 0) {
-            `WARN("[HttpGetRequest] WARNING: negative number of bytes remaining in chunk: " $ RemainingBytesInChunk, );
+            `WARN("[HttpGetRequest] WARNING: negative number of bytes remaining in chunk: " $ RemainingBytesInChunk);
         }
     }
 }
