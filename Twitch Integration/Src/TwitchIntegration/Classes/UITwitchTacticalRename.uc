@@ -88,7 +88,7 @@ function RealizeUI() {
 
 	ActiveUnit = XComTacticalController(PC).GetActiveUnit();
 
-	if (ActiveUnit == none || !ActiveUnit.IsSoldier()) {
+	if (ActiveUnit == none) {
 		Hide();
         return;
 	}
