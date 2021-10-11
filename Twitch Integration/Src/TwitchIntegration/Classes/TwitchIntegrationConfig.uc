@@ -62,20 +62,6 @@ var localized string strChatLogFormatDeadMessagesTooltip;
 
 // #endregion
 
-// #region Nameplate strings
-
-var localized string strNameplateSettingsGroupTitle;
-var localized string strPermanentNameplatesEnabledLabel;
-var localized string strPermanentNameplatesEnabledTooltip;
-var localized string strCivilianNameplatesEnabledLabel;
-var localized string strCivilianNameplatesEnabledTooltip;
-var localized string strEnemyNameplatesEnabledLabel;
-var localized string strEnemyNameplatesEnabledTooltip;
-var localized string strSoldierNameplatesEnabledLabel;
-var localized string strSoldierNameplatesEnabledTooltip;
-
-// #endregion
-
 // #region Poll strings
 
 var localized string strPollSettingsGroupTitle;
@@ -99,8 +85,6 @@ var localized string strAssignUnitNamesLabel;
 var localized string strAssignUnitNamesTooltip;
 var localized string strAssignChosenNamesLabel;
 var localized string strAssignChosenNamesTooltip;
-var localized string strChosenNamesArePersistentLabel;
-var localized string strChosenNamesArePersistentTooltip;
 
 // #endregion
 
@@ -132,9 +116,6 @@ var config eTwitchConfig_ChatLogNameFormat  ChatLogFriendlyNameFormat;
 // #region Nameplate settings
 
 var config bool bPermanentNameplatesEnabled;
-var config bool bCivilianNameplatesEnabled;
-var config bool bEnemyNameplatesEnabled;
-var config bool bSoldierNameplatesEnabled;
 
 // #endregion
 
@@ -152,7 +133,6 @@ var config int  ChanceToStartPoll;
 
 var config bool bAssignUnitNames;
 var config bool bAssignChosenNames;
-var config bool bChosenNamesArePersistent;
 
 // #endregion
 
@@ -204,16 +184,7 @@ function ClientModCallback(MCM_API_Instance ConfigAPI, int GameMode) {
 
     DisableGroupWhenFalseHandler(Setting, bShowChatLog);
 
-
-
-    Group = Page.AddGroup('TwitchNameplateSettings', strNameplateSettingsGroupTitle);
-    Group.AddCheckbox(nameof(bPermanentNameplatesEnabled), strPermanentNameplatesEnabledLabel, strPermanentNameplatesEnabledTooltip, bPermanentNameplatesEnabled, PermanentNameplatesSaveHandler);
-    Group.AddCheckbox(nameof(bCivilianNameplatesEnabled), strCivilianNameplatesEnabledLabel, strCivilianNameplatesEnabledTooltip, bCivilianNameplatesEnabled, CivilianNameplatesSaveHandler);
-    Group.AddCheckbox(nameof(bEnemyNameplatesEnabled), strEnemyNameplatesEnabledLabel, strEnemyNameplatesEnabledTooltip, bEnemyNameplatesEnabled, EnemyNameplatesSaveHandler);
-    Group.AddCheckbox(nameof(bSoldierNameplatesEnabled), strSoldierNameplatesEnabledLabel, strSoldierNameplatesEnabledTooltip, bSoldierNameplatesEnabled, SoldierNameplatesSaveHandler);
-
-
-
+/*
     Group = Page.AddGroup('TwitchPollSettings', strPollSettingsGroupTitle);
     Setting = Group.AddCheckbox(nameof(bEnablePolls), strEnablePollsLabel, strEnablePollsTooltip, bEnablePolls, EnablePollsSaveHandler, DisableGroupWhenFalseHandler);
     Group.AddSlider(nameof(PollDurationInTurns), strPollDurationLabel, strPollDurationTooltip, 1, 5, 1, PollDurationInTurns, PollDurationInTurnsSaveHandler);
@@ -222,16 +193,14 @@ function ClientModCallback(MCM_API_Instance ConfigAPI, int GameMode) {
     Group.AddSlider(nameof(ChanceToStartPoll), strChanceToStartPollLabel, strChanceToStartPollTooltip, 1, 100, 1, ChanceToStartPoll, ChanceToStartPollSaveHandler);
 
     DisableGroupWhenFalseHandler(Setting, bEnablePolls);
-
+ */
 
 
     Group = Page.AddGroup('TwitchRaffleSettings', strRaffleSettingsGroupTitle);
     Setting = Group.AddCheckbox(nameof(bAssignUnitNames), strAssignUnitNamesLabel, strAssignUnitNamesTooltip, bAssignUnitNames, AssignUnitNamesSaveHandler, DisableGroupWhenFalseHandler);
-    Group.AddCheckbox(nameof(bAssignChosenNames), strAssignChosenNamesLabel, strAssignChosenNamesTooltip, bAssignChosenNames, AssignChosenNamesSaveHandler, OnAssignChosenNamesChanged);
-    Group.AddCheckbox(nameof(bChosenNamesArePersistent), strChosenNamesArePersistentLabel, strChosenNamesArePersistentTooltip, bChosenNamesArePersistent, ChosenNamesArePersistentSaveHandler);
+    Group.AddCheckbox(nameof(bAssignChosenNames), strAssignChosenNamesLabel, strAssignChosenNamesTooltip, bAssignChosenNames, AssignChosenNamesSaveHandler);
 
     DisableGroupWhenFalseHandler(Setting, bAssignUnitNames);
-    OnAssignChosenNamesChanged(Setting, bAssignChosenNames);
 
     Page.ShowSettings();
 }
@@ -275,19 +244,11 @@ private function LoadSavedSettings() {
 
     bAssignUnitNames = `TI_CFG(bAssignUnitNames);
     bAssignChosenNames = `TI_CFG(bAssignChosenNames);
-    bChosenNamesArePersistent = `TI_CFG(bChosenNamesArePersistent);
 
     if (class'TwitchIntegrationConfigDefaults'.default.ConfigVersion > default.ConfigVersion) {
         default.ConfigVersion = class'TwitchIntegrationConfigDefaults'.default.ConfigVersion;
         self.SaveConfig();
     }
-}
-
-private function OnAssignChosenNamesChanged(MCM_API_Setting Setting, bool Value) {
-    local MCM_API_SettingsGroup ParentGroup;
-
-    ParentGroup = Setting.GetParentGroup();
-    ParentGroup.GetSettingByName(nameof(bChosenNamesArePersistent)).SetEditable(Value);
 }
 
 private function ChatLogColorSchemeSaveHandler(MCM_API_Setting _Setting, string Value) {
@@ -407,16 +368,11 @@ private function OnTwitchUsernameInputBoxClosed(string Text) {
 }
 
 `MCM_CH_VersionChecker(class'TwitchIntegrationConfigDefaults'.default.ConfigVersion, ConfigVersion);
-`MCM_API_BasicCheckboxSaveHandler(PermanentNameplatesSaveHandler, bPermanentNameplatesEnabled);
-`MCM_API_BasicCheckboxSaveHandler(CivilianNameplatesSaveHandler, bCivilianNameplatesEnabled);
-`MCM_API_BasicCheckboxSaveHandler(EnemyNameplatesSaveHandler, bEnemyNameplatesEnabled);
-`MCM_API_BasicCheckboxSaveHandler(SoldierNameplatesSaveHandler, bSoldierNameplatesEnabled);
 `MCM_API_BasicCheckboxSaveHandler(EnablePollsSaveHandler, bEnablePolls);
 `MCM_API_BasicCheckboxSaveHandler(ShowChatLogSaveHandler, bShowChatLog);
 `MCM_API_BasicCheckboxSaveHandler(FormatDeadMessagesSaveHandler, bFormatDeadMessages);
 `MCM_API_BasicCheckboxSaveHandler(AssignUnitNamesSaveHandler, bAssignUnitNames);
 `MCM_API_BasicCheckboxSaveHandler(AssignChosenNamesSaveHandler, bAssignChosenNames);
-`MCM_API_BasicCheckboxSaveHandler(ChosenNamesArePersistentSaveHandler, bChosenNamesArePersistent);
 `MCM_API_BasicSliderSaveHandler(ViewerTTLSaveHandler, ViewerTTLInMinutes);
 `MCM_API_BasicSliderSaveHandler(PollDurationInTurnsSaveHandler, PollDurationInTurns);
 `MCM_API_BasicSliderSaveHandler(MinTurnsBeforeFirstPollSaveHandler, MinTurnsBeforeFirstPoll);

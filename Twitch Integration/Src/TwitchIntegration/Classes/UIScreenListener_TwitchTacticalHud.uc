@@ -50,7 +50,7 @@ protected function bool HasUITwitchTacticalRenamePanel() {
 }
 
 protected function CheckUnitLosStatus() {
-    local bool bPermanentNameplatesEnabled, bCivilianNameplatesEnabled;
+    local bool bPermanentNameplatesEnabled;
     local bool bShowNameplate;
     local UIUnitFlagManager UnitFlagManager;
 	local UIUnitFlag UnitFlag;
@@ -64,7 +64,6 @@ protected function CheckUnitLosStatus() {
     }
 
     bPermanentNameplatesEnabled = `TI_CFG(bPermanentNameplatesEnabled);
-    bCivilianNameplatesEnabled = `TI_CFG(bCivilianNameplatesEnabled);
 
     foreach `XCOMGAME.AllActors(class'XGUnit', Unit) {
         UnitFlag = UnitFlagManager.GetFlagForObjectID(Unit.ObjectID);
@@ -73,19 +72,11 @@ protected function CheckUnitLosStatus() {
         // a world message if we can't put it in the unit flag for some reason
 
         // If a unit flag exists, simply tie into its state; we'll want to match it as often as possible
-        if (UnitFlag != none) {
+        if (UnitFlag != none || !Unit.IsCivilianChar()) {
             bShowNameplate = false;
         }
         else {
             bShowNameplate = class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(Unit.ObjectID);
-        }
-
-        if (Unit.IsCivilianChar()) {
-            bShowNameplate = bShowNameplate && bCivilianNameplatesEnabled;
-        }
-        else {
-            // Other non-civilians keep showing up and I can't tell what they are
-            bShowNameplate = false;
         }
 
         if (bShowNameplate && bPermanentNameplatesEnabled) {
