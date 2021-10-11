@@ -360,6 +360,11 @@ private function TwitchMessage ParseMessage(string Message, out TwitchViewer Vie
         return MessageStruct;
     }
 
+    if (class'TwitchStateManager'.default.BlacklistedViewerNames.Find(Sender) != INDEX_NONE) {
+        `TILOGCLS("Not upserting viewer " $ Sender $ " because they're blacklisted");
+        return MessageStruct;
+    }
+
     Viewer = UpsertViewer(Sender, DataTags);
     MessageStruct.SenderLogin = Viewer.Login;
 

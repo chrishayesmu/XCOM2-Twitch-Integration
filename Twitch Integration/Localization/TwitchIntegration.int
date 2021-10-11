@@ -93,6 +93,8 @@ strAssignUnitNamesLabel="Raffle Non-Soldier Units As Viewers"
 strAssignUnitNamesTooltip="If enabled, non-soldiers on missions (enemies, civilians, VIPs, etc) will automatically be raffled as viewers from your chat."
 strAssignChosenNamesLabel="Raffle the Chosen Assassin/Hunter/Warlock"
 strAssignChosenNamesTooltip="If enabled, the Chosen will also be raffled automatically. Otherwise they will retain their automatically generated names."
+strExcludeBroadcasterLabel="Exclude Broadcaster"
+strExcludeBroadcasterTooltip="If enabled, the broadcaster is not eligible to be raffled as a unit. They can still be manually given a unit."
 
 [PollEvent_ImpairEnemies_CatchFire X2PollEventTemplate]
 FriendlyName="Ignite 1 Enemy"

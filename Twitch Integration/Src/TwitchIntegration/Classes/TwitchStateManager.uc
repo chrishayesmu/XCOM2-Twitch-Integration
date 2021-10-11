@@ -218,13 +218,27 @@ function LoadViewerList() {
 /// </summary>
 /// <returns>The index of the viewer in the TwitchChatConn.Viewers array, or INDEX_NONE if no viewers are available.</returns>
 function int RaffleViewer() {
+    local bool bExcludeBroadcaster;
     local int AvailableIndex, Index, RaffledIndex;
     local int NumAvailableViewers;
+    local string TwitchChannel;
+    local TwitchViewer Viewer;
+
+    bExcludeBroadcaster = `TI_CFG(bExcludeBroadcaster);
+    TwitchChannel = Locs(`TI_CFG(TwitchChannel));
 
     for (Index = 0; Index < TwitchChatConn.Viewers.Length; Index++) {
-        if (TwitchChatConn.Viewers[Index].OwnedObjectID <= 0) {
-            NumAvailableViewers++;
+        Viewer = TwitchChatConn.Viewers[Index];
+
+        if (Viewer.OwnedObjectID > 0) {
+            continue;
         }
+
+        if (bExcludeBroadcaster && Viewer.Login ~= TwitchChannel) {
+            continue;
+        }
+
+        NumAvailableViewers++;
     }
 
     if (NumAvailableViewers == 0) {
@@ -239,6 +253,10 @@ function int RaffleViewer() {
         // We've raffled an index into a virtual array of only available viewers, so now we
         // need to count through it by only incrementing at available viewers
         if (TwitchChatConn.Viewers[Index].OwnedObjectID > 0) {
+            continue;
+        }
+
+        if (bExcludeBroadcaster && Viewer.Login ~= TwitchChannel) {
             continue;
         }
 
