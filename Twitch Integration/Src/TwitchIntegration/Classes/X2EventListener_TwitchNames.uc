@@ -1,6 +1,8 @@
 class X2EventListener_TwitchNames extends X2EventListener
     config(TwitchIntegration);
 
+const DetailedLogs = false;
+
 static function array<X2DataTemplate> CreateTemplates() {
 	local array<X2DataTemplate> Templates;
 
@@ -203,7 +205,7 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
     TwitchConn = TwitchMgr.TwitchChatConn;
 	Unit = XComGameState_Unit(EventSource);
 
-    `TILOG("In ChooseViewerName for event " $ Event $ " and unit " $ Unit.GetFullName());
+    `TILOG("In ChooseViewerName for event " $ Event $ " and unit " $ Unit.GetFullName(), DetailedLogs);
 
     // UnitBeginPlay events can fire before we have a chance to initialize the TwitchStateManager
 	if (TwitchMgr == none) {
@@ -221,7 +223,7 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
     OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Unit.ObjectID);
 
     if (OwnershipState != none) {
-        `TILOG("Aborting ChooseViewerName: unit is already owned by " $ OwnershipState.TwitchLogin);
+        `TILOG("Aborting ChooseViewerName: unit is already owned by " $ OwnershipState.TwitchLogin, DetailedLogs);
         // Someone already owns this unit
         return ELR_NoInterrupt;
     }
@@ -230,13 +232,13 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
     // (Non-XCOM soldiers are Resistance members, who should receive names)
     // TODO: when you rescue a Resistance member, do they join your roster?
     if (Unit.GetTeam() == eTeam_XCom && ( Unit.IsSoldier() || Unit.GetMyTemplate().bIsCosmetic )) {
-        `TILOG("Aborting ChooseViewerName: unit is non-raffleable XCOM unit");
+        `TILOG("Aborting ChooseViewerName: unit is non-raffleable XCOM unit", DetailedLogs);
         return ELR_NoInterrupt;
     }
 
     // Don't give names to player Avatars; let player assign them manually
     if (Unit.GetTeam() == eTeam_XCom && Unit.GetMyTemplate().CharacterGroupName == 'AdventPsiWitch') {
-        `TILOG("Aborting ChooseViewerName: unit is non-raffleable XCOM Avatar");
+        `TILOG("Aborting ChooseViewerName: unit is non-raffleable XCOM Avatar", DetailedLogs);
         return ELR_NoInterrupt;
     }
 
@@ -265,10 +267,6 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
 
     Viewer = TwitchConn.Viewers[ViewerIndex];
     AssignOwnership(Viewer.Login, Unit.GetReference().ObjectID);
-
-    if (Unit.IsCivilian() && Unit.IsAlien()) {
-        `TILOG("WARNING: This unit is a Faceless!");
-    }
 
 	return ELR_NoInterrupt;
 }

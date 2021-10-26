@@ -22,6 +22,22 @@ const MaxNarrativeQueueLength = 5;
 
 var private array<TNarrativeQueueItem> PendingNarrativeItems;
 
+// Sound cues for when civilians speak
+var private array<name> CivilianSoundCues_English_Female;
+var private array<name> CivilianSoundCues_English_Male;
+var private array<name> CivilianSoundCues_French_Female;
+var private array<name> CivilianSoundCues_French_Male;
+var private array<name> CivilianSoundCues_German_Female;
+var private array<name> CivilianSoundCues_German_Male;
+var private array<name> CivilianSoundCues_Italian_Female;
+var private array<name> CivilianSoundCues_Italian_Male;
+var private array<name> CivilianSoundCues_Polish_Female;
+var private array<name> CivilianSoundCues_Polish_Male;
+var private array<name> CivilianSoundCues_Spanish_Female;
+var private array<name> CivilianSoundCues_Spanish_Male;
+var private array<name> CivilianSoundCues_Russian_Female;
+var private array<name> CivilianSoundCues_Russian_Male;
+
 // Need multiple narrative moments in order to cycle between them
 var private XComNarrativeMoment NarrativeMomentShort01;
 var private XComNarrativeMoment NarrativeMomentShort02;
@@ -309,8 +325,7 @@ private function string GetUnitPortrait(XComGameState_Unit Unit) {
     local XComGameState_Unit SourceUnit;
 
     if (Unit.IsSoldier()) {
-        `TILOGCLS("Soldier passed to GetUnitPortrait. This should be handled earlier!");
-        return "";
+        return GetSoldierHeadshot(Unit.GetReference().ObjectID);
     }
 
     CharGroupName = Unit.GetMyTemplate().CharacterGroupName;
@@ -382,7 +397,7 @@ private function string GetUnitPortrait(XComGameState_Unit Unit) {
             return "UILibrary_XPACK_StrategyImages.challenge_Sectoid";
         case 'Sectopod':
             return "UILibrary_XPACK_StrategyImages.challenge_Sectopod";
-        case 'Shadowbind': // Shadow of a soldier created by a Spectre; ideally would use soldier's headshot but Spectre's okay for now
+        case 'Shadowbind': // Shadow of a soldier created by a Spectre; TODO ideally would use soldier's headshot but Spectre's okay for now
         case 'Spectre':
             return "UILibrary_XPACK_StrategyImages.challenge_Spectre";
         case 'Viper':
@@ -398,6 +413,168 @@ private function string GetUnitPortrait(XComGameState_Unit Unit) {
     }
 
     return "TwitchIntegration_UI.AlienCowboy_A";
+}
+
+private function AkBaseSoundObject GetCivilianSound(XComGameState_Unit Unit) {
+    local bool bUnitIsFemale;
+    local int LanguageIndex;
+    local array<name> PossibleLanguages;
+    local array<name> PossibleSounds;
+    local name Language, CueName;
+
+    bUnitIsFemale = Unit.kAppearance.iGender == 2;
+
+    // Sound cues exist for English, French, German, Italian, Polish, Russian and Spanish
+    `TILOGCLS("GetCivilianSound: bUnitIsFemale = " $ bUnitIsFemale $ "; Country = " $ Unit.GetCountry());
+
+    // Populate language pool. Some languages are added multiple times to shift their likelihood.
+    switch (Unit.GetCountry()) {
+        case 'Country_Australia':
+        case 'Country_Canada':
+        case 'Country_China':
+        case 'Country_Egypt':
+        case 'Country_India':
+        case 'Country_Indonesia':
+        case 'Country_Iran':
+        case 'Country_Ireland':
+        case 'Country_Israel':
+        case 'Country_Japan':
+        case 'Country_Norway':
+        case 'Country_Pakistan':
+        case 'Country_Scotland':
+        case 'Country_SouthAfrica':
+        case 'Country_SouthKorea':
+        case 'Country_Turkey':
+        case 'Country_UK':
+        case 'Country_USA':
+            PossibleLanguages.AddItem('ENG');
+            break;
+        case 'Country_France':
+            PossibleLanguages.AddItem('FRA');
+            break;
+        case 'Country_Germany':
+            PossibleLanguages.AddItem('GER');
+            break;
+        case 'Country_Italy':
+            PossibleLanguages.AddItem('ITA');
+            break;
+        case 'Country_Argentina':
+        case 'Country_Mexico':
+        case 'Country_Spain':
+            PossibleLanguages.AddItem('SPA');
+            break;
+        case 'Country_Brazil':
+            PossibleLanguages.AddItem('ENG');
+            PossibleLanguages.AddItem('ENG');
+            PossibleLanguages.AddItem('GER');
+            PossibleLanguages.AddItem('GER');
+            PossibleLanguages.AddItem('ITA');
+            PossibleLanguages.AddItem('SPA');
+            PossibleLanguages.AddItem('SPA');
+            PossibleLanguages.AddItem('SPA');
+            PossibleLanguages.AddItem('SPA');
+            break;
+        case 'Country_Greece':
+            PossibleLanguages.AddItem('ENG');
+            PossibleLanguages.AddItem('ENG');
+            PossibleLanguages.AddItem('ENG');
+            PossibleLanguages.AddItem('ENG');
+            PossibleLanguages.AddItem('ENG');
+            PossibleLanguages.AddItem('FRA');
+            PossibleLanguages.AddItem('GER');
+            PossibleLanguages.AddItem('ITA');
+            break;
+        case 'Country_Nigeria':
+            PossibleLanguages.AddItem('ENG');
+            PossibleLanguages.AddItem('ENG');
+            PossibleLanguages.AddItem('ENG');
+            PossibleLanguages.AddItem('ENG');
+            PossibleLanguages.AddItem('ENG');
+            PossibleLanguages.AddItem('FRA');
+            break;
+        case 'Country_Belgium':
+        case 'Country_Netherlands':
+        case 'Country_Sweden':
+            PossibleLanguages.AddItem('ENG');
+            PossibleLanguages.AddItem('FRA');
+            PossibleLanguages.AddItem('FRA');
+            PossibleLanguages.AddItem('GER');
+            PossibleLanguages.AddItem('GER');
+            PossibleLanguages.AddItem('GER');
+            break;
+        case 'Country_Poland':
+            PossibleLanguages.AddItem('ENG');
+            PossibleLanguages.AddItem('GER');
+            PossibleLanguages.AddItem('POL');
+            PossibleLanguages.AddItem('POL');
+            PossibleLanguages.AddItem('POL');
+            PossibleLanguages.AddItem('POL');
+            PossibleLanguages.AddItem('RUS');
+            break;
+        case 'Country_Columbia':
+        case 'Country_Portugal':
+        case 'Country_Venezuela':
+            PossibleLanguages.AddItem('ENG');
+            PossibleLanguages.AddItem('SPA');
+            PossibleLanguages.AddItem('SPA');
+            PossibleLanguages.AddItem('SPA');
+            PossibleLanguages.AddItem('SPA');
+            break;
+        case 'Country_Russia':
+        case 'Country_Ukraine':
+            PossibleLanguages.AddItem('RUS');
+            break;
+        default:
+            PossibleLanguages.AddItem('ENG');
+            break;
+    }
+
+    if (PossibleLanguages.Length == 0) {
+        return none;
+    }
+
+    // We want each unit to speak the same language consistently; use their object ID to do so
+    LanguageIndex = Unit.ObjectID % PossibleLanguages.Length;
+    Language = PossibleLanguages[LanguageIndex];
+
+    `TILOGCLS("Unit " $ Unit.GetFullName() $ " will speak language " $ Language $ " at index " $ LanguageIndex);
+
+    switch (Language) {
+        case 'ENG':
+            PossibleSounds = bUnitIsFemale ? default.CivilianSoundCues_English_Female : default.CivilianSoundCues_English_Male;
+            break;
+        case 'FRA':
+            PossibleSounds = bUnitIsFemale ? default.CivilianSoundCues_French_Female : default.CivilianSoundCues_French_Male;
+            break;
+        case 'GER':
+            PossibleSounds = bUnitIsFemale ? default.CivilianSoundCues_German_Female : default.CivilianSoundCues_German_Male;
+            break;
+        case 'ITA':
+            PossibleSounds = bUnitIsFemale ? default.CivilianSoundCues_Italian_Female : default.CivilianSoundCues_Italian_Male;
+            break;
+        case 'POL':
+            PossibleSounds = bUnitIsFemale ? default.CivilianSoundCues_Polish_Female : default.CivilianSoundCues_Polish_Male;
+            break;
+        case 'RUS':
+            PossibleSounds = bUnitIsFemale ? default.CivilianSoundCues_Russian_Female : default.CivilianSoundCues_Russian_Male;
+            break;
+        case 'SPA':
+            PossibleSounds = bUnitIsFemale ? default.CivilianSoundCues_Spanish_Female : default.CivilianSoundCues_Spanish_Male;
+            break;
+        default:
+            `TILOGCLS("Language " $ Language $ " should not be possible!");
+            return none;
+    }
+
+    if (PossibleSounds.Length == 0) {
+        `TILOGCLS("No sounds are configured for a " $ (bUnitIsFemale ? "female" : "male") $ " civilian with language " $ Language);
+        return None;
+    }
+
+    CueName = PossibleSounds[`SYNC_RAND(PossibleSounds.Length)];
+    `TILOGCLS("Using SoundCue " $ CueName $ " for civilian out of a possible " $ PossibleSounds.Length);
+
+    return SoundCue(DynamicLoadObject(string(CueName), class'SoundCue'));
 }
 
 private function AkBaseSoundObject GetUnitSound(TNarrativeQueueItem NarrativeItem, XComGameState_Unit Unit) {
@@ -676,16 +853,9 @@ private function AkBaseSoundObject GetUnitSound(TNarrativeQueueItem NarrativeIte
     }
 
     // Non-militia civilians don't have a CharacterGroupName
-    if (Unit.IsCivilian()) {
-        // TODO: these screams are going to get old really fast
-        switch (`SYNC_RAND(3)) {
-            case 0:
-                return bUnitIsFemale ? SoundCue'SoundX2CharacterFX.CivilianScaredScreamFemale_Cue' : SoundCue'SoundX2CharacterFX.CivilianScaredScreamMale_Cue';
-            case 1:
-                return bUnitIsFemale ? SoundCue'SoundCivilianFemaleScreams.CivilianFemaleScreamsCue' : SoundCue'SoundCivilianMaleScreams.CivilianMaleScreamsCue';
-            default:
-                return bUnitIsFemale ? SoundCue'SoundCivilianFemaleScreams.CivFemaleScreamsOffscreenCue' : SoundCue'SoundCivilianMaleScreams.CivMaleScreamsOffscreenCue';
-        }
+    if (XGUnit(Unit.GetVisualizer()).IsCivilianChar()) {
+        `TILOGCLS("Unit is civilian, retrieving a civilian sound effect");
+        return GetCivilianSound(Unit);
     }
 
     return none;
@@ -829,4 +999,42 @@ simulated function OnHeadshotReady(StateObjectReference UnitRef) {
 
     `TILOGCLS("Headshot ready, updating display");
     CommLink.AS_SetPortrait(kNarrativeMgr.CurrentOutput.strImage);
+}
+
+defaultproperties
+{
+    CivilianSoundCues_English_Female[0]=""
+    CivilianSoundCues_English_Male.AddItem("MaleVoice1_English_Data.SM01AlienSighting08_Cue")
+    CivilianSoundCues_English_Male.AddItem("MaleVoice1_English_Data.SM01AlienSighting15_Cue")
+    CivilianSoundCues_English_Male.AddItem("MaleVoice2_English_Data.SM02CloseCombatSpecialist05_Cue")
+    CivilianSoundCues_French_Female[0]=""
+    CivilianSoundCues_French_Male.AddItem("MaleVoice1_French_Data.SM01GenericResponse05_Cue")
+    CivilianSoundCues_French_Male.AddItem("MaleVoice1_French_Data.SM01GenericResponse09_Cue")
+    CivilianSoundCues_French_Male.AddItem("MaleVoice1_French_Data.SM01BattleScanner16_Cue")
+    CivilianSoundCues_French_Male.AddItem("MaleVoice5_French_Data.SM05GenericResponse05_Cue")
+    CivilianSoundCues_French_Male.AddItem("MaleVoice5_French_Data.SM05GenericResponse11_Cue")
+    CivilianSoundCues_French_Male.AddItem("MaleVoice5_French_Data.SM05DestroyingCover12_Cue")
+    CivilianSoundCues_French_Male.AddItem("MaleVoice6_French_Data.SM06CivilianRescue19_Cue")
+    CivilianSoundCues_German_Female[0]=""
+    CivilianSoundCues_German_Male.AddItem("MaleVoice1_German_Data.SM01TakingDamage02_Cue")
+    CivilianSoundCues_German_Male.AddItem("MaleVoice1_German_Data.SM01TakingDamage14_Cue")
+    CivilianSoundCues_German_Male.AddItem("MaleVoice2_German_Data.SM02TakingDamage31_Cue")
+    CivilianSoundCues_German_Male.AddItem("MaleVoice3_German_Data.SM03TakingDamage01_Cue")
+    CivilianSoundCues_German_Male.AddItem("MaleVoice3_German_Data.SM03TakingDamage02_Cue")
+    CivilianSoundCues_German_Male.AddItem("MaleVoice3_German_Data.SM03TakingDamage06_Cue")
+    CivilianSoundCues_German_Male.AddItem("MaleVoice5_German_Data.SM05TakingDamage07_Cue")
+    CivilianSoundCues_Italian_Female[0]=""
+    CivilianSoundCues_Italian_Male[0]=""
+    CivilianSoundCues_Polish_Female[0]=""
+    CivilianSoundCues_Polish_Male[0]=""
+    CivilianSoundCues_Spanish_Female[0]=""
+    CivilianSoundCues_Spanish_Male.AddItem("MaleVoice1_Spanish_Data.SM01GenericResponse05_Cue")
+    CivilianSoundCues_Spanish_Male.AddItem("MaleVoice3_Spanish_Data.SM03Moving05_Cue")
+    CivilianSoundCues_Russian_Female[0]=""
+    CivilianSoundCues_Russian_Male.AddItem("MaleVoice2_Russian_Data.SM02TakingDamage31_Cue")
+    CivilianSoundCues_Russian_Male.AddItem("MaleVoice2_Russian_Data.SM02TakingDamage32_Cue")
+    CivilianSoundCues_Russian_Male.AddItem("MaleVoice3_Russian_Data.SM03TakingDamage04_Cue")
+    CivilianSoundCues_Russian_Male.AddItem("MaleVoice4_Russian_Data.SM04TakingDamage14_Cue")
+    CivilianSoundCues_Russian_Male.AddItem("MaleVoice5_Russian_Data.SM05TakingDamage08_Cue")
+    CivilianSoundCues_Russian_Male.AddItem("MaleVoice5_Russian_Data.SM05TakingDamage14_Cue")
 }
