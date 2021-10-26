@@ -407,15 +407,6 @@ private function AkBaseSoundObject GetUnitSound(TNarrativeQueueItem NarrativeIte
     if (NarrativeItem.GameState.MessageBody ~= "bogos binted" || NarrativeItem.GameState.MessageBody ~= "bogos binted?") {
         return LoadTwitchSoundCue('Bogos_Binted_Cue');
     }
-    else if (NarrativeItem.GameState.MessageBody ~= "crum") {
-        return LoadTwitchSoundCue('Crum_Cue');
-    }
-    else if (NarrativeItem.GameState.MessageBody ~= "crumming") {
-        return LoadTwitchSoundCue('Crumming_Cue');
-    }
-    else if (NarrativeItem.GameState.MessageBody ~= "oh my god i'm fucking crumming") {
-        return LoadTwitchSoundCue('OhMyGodImFuckingCrumming_Cue');
-    }
 
     if (Unit.IsSoldier()) {
         // TODO: see XCOMGameState_Unit.kAppearance.nmVoice and XComHumanPawn.SetVoice
