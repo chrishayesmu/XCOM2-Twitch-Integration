@@ -2,7 +2,8 @@
 // soldier's Twitch username, so that ownership can be established for soldiers.
 // Also injects itself on any screen with a UISoldierHeader, in order to show the Twitch
 // username as part of the header.
-class UIScreenListener_TwitchUsernameInjector extends UIScreenListener;
+class UIScreenListener_TwitchUsernameInjector extends UIScreenListener
+    config(TwitchUI);
 
 struct TUnitLabel {
     var bool bAddBackground;
@@ -15,9 +16,35 @@ struct TUnitLabel {
     var UIImage TwitchIcon;
 };
 
+struct TLabelPosition {
+    var int X;
+    var int Y;
+
+    structdefaultproperties
+    {
+        X=0
+        Y=0
+    }
+};
+
 var localized string strButtonLabel;
 var localized string strDescription;
 var localized string strDialogTitle;
+
+// #region Config variables: position of UI elements
+
+var config bool bLogPositionVariables;
+var config TLabelPosition NamePosition_ArmoryScreens;
+var config TLabelPosition NamePosition_CustomizeScreen;
+var config TLabelPosition NamePosition_HeroPromotionScreen;
+var config TLabelPosition NamePosition_SoldierBondAlertScreen_1;
+var config TLabelPosition NamePosition_SoldierBondAlertScreen_2;
+var config TLabelPosition NamePosition_SoldierBondScreen;
+var config TLabelPosition NamePosition_SoldierCapturedScreen;
+var config TLabelPosition NamePosition_SoldierList;
+var config TLabelPosition NamePosition_SquadSelectScreen;
+
+// #endregion
 
 var private UIArmory_MainMenu ArmoryMainMenu;
 var private delegate<OnItemSelectedCallback> OriginalOnItemClicked;
@@ -123,13 +150,14 @@ private function HandleSquadSelectScreen(UISquadSelect Screen, out array<TUnitLa
     List = Screen.m_kSlotList;
 
     `TILOGCLS("In HandleSquadSelectScreen; list has " $ List.GetItemCount() $ " items");
+    `TILOGCLS("Using position variable NamePosition_SquadSelectScreen", bLogPositionVariables);
 
     for (Index = 0; Index < List.GetItemCount(); Index++) {
         ListItem = UISquadSelect_ListItem(List.GetItem(Index));
 
         Label.bAddBackground = true;
-        Label.PosX = 0;
-        Label.PosY = 365;
+        Label.PosX = NamePosition_SquadSelectScreen.X;
+        Label.PosY = NamePosition_SquadSelectScreen.Y;
         Label.UnitObjectID = ListItem.GetUnitRef().ObjectID;
 
         CreateTwitchUI(ListItem, Label, OnTextSizeRealized_SquadSelect);
@@ -188,7 +216,6 @@ private function CheckForSoldierList(UIScreen Screen) {
 
     // TODO: handle type eUIPersonnel_Deceased
     // TODO: support UISoldierBondScreen with UISoldierBondListItem
-    // TODO: sorting list regenerates it and deletes our UI
     if (UIPersonnel(Screen) != none && UIPersonnel(Screen).m_eListType == eUIPersonnel_Soldiers) {
         ParseUIPersonnelScreen(UIPersonnel(Screen), List, ObjectIDs, ParentPanels);
     }
@@ -205,10 +232,13 @@ private function CheckForSoldierList(UIScreen Screen) {
 
     m_kPersonnelListLabels.Length = 0;
 
+    `TILOGCLS("Using position variable NamePosition_SoldierList", bLogPositionVariables);
+
+
     for (Index = 0; Index < ObjectIDs.Length; Index++) {
         Label.bAddBackground = true;
-        Label.PosX = -100;
-        Label.PosY = 13;
+        Label.PosX = NamePosition_SoldierList.X;
+        Label.PosY = NamePosition_SoldierList.Y;
         Label.UnitObjectID = ObjectIDs[Index];
 
         CreateTwitchUI(ParentPanels[Index], Label, OnPersonnelListTextSizeRealized);
@@ -228,17 +258,21 @@ private function bool CheckForUISoldierHeader(UIScreen Screen, out array<TUnitLa
 
     // Need to check UIArmory_PromotionHero first because it extends UIArmory_Promotion
     if (UIArmory_PromotionHero(Screen) != none) {
+        `TILOGCLS("Using position variable NamePosition_HeroPromotionScreen", bLogPositionVariables);
+
         Label.bAddBackground = true;
-        Label.PosX = 282;
-        Label.PosY = 31;
+        Label.PosX = NamePosition_HeroPromotionScreen.X;
+        Label.PosY = NamePosition_HeroPromotionScreen.Y;
         Label.UnitObjectID = UIArmory(Screen).UnitReference.ObjectID;
 
         Labels.AddItem(Label);
     }
     else if (UISoldierBondScreen(Screen) != none) {
+        `TILOGCLS("Using position variable NamePosition_SoldierBondScreen", bLogPositionVariables);
+
         Label.bAddBackground = true;
-        Label.PosX = 450;
-        Label.PosY = 74;
+        Label.PosX = NamePosition_SoldierBondScreen.X;
+        Label.PosY = NamePosition_SoldierBondScreen.Y;
         Label.UnitObjectID = UISoldierBondScreen(Screen).UnitRef.ObjectID;
 
         Labels.AddItem(Label);
@@ -247,46 +281,52 @@ private function bool CheckForUISoldierHeader(UIScreen Screen, out array<TUnitLa
           || UIArmory_MainMenu(Screen) != none
           || UIArmory_Promotion(Screen) != none)
     {
+        `TILOGCLS("Using position variable NamePosition_ArmoryScreens", bLogPositionVariables);
+
         Label.bAddBackground = true;
-        Label.PosX = 1251;
-        Label.PosY = 82;
+        Label.PosX = NamePosition_ArmoryScreens.X;
+        Label.PosY = NamePosition_ArmoryScreens.Y;
         Label.UnitObjectID = UIArmory(Screen).UnitReference.ObjectID;
 
         Labels.AddItem(Label);
     }
     else if (UICustomize(Screen) != none) {
+        `TILOGCLS("Using position variable NamePosition_CustomizeScreen", bLogPositionVariables);
+
         Label.bAddBackground = true;
-        Label.PosX = 105;
-        Label.PosY = 82;
+        Label.PosX = NamePosition_CustomizeScreen.X;
+        Label.PosY = NamePosition_CustomizeScreen.Y;
         Label.UnitObjectID = UICustomize(Screen).UnitRef.ObjectID;
 
         Labels.AddItem(Label);
     }
     else if (UISoldierCaptured(Screen) != none) {
+        `TILOGCLS("Using position variable NamePosition_SoldierCapturedScreen", bLogPositionVariables);
+
         Label.bAddBackground = false;
-        Label.PosX = 1015;
-        Label.PosY = 390;
+        Label.PosX = NamePosition_SoldierCapturedScreen.X;
+        Label.PosY = NamePosition_SoldierCapturedScreen.Y;
         Label.UnitObjectID = UISoldierCaptured(Screen).TargetRef.ObjectID;
 
         Labels.AddItem(Label);
     }
     else if (UISoldierBondAlert(Screen) != none) {
+        `TILOGCLS("Using position variables NamePosition_SoldierBondAlertScreen_1 and NamePosition_SoldierBondAlertScreen_2", bLogPositionVariables);
+
         Label.bAddBackground = false;
-        Label.PosX = 245;
-        Label.PosY = 390;
+        Label.PosX = NamePosition_SoldierBondAlertScreen_1.X;
+        Label.PosY = NamePosition_SoldierBondAlertScreen_1.Y;
         Label.UnitObjectID = UISoldierBondAlert(Screen).UnitRef1.ObjectID;
 
         Labels.AddItem(Label);
 
-        Label.PosX = 245;
-        Label.PosY = 460;
+        Label.PosX = NamePosition_SoldierBondAlertScreen_2.X;
+        Label.PosY = NamePosition_SoldierBondAlertScreen_2.Y;
         Label.UnitObjectID = UISoldierBondAlert(Screen).UnitRef2.ObjectID;
 
         Labels.AddItem(Label);
     }
     else if (UISquadSelect(Screen) != none) {
-        `TILOGCLS("UISquadSelect detected");
-
         // This one needs to create its own UI, so handle it a little differently
         HandleSquadSelectScreen(UISquadSelect(Screen), Labels);
         return true;

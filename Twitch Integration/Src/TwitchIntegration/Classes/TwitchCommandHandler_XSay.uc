@@ -1004,37 +1004,37 @@ simulated function OnHeadshotReady(StateObjectReference UnitRef) {
 defaultproperties
 {
     CivilianSoundCues_English_Female[0]=""
-    CivilianSoundCues_English_Male.AddItem("MaleVoice1_English_Data.SM01AlienSighting08_Cue")
-    CivilianSoundCues_English_Male.AddItem("MaleVoice1_English_Data.SM01AlienSighting15_Cue")
-    CivilianSoundCues_English_Male.AddItem("MaleVoice2_English_Data.SM02CloseCombatSpecialist05_Cue")
+    CivilianSoundCues_English_Male.Add("MaleVoice1_English_Data.SM01AlienSighting08_Cue")
+    CivilianSoundCues_English_Male.Add("MaleVoice1_English_Data.SM01AlienSighting15_Cue")
+    CivilianSoundCues_English_Male.Add("MaleVoice2_English_Data.SM02CloseCombatSpecialist05_Cue")
     CivilianSoundCues_French_Female[0]=""
-    CivilianSoundCues_French_Male.AddItem("MaleVoice1_French_Data.SM01GenericResponse05_Cue")
-    CivilianSoundCues_French_Male.AddItem("MaleVoice1_French_Data.SM01GenericResponse09_Cue")
-    CivilianSoundCues_French_Male.AddItem("MaleVoice1_French_Data.SM01BattleScanner16_Cue")
-    CivilianSoundCues_French_Male.AddItem("MaleVoice5_French_Data.SM05GenericResponse05_Cue")
-    CivilianSoundCues_French_Male.AddItem("MaleVoice5_French_Data.SM05GenericResponse11_Cue")
-    CivilianSoundCues_French_Male.AddItem("MaleVoice5_French_Data.SM05DestroyingCover12_Cue")
-    CivilianSoundCues_French_Male.AddItem("MaleVoice6_French_Data.SM06CivilianRescue19_Cue")
+    CivilianSoundCues_French_Male.Add("MaleVoice1_French_Data.SM01GenericResponse05_Cue")
+    CivilianSoundCues_French_Male.Add("MaleVoice1_French_Data.SM01GenericResponse09_Cue")
+    CivilianSoundCues_French_Male.Add("MaleVoice1_French_Data.SM01BattleScanner16_Cue")
+    CivilianSoundCues_French_Male.Add("MaleVoice5_French_Data.SM05GenericResponse05_Cue")
+    CivilianSoundCues_French_Male.Add("MaleVoice5_French_Data.SM05GenericResponse11_Cue")
+    CivilianSoundCues_French_Male.Add("MaleVoice5_French_Data.SM05DestroyingCover12_Cue")
+    CivilianSoundCues_French_Male.Add("MaleVoice6_French_Data.SM06CivilianRescue19_Cue")
     CivilianSoundCues_German_Female[0]=""
-    CivilianSoundCues_German_Male.AddItem("MaleVoice1_German_Data.SM01TakingDamage02_Cue")
-    CivilianSoundCues_German_Male.AddItem("MaleVoice1_German_Data.SM01TakingDamage14_Cue")
-    CivilianSoundCues_German_Male.AddItem("MaleVoice2_German_Data.SM02TakingDamage31_Cue")
-    CivilianSoundCues_German_Male.AddItem("MaleVoice3_German_Data.SM03TakingDamage01_Cue")
-    CivilianSoundCues_German_Male.AddItem("MaleVoice3_German_Data.SM03TakingDamage02_Cue")
-    CivilianSoundCues_German_Male.AddItem("MaleVoice3_German_Data.SM03TakingDamage06_Cue")
-    CivilianSoundCues_German_Male.AddItem("MaleVoice5_German_Data.SM05TakingDamage07_Cue")
+    CivilianSoundCues_German_Male.Add("MaleVoice1_German_Data.SM01TakingDamage02_Cue")
+    CivilianSoundCues_German_Male.Add("MaleVoice1_German_Data.SM01TakingDamage14_Cue")
+    CivilianSoundCues_German_Male.Add("MaleVoice2_German_Data.SM02TakingDamage31_Cue")
+    CivilianSoundCues_German_Male.Add("MaleVoice3_German_Data.SM03TakingDamage01_Cue")
+    CivilianSoundCues_German_Male.Add("MaleVoice3_German_Data.SM03TakingDamage02_Cue")
+    CivilianSoundCues_German_Male.Add("MaleVoice3_German_Data.SM03TakingDamage06_Cue")
+    CivilianSoundCues_German_Male.Add("MaleVoice5_German_Data.SM05TakingDamage07_Cue")
     CivilianSoundCues_Italian_Female[0]=""
     CivilianSoundCues_Italian_Male[0]=""
     CivilianSoundCues_Polish_Female[0]=""
     CivilianSoundCues_Polish_Male[0]=""
     CivilianSoundCues_Spanish_Female[0]=""
-    CivilianSoundCues_Spanish_Male.AddItem("MaleVoice1_Spanish_Data.SM01GenericResponse05_Cue")
-    CivilianSoundCues_Spanish_Male.AddItem("MaleVoice3_Spanish_Data.SM03Moving05_Cue")
+    CivilianSoundCues_Spanish_Male.Add("MaleVoice1_Spanish_Data.SM01GenericResponse05_Cue")
+    CivilianSoundCues_Spanish_Male.Add("MaleVoice3_Spanish_Data.SM03Moving05_Cue")
     CivilianSoundCues_Russian_Female[0]=""
-    CivilianSoundCues_Russian_Male.AddItem("MaleVoice2_Russian_Data.SM02TakingDamage31_Cue")
-    CivilianSoundCues_Russian_Male.AddItem("MaleVoice2_Russian_Data.SM02TakingDamage32_Cue")
-    CivilianSoundCues_Russian_Male.AddItem("MaleVoice3_Russian_Data.SM03TakingDamage04_Cue")
-    CivilianSoundCues_Russian_Male.AddItem("MaleVoice4_Russian_Data.SM04TakingDamage14_Cue")
-    CivilianSoundCues_Russian_Male.AddItem("MaleVoice5_Russian_Data.SM05TakingDamage08_Cue")
-    CivilianSoundCues_Russian_Male.AddItem("MaleVoice5_Russian_Data.SM05TakingDamage14_Cue")
+    CivilianSoundCues_Russian_Male.Add("MaleVoice2_Russian_Data.SM02TakingDamage31_Cue")
+    CivilianSoundCues_Russian_Male.Add("MaleVoice2_Russian_Data.SM02TakingDamage32_Cue")
+    CivilianSoundCues_Russian_Male.Add("MaleVoice3_Russian_Data.SM03TakingDamage04_Cue")
+    CivilianSoundCues_Russian_Male.Add("MaleVoice4_Russian_Data.SM04TakingDamage14_Cue")
+    CivilianSoundCues_Russian_Male.Add("MaleVoice5_Russian_Data.SM05TakingDamage08_Cue")
+    CivilianSoundCues_Russian_Male.Add("MaleVoice5_Russian_Data.SM05TakingDamage14_Cue")
 }
