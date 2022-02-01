@@ -302,7 +302,6 @@ private function EnqueueCommLink(TNarrativeQueueItem NarrativeItem) {
     PendingNarrativeItems.AddItem(NarrativeItem);
 
     // Add our message, but don't remove it from queue; that's the job of OverrideCommLinkFields
-    `TILOGCLS("EnqueueCommLink: sending NarrativeMoment with sound cue " $ NarrativeItem.NarrativeMoment.arrConversations[0]);
     `PRESBASE.UINarrative(NarrativeItem.NarrativeMoment, /* kFocusActor */ , OnNarrativeCompleteCallback);
 
     `TISTATEMGR.SetTimer(0.1, /* inbLoop */ true, nameof(OverrideCommLinkFields), self);
@@ -331,12 +330,10 @@ private function string GetUnitPortrait(XComGameState_Unit Unit) {
     CharGroupName = Unit.GetMyTemplate().CharacterGroupName;
 
     if (CharGroupName == 'PsiZombie' || CharGroupName == 'SpectralZombie') {
-        `TILOGCLS("Looking for source unit for char group " $ CharGroupName);
         SourceUnit = class'X2TwitchUtils'.static.FindSourceUnitFromSpawnEffect(Unit);
 
         if (SourceUnit != none) {
             CharGroupName = SourceUnit.GetMyTemplate().CharacterGroupName;
-            `TILOGCLS("Found source unit with group " $ CharGroupName);
         }
     }
 
@@ -537,7 +534,7 @@ private function AkBaseSoundObject GetCivilianSound(XComGameState_Unit Unit) {
     LanguageIndex = Unit.ObjectID % PossibleLanguages.Length;
     Language = PossibleLanguages[LanguageIndex];
 
-    `TILOGCLS("Unit " $ Unit.GetFullName() $ " will speak language " $ Language $ " at index " $ LanguageIndex);
+    //`TILOGCLS("Unit " $ Unit.GetFullName() $ " will speak language " $ Language $ " at index " $ LanguageIndex);
 
     switch (Language) {
         case 'ENG':
@@ -572,7 +569,7 @@ private function AkBaseSoundObject GetCivilianSound(XComGameState_Unit Unit) {
     }
 
     CueName = PossibleSounds[`SYNC_RAND(PossibleSounds.Length)];
-    `TILOGCLS("Using SoundCue " $ CueName $ " for civilian out of a possible " $ PossibleSounds.Length);
+    //`TILOGCLS("Using SoundCue " $ CueName $ " for civilian out of a possible " $ PossibleSounds.Length);
 
     return SoundCue(DynamicLoadObject(string(CueName), class'SoundCue'));
 }
@@ -580,10 +577,6 @@ private function AkBaseSoundObject GetCivilianSound(XComGameState_Unit Unit) {
 private function AkBaseSoundObject GetUnitSound(TNarrativeQueueItem NarrativeItem, XComGameState_Unit Unit) {
     local bool bUnitIsFemale;
     local Name CharGroupName;
-
-    if (NarrativeItem.GameState.MessageBody ~= "bogos binted" || NarrativeItem.GameState.MessageBody ~= "bogos binted?") {
-        return LoadTwitchSoundCue('Bogos_Binted_Cue');
-    }
 
     if (Unit.IsSoldier()) {
         // TODO: see XCOMGameState_Unit.kAppearance.nmVoice and XComHumanPawn.SetVoice
@@ -854,7 +847,6 @@ private function AkBaseSoundObject GetUnitSound(TNarrativeQueueItem NarrativeIte
 
     // Non-militia civilians don't have a CharacterGroupName
     if (XGUnit(Unit.GetVisualizer()).IsCivilianChar()) {
-        `TILOGCLS("Unit is civilian, retrieving a civilian sound effect");
         return GetCivilianSound(Unit);
     }
 
@@ -892,7 +884,6 @@ private function OverrideCommLinkFields() {
     local XComGameState_Unit Unit;
 
     if (PendingNarrativeItems.Length == 0) {
-        `TILOGCLS("No XSays are pending display; clearing timer");
         `TISTATEMGR.ClearTimer(nameof(OverrideCommLinkFields), self);
 
         return;
@@ -921,7 +912,6 @@ private function OverrideCommLinkFields() {
 
     // TODO: if on tac layer, we can still try to load a headshot if one exists
     if (Unit.IsSoldier() && `TI_IS_STRAT_GAME) {
-        `TILOGCLS("Requesting soldier headshot");
 		`HQPRES.GetPhotoboothAutoGen().AddHeadShotRequest(Unit.GetReference(), 512, 512, OnHeadshotReady, , , /* bHighPriority */ true);
 		`HQPRES.GetPhotoboothAutoGen().RequestPhotos();
     }
@@ -952,21 +942,17 @@ private function OverrideCommLinkFields() {
 function XComNarrativeMoment PickNarrativeMoment(string Message) {
     local XComNarrativeMoment NarrativeMoment;
 
+    // Since we can't dynamically change the duration of a NarrativeMoment, we have 3 different lengths built into the mod.
+    // The narrative manager won't let us queue the same NarrativeMoment twice in a row, so we have to alternate.
     if (Len(Message) < 50) {
-        `TILOGCLS("Using short narrative moment");
-
         NarrativeMoment = NextNarrativeMomentShort;
         NextNarrativeMomentShort = NextNarrativeMomentShort == NarrativeMomentShort01 ? NarrativeMomentShort02 : NarrativeMomentShort01;
     }
     else if (Len(Message) < 250) {
-        `TILOGCLS("Using medium narrative moment");
-
         NarrativeMoment = NextNarrativeMomentMedium;
         NextNarrativeMomentMedium = NextNarrativeMomentMedium == NarrativeMomentMedium01 ? NarrativeMomentMedium02 : NarrativeMomentMedium01;
     }
     else {
-        `TILOGCLS("Using long narrative moment");
-
         NarrativeMoment = NextNarrativeMomentLong;
         NextNarrativeMomentLong = NextNarrativeMomentLong == NarrativeMomentLong01 ? NarrativeMomentLong02 : NarrativeMomentLong01;
     }
@@ -993,11 +979,10 @@ simulated function OnHeadshotReady(StateObjectReference UnitRef) {
 	local UINarrativeMgr kNarrativeMgr;
 
     CommLink = `PRESBASE.GetUIComm();
-	kNarrativeMgr = CommLink.Movie.Pres.m_kNarrativeUIMgr;
 
+	kNarrativeMgr = CommLink.Movie.Pres.m_kNarrativeUIMgr;
     kNarrativeMgr.CurrentOutput.strImage = GetSoldierHeadshot(UnitRef.ObjectID);
 
-    `TILOGCLS("Headshot ready, updating display");
     CommLink.AS_SetPortrait(kNarrativeMgr.CurrentOutput.strImage);
 }
 
