@@ -17,6 +17,7 @@ struct ChatMessage {
 };
 
 var private int XPos;
+var private bool bUnreadMessages;
 
 var private UIButton m_ClearButton;
 var private UIButton m_ExpandCollapseButton;
@@ -51,7 +52,7 @@ function UIChatLog InitChatLog(int InitX, int InitY, int InitWidth, int InitHeig
 	`XEVENTMGR.RegisterForEvent(ThisObj, 'TwitchChatMessageDeleted', OnMessageDeleted, ELD_Immediate);
 	`XEVENTMGR.RegisterForEvent(ThisObj, 'TwitchModConfigSaved', OnModConfigChanged, ELD_Immediate);
 
-    Collapse();
+    Expand();
 
     if (!`TI_CFG(bShowChatLog)) {
         Hide();
@@ -81,10 +82,14 @@ function AddMessage(string Sender, string Body, optional XComGameState_Unit Unit
 
     // TODO: don't expand if it was manually collapsed; make expand button flash instead
     UpdateUI();
-    Expand();
-    ClearTimer('Collapse');
+
+    if (IsCollapsed())
+    {
+        bUnreadMessages = true;
+    }
 
     if (TimeToShowOnMessageReceived > 0) {
+        ClearTimer('Collapse');
         SetTimer(TimeToShowOnMessageReceived, /* inBLoop */ false, 'Collapse');
     }
 }
@@ -108,6 +113,7 @@ function Collapse() {
     XPos = X;
 
     // animate off screen
+    // TODO: make the button flash/pulse
     AnimateX(-m_TextContainer.width);
     m_ExpandCollapseButton.SetText("&gt;");
 }
@@ -116,6 +122,7 @@ function Expand() {
     // animate back on screen
     AnimateX(XPos);
     m_ExpandCollapseButton.SetText("&lt;");
+    bUnreadMessages = false;
 }
 
 function bool IsCollapsed() {
@@ -245,5 +252,13 @@ private function UpdateUI() {
     FullChat = FullChat $ "\n\n";
 
     m_TextContainer.SetHTMLText(FullChat);
+
+    // TODO don't scroll if the player is using the scroll bar
+    m_TextContainer.Scrollbar.SetThumbAtPercent(0.9);
+    SetTimer(0.1, /* inBLoop */ false, 'ScrollToBottom');
+}
+
+private function ScrollToBottom()
+{
     m_TextContainer.Scrollbar.SetThumbAtPercent(1.0);
 }
