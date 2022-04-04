@@ -2,6 +2,8 @@ class UIChatLog extends UIPanel
     config(TwitchChatCommands)
     dependson(TwitchChatTcpLink, TwitchIntegrationConfig);
 
+const MaxMessagesStored = 100;
+
 var localized string ClearButtonLabel;
 
 var config float TimeToShowOnMessageReceived;
@@ -77,8 +79,12 @@ function AddMessage(string Sender, string Body, optional XComGameState_Unit Unit
 
     `TILOGCLS("Adding message to chat log. Unit is none: " $ (Unit == none) $ "; " $ `SHOWVAR(Message.bUnitWasDead) $ "; " $ `SHOWVAR(Message.UnitTeam));
 
-    // TODO: probably a good idea to have a max chat history size at some point?
     Messages.AddItem(Message);
+
+    while (Messages.Length > MaxMessagesStored)
+    {
+        Messages.Remove(0, 1);
+    }
 
     // TODO: don't expand if it was manually collapsed; make expand button flash instead
     UpdateUI();
@@ -254,7 +260,7 @@ private function UpdateUI() {
     m_TextContainer.SetHTMLText(FullChat);
 
     // TODO don't scroll if the player is using the scroll bar
-    m_TextContainer.Scrollbar.SetThumbAtPercent(0.9);
+    m_TextContainer.Scrollbar.SetThumbAtPercent(0.99);
     SetTimer(0.1, /* inBLoop */ false, 'ScrollToBottom');
 }
 
