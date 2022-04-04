@@ -207,15 +207,17 @@ protected function BuildVisualization_TacLayer(XComGameState VisualizeGameState)
 	ActionMetadata.VisualizeActor = History.GetVisualizer(Unit.ObjectID);
 
     // Don't do the flyover if we can't see the unit, regardless of settings
+    // TODO: turn off comm link if not in LOS, or make it not show unit type
     if (bShowFlyover && bUnitIsVisibleToSquad) {
         SanitizedMessageBody = class'TextUtilities_Twitch'.static.SanitizeText(TruncateMessage(XSayGameState.MessageBody, MaxFlyoverLength));
 
-        // TODO: for ADVENT and Lost a generic talking sound cue would be cool
 	    SoundAndFlyOver = X2Action_PlaySoundAndFlyOver(class'X2Action_PlaySoundAndFlyOver'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext(), false, ActionMetadata.LastActionAdded));
 	    SoundAndFlyOver.SetSoundAndFlyOverParameters(none, SanitizedMessageBody, '', MessageColor, /* _FlyOverIcon */,
                                                      CalcLookAtDuration(SanitizedMessageBody), /* _BlockUntilFinished */, /* _VisibleTeam */, class'UIWorldMessageMgr'.const.FXS_MSG_BEHAVIOR_FLOAT);
     }
-    else {
+
+    if (SoundAndFlyOver == none || SoundAndFlyOver.LookAtDuration <= 0)
+    {
         // If we aren't doing a flyover, we need to prevent the tactical controller from automatically panning back to the selected unit.
         // The only way to do that is to make it think the player selected a different unit while visualizing.
         LocalController = XComTacticalController(class'WorldInfo'.static.GetWorldInfo().GetALocalPlayerController());
