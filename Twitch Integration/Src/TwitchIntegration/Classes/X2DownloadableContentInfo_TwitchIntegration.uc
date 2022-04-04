@@ -253,6 +253,22 @@ exec function TwitchReassignUnitUnderMouse(optional string ViewerLogin) {
     }
 }
 
+exec function TwitchUnassignViewer(string ViewerLogin)
+{
+	local XComGameState_TwitchObjectOwnership OwnershipState;
+
+    OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForUser(ViewerLogin);
+
+    if (OwnershipState == none) {
+        class'Helpers'.static.OutputMsg("Viewer " $ ViewerLogin $ " does not own any units");
+        return;
+    }
+
+    class'Helpers'.static.OutputMsg("Deleting unit ownership for viewer " $ ViewerLogin);
+    class'XComGameState_TwitchObjectOwnership'.static.DeleteOwnership(OwnershipState);
+
+}
+
 /// <summary>
 /// Starts a new poll with randomly-selected events from the given poll type.
 /// </summary>
