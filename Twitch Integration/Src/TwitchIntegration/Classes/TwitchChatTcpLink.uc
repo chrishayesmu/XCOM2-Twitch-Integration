@@ -188,7 +188,7 @@ function Connect() {
 }
 
 event Resolved(IpAddr Addr) {
-    `TILOGCLS("" $ TargetHost $ " resolved to " $ IpAddrToString(Addr), LogTraffic);
+    `TILOGCLS(TargetHost $ " resolved to " $ IpAddrToString(Addr), LogTraffic);
     `TILOGCLS("Bound to port: " $ BindPort(), LogTraffic);
 
     Addr.Port = TargetPort;
@@ -350,18 +350,18 @@ private function TwitchMessage ParseMessage(string Message, out TwitchViewer Vie
     if (MessageStruct.MessageType == eTwitchMessageType_Irrelevant) {
         // Stop processing here; if it's irrelevant then the message isn't from a real person and we don't
         // want to upsert a system user
-        `TILOGCLS("Final message struct (irrelevant): " $ MessageToString(MessageStruct));
+        `TILOGCLS("Final message struct (irrelevant): " $ MessageToString(MessageStruct), LogTraffic);
         return MessageStruct;
     }
 
     if (MessageStruct.MessageType == eTwitchMessageType_ClearMessage) {
         // Stop processing these because they don't have proper user info for UpsertViewer
-        `TILOGCLS("Final message struct (ClearMessage): " $ MessageToString(MessageStruct));
+        `TILOGCLS("Final message struct (ClearMessage): " $ MessageToString(MessageStruct), LogTraffic);
         return MessageStruct;
     }
 
     if (class'TwitchStateManager'.default.BlacklistedViewerNames.Find(Sender) != INDEX_NONE) {
-        `TILOGCLS("Not upserting viewer " $ Sender $ " because they're blacklisted");
+        `TILOGCLS("Not upserting viewer " $ Sender $ " because they're blacklisted", LogTraffic);
         return MessageStruct;
     }
 
@@ -373,7 +373,7 @@ private function TwitchMessage ParseMessage(string Message, out TwitchViewer Vie
         Index = Viewers.Find('Login', Viewer.Login);
 
         if (Index != INDEX_NONE) {
-            `TILOGCLS("Removing viewer " $ Viewer.Login $ " due to PART message");
+            `TILOGCLS("Removing viewer " $ Viewer.Login $ " due to PART message", LogTraffic);
             Viewers.Remove(Index, 1);
         }
     }
@@ -383,7 +383,7 @@ private function TwitchMessage ParseMessage(string Message, out TwitchViewer Vie
     	MessageStruct.Body = Message;
 	}
 
-    `TILOGCLS("Final message struct: " $ MessageToString(MessageStruct));
+    `TILOGCLS("Final message struct: " $ MessageToString(MessageStruct), LogTraffic);
 
 	return MessageStruct;
 }
@@ -455,7 +455,7 @@ private function ProcessMessageQueue() {
     }
 
     // TODO: implement rate limiting
-    `TILOGCLS("Processing message queue. There are currently " $ MessageQueue.Length $ " messages pending");
+    `TILOGCLS("Processing message queue. There are currently " $ MessageQueue.Length $ " messages pending", LogTraffic);
 
     for (Index = 0; Index < MessageQueue.Length; Index++) {
         Message = MessageQueue[Index];
@@ -479,7 +479,7 @@ private function ProcessMessageQueue() {
         Index--;
     }
 
-    `TILOGCLS("Sent " $ NumChatMessagesSent $ " chat messages and " $ NumWhispersSent $ " whispers");
+    `TILOGCLS("Sent " $ NumChatMessagesSent $ " chat messages and " $ NumWhispersSent $ " whispers", LogTraffic);
 }
 
 private function PurgeStaleViewers() {
@@ -561,7 +561,7 @@ private function TwitchViewer UpsertViewer(string SenderField, out array<Message
         Viewers[Index] = Viewer;
     }
 
-    `TILOGCLS("Upserted viewer (previous index " $ Index $ "). " $ ViewerToString(Viewer));
+    `TILOGCLS("Upserted viewer (previous index " $ Index $ "). " $ ViewerToString(Viewer), LogTraffic);
 
     return Viewer;
 }
