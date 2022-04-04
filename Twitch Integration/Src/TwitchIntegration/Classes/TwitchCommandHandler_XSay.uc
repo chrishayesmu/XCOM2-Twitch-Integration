@@ -1,6 +1,12 @@
 class TwitchCommandHandler_XSay extends TwitchCommandHandler
     dependson(TwitchStateManager);
 
+struct TNarrativeQueueItem {
+    var XComGameState_TwitchXSay GameState;
+    var XComNarrativeMoment NarrativeMoment;
+    var bool bUnitWasDead;
+};
+
 var config bool bRequireUnitInLOS;
 var config bool bShowToast;
 var config bool bShowFlyover;
@@ -10,15 +16,11 @@ const LookAtDurationMin = 1.5;
 const LookAtDurationMax = 2.75; // after this point the text has faded anyway
 const LookAtDurationPerChar = 0.02; // 1 second per 50 characters
 
-struct TNarrativeQueueItem {
-    var XComGameState_TwitchXSay GameState;
-    var XComNarrativeMoment NarrativeMoment;
-    var bool bUnitWasDead;
-};
-
 const MaxFlyoverLength = 45;
 const MaxToastLength = 40;
 const MaxNarrativeQueueLength = 5;
+
+const MaxQueuedCommLinkNarratives = 1;
 
 var private array<TNarrativeQueueItem> PendingNarrativeItems;
 
@@ -49,6 +51,8 @@ var private XComNarrativeMoment NarrativeMomentLong02;
 var private XComNarrativeMoment NextNarrativeMomentShort;
 var private XComNarrativeMoment NextNarrativeMomentMedium;
 var private XComNarrativeMoment NextNarrativeMomentLong;
+
+var private int PendingCommLinkNarratives;
 
 function Initialize(TwitchStateManager StateMgr) {
     local Object ThisObj;
@@ -300,6 +304,12 @@ private function string TruncateMessage(string Message, int MaxLength) {
 }
 
 private function EnqueueCommLink(TNarrativeQueueItem NarrativeItem) {
+    if (PendingCommLinkNarratives >= MaxQueuedCommLinkNarratives)
+    {
+        return;
+    }
+
+    PendingCommLinkNarratives++;
     NarrativeItem.NarrativeMoment = PickNarrativeMoment(NarrativeItem.GameState.MessageBody);
     PendingNarrativeItems.AddItem(NarrativeItem);
 
@@ -862,7 +872,7 @@ private function SoundCue LoadTwitchSoundCue(Name CueName) {
 private function OnNarrativeCompleteCallback() {
 	local UINarrativeMgr kNarrativeMgr;
 
-    `TILOGCLS("Narrative is complete");
+    PendingCommLinkNarratives--;
 
     // Normally when a conversation completes, if subtitles are enabled, the narrative manager waits to
     // end the conversation so the subtitles can last a little longer. This doesn't work well at all with
