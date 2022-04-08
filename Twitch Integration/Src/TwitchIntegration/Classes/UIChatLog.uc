@@ -1,12 +1,15 @@
 class UIChatLog extends UIPanel
     config(TwitchChatCommands)
-    dependson(TwitchChatTcpLink, TwitchIntegrationConfig);
+    dependson(TwitchChatTcpLink, TwitchIntegrationConfig, UIScreenListener_TwitchUsernameInjector);
 
 const MaxMessagesStored = 100;
 
 var localized string ClearButtonLabel;
 
 var config float TimeToShowOnMessageReceived;
+var config(TwitchUI) TLabelPosition Position;
+var config(TwitchUI) TLabelPosition Size;
+var config(TwitchUI) float Opacity;
 
 struct ChatMessage {
     var string Sender;
@@ -27,27 +30,27 @@ var private UITextContainer m_TextContainer;
 
 var private array<ChatMessage> Messages;
 
-function UIChatLog InitChatLog(int InitX, int InitY, int InitWidth, int InitHeight) {
+function UIChatLog InitChatLog() {
     local Object ThisObj;
     InitPanel();
-    SetPosition(InitX, InitY);
-    SetSize(InitWidth, InitHeight);
+    SetPosition(Position.X, Position.Y);
+    SetSize(Size.X, Size.Y);
 
     m_TextContainer = Spawn(class'UITextContainer', self);
-    m_TextContainer.InitTextContainer('', "", InitX, InitY, InitWidth, InitHeight, /* addBG */ true, class'UIUtilities_Controls'.const.MC_X2BackgroundSimple);
-    m_TextContainer.SetAlpha(0.8);
+    m_TextContainer.InitTextContainer('', "", Position.X, Position.Y, Size.X, Size.Y, /* addBG */ true, class'UIUtilities_Controls'.const.MC_X2BackgroundSimple);
+    m_TextContainer.SetAlpha(Opacity);
 
     m_ClearButton = Spawn(class'UIButton', self);
     m_ClearButton.InitButton(/* InitName */, ClearButtonLabel, OnClearButtonClicked);
-    m_ClearButton.SetAlpha(0.8);
-    m_ClearButton.SetPosition(InitX, m_TextContainer.Y + m_TextContainer.Height + 8);
+    m_ClearButton.SetAlpha(Opacity);
+    m_ClearButton.SetPosition(Position.X, m_TextContainer.Y + m_TextContainer.Height + 8);
 
     // TODO: get an actual icon on this button somehow
     m_ExpandCollapseButton = Spawn(class'UIButton', self);
     m_ExpandCollapseButton.ResizeToText = false;
     m_ExpandCollapseButton.InitButton(/* InitName */, "&lt;", OnExpandCollapseButtonClicked);
-    m_ExpandCollapseButton.SetAlpha(0.8);
-    m_ExpandCollapseButton.SetPosition(InitX + m_TextContainer.Width + 3, m_TextContainer.Y);
+    m_ExpandCollapseButton.SetAlpha(Opacity);
+    m_ExpandCollapseButton.SetPosition(Position.X + m_TextContainer.Width + 3, m_TextContainer.Y);
     m_ExpandCollapseButton.SetSize(28, 28);
 
     ThisObj = self;

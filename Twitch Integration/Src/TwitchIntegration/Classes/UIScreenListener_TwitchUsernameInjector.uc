@@ -16,15 +16,10 @@ struct TUnitLabel {
     var UIImage TwitchIcon;
 };
 
+// TODO move this struct somewhere more central
 struct TLabelPosition {
     var int X;
     var int Y;
-
-    structdefaultproperties
-    {
-        X=0
-        Y=0
-    }
 };
 
 var localized string strButtonLabel;

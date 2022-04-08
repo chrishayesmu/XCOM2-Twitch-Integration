@@ -1,4 +1,6 @@
-class TwitchUnitFlagManager extends Actor;
+class TwitchUnitFlagManager extends Actor
+    config(TwitchUI)
+    dependson(UIScreenListener_TwitchUsernameInjector);
 
 struct TwitchFlag {
     var int AttachedObjectID;
@@ -7,12 +9,12 @@ struct TwitchFlag {
     var UIText TwitchName;
 };
 
+var config TLabelPosition FriendlyNamePosition;
+var config TLabelPosition UnalliedNamePosition;
+var config float BackgroundOpacity;
+
 var private array<TwitchFlag> m_kTwitchFlags;
 
-const FRIENDLY_FLAG_POS_X = 80;
-const FRIENDLY_FLAG_POS_Y = -15;
-const FLAG_POS_X = 30;
-const FLAG_POS_Y = -24;
 const ICON_HEIGHT = 28;
 const ICON_WIDTH = 28;
 const TEXT_HEIGHT = 48;
@@ -96,7 +98,7 @@ private function TwitchFlag CreateTwitchFlag(UIUnitFlag UnitFlag, XComGameState_
 
     // Random width; it'll be changed later when the viewer's name is set and realized
     TFlag.BGBox = Spawn(class'UIBGBox', UnitFlag).InitBG(,,, /* InitWidth */ 50, ICON_HEIGHT + 4);
-    TFlag.BGBox.SetAlpha(0.6);
+    TFlag.BGBox.SetAlpha(BackgroundOpacity);
 
     TFlag.TwitchIcon = Spawn(class'UIImage', UnitFlag).InitImage(, "img:///TwitchIntegration_UI.Icon_Twitch_3D");
     TFlag.TwitchIcon.SetSize(ICON_WIDTH, ICON_HEIGHT);
@@ -107,14 +109,14 @@ private function TwitchFlag CreateTwitchFlag(UIUnitFlag UnitFlag, XComGameState_
 
     // Position differently for friendly units, because the action points indicator is in the way
     if (Unit.GetTeam() == eTeam_XCom) {
-        TFlag.BGBox.SetPosition(FRIENDLY_FLAG_POS_X, FRIENDLY_FLAG_POS_Y - 2);
-        TFlag.TwitchIcon.SetPosition(FRIENDLY_FLAG_POS_X + 2, FRIENDLY_FLAG_POS_Y);
-        TFlag.TwitchName.SetPosition(FRIENDLY_FLAG_POS_X + ICON_WIDTH + 4, FRIENDLY_FLAG_POS_Y - 2);
+        TFlag.BGBox.SetPosition(FriendlyNamePosition.X, FriendlyNamePosition.Y - 2);
+        TFlag.TwitchIcon.SetPosition(FriendlyNamePosition.X + 2, FriendlyNamePosition.Y);
+        TFlag.TwitchName.SetPosition(FriendlyNamePosition.X + ICON_WIDTH + 4, FriendlyNamePosition.Y - 2);
     }
     else {
-        TFlag.BGBox.SetPosition(FLAG_POS_X, FLAG_POS_Y - 2);
-        TFlag.TwitchIcon.SetPosition(FLAG_POS_X + 2, FLAG_POS_Y);
-        TFlag.TwitchName.SetPosition(FLAG_POS_X + ICON_WIDTH + 4, FLAG_POS_Y - 2);
+        TFlag.BGBox.SetPosition(UnalliedNamePosition.X, UnalliedNamePosition.Y - 2);
+        TFlag.TwitchIcon.SetPosition(UnalliedNamePosition.X + 2, UnalliedNamePosition.Y);
+        TFlag.TwitchName.SetPosition(UnalliedNamePosition.X + ICON_WIDTH + 4, UnalliedNamePosition.Y - 2);
     }
 
     return TFlag;
