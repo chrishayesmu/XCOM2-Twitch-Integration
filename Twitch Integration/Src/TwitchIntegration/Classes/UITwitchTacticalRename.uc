@@ -9,7 +9,6 @@ simulated function OnInit() {
 
     super.OnInit();
 
-    `TILOG("OnInit");
     TacticalHud = UITacticalHud(ParentPanel);
 
     if (TacticalHud == none) {
@@ -79,6 +78,8 @@ function OnChangeOwnerInputClosed(string Value) {
 function RealizeUI() {
     local string ViewerName;
     local TwitchViewer Viewer;
+	local XComGameState_Effect_TemplarFocus FocusState;
+    local XComGameState_Unit UnitState;
     local XComGameState_TwitchObjectOwnership OwnershipState;
 	local XGUnit ActiveUnit;
 
@@ -95,11 +96,9 @@ function RealizeUI() {
 
     Show();
 
-    `TILOG("Retrieving ownership for object ID " $ ActiveUnit.ObjectID);
     OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(ActiveUnit.ObjectID);
 
     if (OwnershipState == none) {
-        `TILOG("Ownership state not found");
         ViewerName = "&lt;Unowned&gt;";
     }
     else {
@@ -108,4 +107,15 @@ function RealizeUI() {
     }
 
     Text.SetText(ViewerName);
+
+    UnitState = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(ActiveUnit.ObjectID));
+	FocusState = UnitState.GetTemplarFocusEffectState();
+
+	if (FocusState != none) {
+        // Move our UI up slightly to avoid covering the focus UI
+        SetPosition(34, -235);
+    }
+    else {
+        SetPosition(34, -180);
+    }
 }

@@ -17,6 +17,7 @@ event OnInit(UIScreen Screen) {
 
     // Add our mid-battle rename UI
     if (!HasUITwitchTacticalRenamePanel()) {
+        // TODO: attaching to the HUD's m_kStatsContainer directly would simplify a lot
         Screen.Spawn(class'UITwitchTacticalRename', Screen).InitPanel();
     }
 
