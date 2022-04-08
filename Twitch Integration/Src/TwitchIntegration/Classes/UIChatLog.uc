@@ -77,7 +77,7 @@ function AddMessage(string Sender, string Body, optional XComGameState_Unit Unit
         Message.UnitTeam = Unit.GetTeam();
     }
 
-    `TILOGCLS("Adding message to chat log. Unit is none: " $ (Unit == none) $ "; " $ `SHOWVAR(Message.bUnitWasDead) $ "; " $ `SHOWVAR(Message.UnitTeam));
+    `TILOG("Adding message to chat log. Unit is none: " $ (Unit == none) $ "; " $ `SHOWVAR(Message.bUnitWasDead) $ "; " $ `SHOWVAR(Message.UnitTeam));
 
     Messages.AddItem(Message);
 

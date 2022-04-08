@@ -163,7 +163,7 @@ private simulated function OnTextSizeRealized() {
     local int ChoiceTextBgWidth;
     local int TotalWidth;
 
-    `TILOGCLS("Text size realized; ChoiceText width is " $ m_ChoiceText.Width);
+    `TILOG("Text size realized; ChoiceText width is " $ m_ChoiceText.Width);
     ChoiceTextBgWidth = m_ChoiceText.Width + 2 * Padding;
 
     // The choice text's width is dynamic; everything else is static

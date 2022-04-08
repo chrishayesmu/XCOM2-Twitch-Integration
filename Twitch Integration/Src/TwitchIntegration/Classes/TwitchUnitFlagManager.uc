@@ -24,13 +24,13 @@ function Initialize() {
 
     History = `XCOMHISTORY;
 
-    `TILOGCLS("Creating Twitch unit flags");
+    `TILOG("Creating Twitch unit flags");
 
     // When loading into tactical, we need to make sure our UI is present
     foreach History.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState) {
         Unit = XComGameState_Unit(History.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID));
 
-        `TILOGCLS("Syncing unit flag for unit " $ Unit.GetFullName() $ " to owner " $ OwnershipState.TwitchLogin);
+        `TILOG("Syncing unit flag for unit " $ Unit.GetFullName() $ " to owner " $ OwnershipState.TwitchLogin);
         AddOrUpdateFlag(Unit, OwnershipState);
     }
 }

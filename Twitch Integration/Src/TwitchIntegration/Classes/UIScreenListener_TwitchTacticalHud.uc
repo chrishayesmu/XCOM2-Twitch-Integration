@@ -60,7 +60,7 @@ protected function CheckUnitLosStatus() {
     UnitFlagManager = `PRES.m_kUnitFlagManager;
 
     if (UnitFlagManager == none) {
-        `TILOGCLS("No UnitFlagManager, skipping update to nameplates");
+        `TILOG("No UnitFlagManager, skipping update to nameplates");
         return;
     }
 
@@ -150,7 +150,7 @@ private function ToggleNameplates() {
 
     class'TwitchIntegrationConfig'.default.bPermanentNameplatesEnabled = bPermanentNameplatesEnabled;
 
-    `TILOGCLS("Twitch nameplates enabled: " $ bPermanentNameplatesEnabled);
+    `TILOG("Twitch nameplates enabled: " $ bPermanentNameplatesEnabled);
 
     CheckUnitLosStatus();
 }

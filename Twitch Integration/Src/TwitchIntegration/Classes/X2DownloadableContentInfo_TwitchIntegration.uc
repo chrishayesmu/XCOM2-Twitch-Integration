@@ -79,7 +79,7 @@ exec function TwitchChatCommand(string Command, string ViewerLogin, string Comma
     Message.Body = "!" $ Command @ CommandBody;
 
     if (StateMgr.TwitchChatConn.GetViewer(ViewerLogin, Viewer) == INDEX_NONE) {
-        `TILOGCLS("Viewer " $ ViewerLogin $ " not found, supplying fake viewer");
+        `TILOG("Viewer " $ ViewerLogin $ " not found, supplying fake viewer");
         Viewer.Login = ViewerLogin;
     }
 
@@ -218,7 +218,7 @@ exec function TwitchListRaffledViewers() {
         }
 
         class'Helpers'.static.OutputMsg(Message);
-        `TILOGCLS(Message);
+        `TILOG(Message);
     }
 }
 

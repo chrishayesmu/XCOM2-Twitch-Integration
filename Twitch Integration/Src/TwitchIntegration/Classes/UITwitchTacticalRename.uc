@@ -9,11 +9,11 @@ simulated function OnInit() {
 
     super.OnInit();
 
-    `TILOGCLS("OnInit");
+    `TILOG("OnInit");
     TacticalHud = UITacticalHud(ParentPanel);
 
     if (TacticalHud == none) {
-        `TILOGCLS("ERROR: UITwitchTacticalRename needs to be parented to a UITacticalHud!");
+        `TILOG("ERROR: UITwitchTacticalRename needs to be parented to a UITacticalHud!");
         Hide();
         return;
     }
@@ -64,12 +64,12 @@ function OnChangeOwnerInputClosed(string Value) {
 
     if (Value == "") {
         if (OwnershipState != none) {
-            `TILOGCLS("Deleting ownership of unit from owner " $ OwnershipState.TwitchLogin);
+            `TILOG("Deleting ownership of unit from owner " $ OwnershipState.TwitchLogin);
             class'XComGameState_TwitchObjectOwnership'.static.DeleteOwnership(OwnershipState);
         }
     }
     else if (!(Value ~= OwnershipState.TwitchLogin)) {
-        `TILOGCLS("Assigning unit to new owner " $ Value);
+        `TILOG("Assigning unit to new owner " $ Value);
         class'X2EventListener_TwitchNames'.static.AssignOwnership(Value, ActiveUnit.ObjectID, , /* OverridePreviousOwnership */ true);
     }
 
@@ -95,11 +95,11 @@ function RealizeUI() {
 
     Show();
 
-    `TILOGCLS("Retrieving ownership for object ID " $ ActiveUnit.ObjectID);
+    `TILOG("Retrieving ownership for object ID " $ ActiveUnit.ObjectID);
     OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(ActiveUnit.ObjectID);
 
     if (OwnershipState == none) {
-        `TILOGCLS("Ownership state not found");
+        `TILOG("Ownership state not found");
         ViewerName = "&lt;Unowned&gt;";
     }
     else {

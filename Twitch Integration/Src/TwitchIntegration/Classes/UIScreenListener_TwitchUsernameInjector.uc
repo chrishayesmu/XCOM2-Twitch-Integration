@@ -63,7 +63,7 @@ delegate OnItemSelectedCallback(UIList ContainerList, int ItemIndex);
 event OnInit(UIScreen Screen) {
     local Object ThisObj;
 
-    `TILOGCLS("OnInit screen: " $ Screen.Class.Name, LogScreenNames);
+    `TILOG("OnInit screen: " $ Screen.Class.Name, LogScreenNames);
 
     // FIXME: for some reason, if we don't register every time OnInit is called, our event listener is lost
     ThisObj = self;
@@ -76,7 +76,7 @@ event OnInit(UIScreen Screen) {
 
 event OnReceiveFocus(UIScreen Screen)
 {
-    `TILOGCLS("OnReceiveFocus screen: " $ Screen.Class.Name, LogScreenNames);
+    `TILOG("OnReceiveFocus screen: " $ Screen.Class.Name, LogScreenNames);
 
     if (UIPersonnel(Screen) == none) {
         RealizeUI(Screen);
@@ -149,8 +149,8 @@ private function HandleSquadSelectScreen(UISquadSelect Screen, out array<TUnitLa
 
     List = Screen.m_kSlotList;
 
-    `TILOGCLS("In HandleSquadSelectScreen; list has " $ List.GetItemCount() $ " items");
-    `TILOGCLS("Using position variable NamePosition_SquadSelectScreen", bLogPositionVariables);
+    `TILOG("In HandleSquadSelectScreen; list has " $ List.GetItemCount() $ " items");
+    `TILOG("Using position variable NamePosition_SquadSelectScreen", bLogPositionVariables);
 
     for (Index = 0; Index < List.GetItemCount(); Index++) {
         ListItem = UISquadSelect_ListItem(List.GetItem(Index));
@@ -232,7 +232,7 @@ private function CheckForSoldierList(UIScreen Screen) {
 
     m_kPersonnelListLabels.Length = 0;
 
-    `TILOGCLS("Using position variable NamePosition_SoldierList", bLogPositionVariables);
+    `TILOG("Using position variable NamePosition_SoldierList", bLogPositionVariables);
 
 
     for (Index = 0; Index < ObjectIDs.Length; Index++) {
@@ -258,7 +258,7 @@ private function bool CheckForUISoldierHeader(UIScreen Screen, out array<TUnitLa
 
     // Need to check UIArmory_PromotionHero first because it extends UIArmory_Promotion
     if (UIArmory_PromotionHero(Screen) != none) {
-        `TILOGCLS("Using position variable NamePosition_HeroPromotionScreen", bLogPositionVariables);
+        `TILOG("Using position variable NamePosition_HeroPromotionScreen", bLogPositionVariables);
 
         Label.bAddBackground = true;
         Label.PosX = NamePosition_HeroPromotionScreen.X;
@@ -268,7 +268,7 @@ private function bool CheckForUISoldierHeader(UIScreen Screen, out array<TUnitLa
         Labels.AddItem(Label);
     }
     else if (UISoldierBondScreen(Screen) != none) {
-        `TILOGCLS("Using position variable NamePosition_SoldierBondScreen", bLogPositionVariables);
+        `TILOG("Using position variable NamePosition_SoldierBondScreen", bLogPositionVariables);
 
         Label.bAddBackground = true;
         Label.PosX = NamePosition_SoldierBondScreen.X;
@@ -281,7 +281,7 @@ private function bool CheckForUISoldierHeader(UIScreen Screen, out array<TUnitLa
           || UIArmory_MainMenu(Screen) != none
           || UIArmory_Promotion(Screen) != none)
     {
-        `TILOGCLS("Using position variable NamePosition_ArmoryScreens", bLogPositionVariables);
+        `TILOG("Using position variable NamePosition_ArmoryScreens", bLogPositionVariables);
 
         Label.bAddBackground = true;
         Label.PosX = NamePosition_ArmoryScreens.X;
@@ -291,7 +291,7 @@ private function bool CheckForUISoldierHeader(UIScreen Screen, out array<TUnitLa
         Labels.AddItem(Label);
     }
     else if (UICustomize(Screen) != none) {
-        `TILOGCLS("Using position variable NamePosition_CustomizeScreen", bLogPositionVariables);
+        `TILOG("Using position variable NamePosition_CustomizeScreen", bLogPositionVariables);
 
         Label.bAddBackground = true;
         Label.PosX = NamePosition_CustomizeScreen.X;
@@ -301,7 +301,7 @@ private function bool CheckForUISoldierHeader(UIScreen Screen, out array<TUnitLa
         Labels.AddItem(Label);
     }
     else if (UISoldierCaptured(Screen) != none) {
-        `TILOGCLS("Using position variable NamePosition_SoldierCapturedScreen", bLogPositionVariables);
+        `TILOG("Using position variable NamePosition_SoldierCapturedScreen", bLogPositionVariables);
 
         Label.bAddBackground = false;
         Label.PosX = NamePosition_SoldierCapturedScreen.X;
@@ -311,7 +311,7 @@ private function bool CheckForUISoldierHeader(UIScreen Screen, out array<TUnitLa
         Labels.AddItem(Label);
     }
     else if (UISoldierBondAlert(Screen) != none) {
-        `TILOGCLS("Using position variables NamePosition_SoldierBondAlertScreen_1 and NamePosition_SoldierBondAlertScreen_2", bLogPositionVariables);
+        `TILOG("Using position variables NamePosition_SoldierBondAlertScreen_1 and NamePosition_SoldierBondAlertScreen_2", bLogPositionVariables);
 
         Label.bAddBackground = false;
         Label.PosX = NamePosition_SoldierBondAlertScreen_1.X;

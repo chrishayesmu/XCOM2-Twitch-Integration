@@ -41,19 +41,19 @@ function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer
         }
 
         if (Tuple.bMustBeSub && !Viewer.bIsSub) {
-            `TILOGCLS("Viewer is not a sub and cannot use this command");
+            `TILOG("Viewer is not a sub and cannot use this command");
             return;
         }
 
         if (Tuple.CostInBits > Command.NumBits) {
-            `TILOGCLS("Not enough bits sent to use command; require " $ Tuple.CostInBits $ " but received " $ Command.NumBits);
+            `TILOG("Not enough bits sent to use command; require " $ Tuple.CostInBits $ " but received " $ Command.NumBits);
             return;
         }
 
         Action = class'X2TwitchUtils'.static.GetTwitchEventActionTemplate(Tuple.ActionName);
 
         if (Action == none) {
-            `TILOGCLS("Didn't find an action called " $ Tuple.ActionName $ ". This command may be misconfigured.");
+            `TILOG("Didn't find an action called " $ Tuple.ActionName $ ". This command may be misconfigured.");
             return;
         }
 
@@ -61,17 +61,17 @@ function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer
     }
 
     if (Action == none) {
-        `TILOGCLS("Never found an alias matching " $ Alias $ ", which should be impossible");
+        `TILOG("Never found an alias matching " $ Alias $ ", which should be impossible");
         return;
     }
 
     ViewerOwnedUnit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(Viewer.Login);
 
     if (!Action.IsValid(ViewerOwnedUnit)) {
-        `TILOGCLS("Action '" $ Tuple.ActionName $ "' is not presently valid. Not executing.");
+        `TILOG("Action '" $ Tuple.ActionName $ "' is not presently valid. Not executing.");
         return;
     }
 
-    `TILOGCLS("Executing action '" $ Tuple.ActionName $ "'");
+    `TILOG("Executing action '" $ Tuple.ActionName $ "'");
     Action.Apply(ViewerOwnedUnit, none);
 }

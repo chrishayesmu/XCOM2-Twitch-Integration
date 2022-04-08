@@ -29,7 +29,7 @@ function Apply(optional XComGameState_Unit InvokingUnit, optional XComGameState_
 
     // TODO: we should probably rank targets by how many actions they're valid for
     TargetUnits = FindTargets(InvokingUnit);
-    `TILOGCLS("Applying " $ ActionTemplates.Length $ " action templates to " $ TargetUnits.Length $ " units");
+    `TILOG("Applying " $ ActionTemplates.Length $ " action templates to " $ TargetUnits.Length $ " units");
 
     // Iterate twice: once over all units, invoking only the actions that target units;
     // then again over all templates, invoking only the actions that don't target units
@@ -43,11 +43,11 @@ function Apply(optional XComGameState_Unit InvokingUnit, optional XComGameState_
 
             // Target may only be valid for some action templates
             if (TargetsUnitTemplate.IsValidTarget(Unit)) {
-                `TILOGCLS("Unit is a valid target, applying action " $ Template.Class.Name);
+                `TILOG("Unit is a valid target, applying action " $ Template.Class.Name);
                 TargetsUnitTemplate.Apply(Unit, PollGameState);
             }
             else {
-                `TILOGCLS("Unit is not a valid target, skipping action " $ Template.Class.Name);
+                `TILOG("Unit is not a valid target, skipping action " $ Template.Class.Name);
             }
         }
     }
@@ -60,7 +60,7 @@ function Apply(optional XComGameState_Unit InvokingUnit, optional XComGameState_
             continue;
         }
 
-        `TILOGCLS("Applying non-unit action template " $ Template.Class.Name);
+        `TILOG("Applying non-unit action template " $ Template.Class.Name);
         Template.Apply(none, PollGameState);
     }
 }
@@ -100,7 +100,7 @@ private function CacheTemplates() {
         ActionTemplates[Index] = class'X2TwitchUtils'.static.GetTwitchEventActionTemplate(ActionNames[Index]);
 
         if (ActionTemplates[Index] == none) {
-            `TILOGCLS("ERROR: Could not load action named '" $ ActionNames[Index] $ "'. This is likely a configuration error.");
+            `TILOG("ERROR: Could not load action named '" $ ActionNames[Index] $ "'. This is likely a configuration error.");
         }
     }
 }

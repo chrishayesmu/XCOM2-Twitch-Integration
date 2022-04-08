@@ -1,7 +1,7 @@
 class TwitchChatTcpLink extends TcpLink
     config(TwitchIntegration);
 
-`define SENDLINE(msg) SendText(`msg $ chr(13) $ chr(10)); `TILOGCLS("Sending line:   " $ `msg, LogTraffic);
+`define SENDLINE(msg) SendText(`msg $ chr(13) $ chr(10)); `TILOG("Sending line:   " $ `msg, LogTraffic);
 
 // ------------------------------------------
 // Enums and struct definitions
@@ -116,7 +116,7 @@ function Initialize(delegate<ConnectionListener> OnConnect = none, delegate<Mess
 
 // DEBUG USE ONLY - sends a message to Twitch's IRC endpoint exactly as it is sent to this method, plus a CRLF.
 function DebugSendRawIrc(string IrcMessage) {
-    `TILOGCLS("Sending debug IRC message with text: " $ IrcMessage);
+    `TILOG("Sending debug IRC message with text: " $ IrcMessage);
     `SENDLINE(IrcMessage);
 }
 
@@ -181,30 +181,30 @@ function Connect() {
     }
 
     NumConnectAttempts++;
-    `TILOGCLS("Beginning connection attempt #" $ NumConnectAttempts, LogTraffic);
+    `TILOG("Beginning connection attempt #" $ NumConnectAttempts, LogTraffic);
 
-    `TILOGCLS("Resolving host: " $ TargetHost, LogTraffic);
+    `TILOG("Resolving host: " $ TargetHost, LogTraffic);
     Resolve(TargetHost);
 }
 
 event Resolved(IpAddr Addr) {
-    `TILOGCLS(TargetHost $ " resolved to " $ IpAddrToString(Addr), LogTraffic);
-    `TILOGCLS("Bound to port: " $ BindPort(), LogTraffic);
+    `TILOG(TargetHost $ " resolved to " $ IpAddrToString(Addr), LogTraffic);
+    `TILOG("Bound to port: " $ BindPort(), LogTraffic);
 
     Addr.Port = TargetPort;
 
     if (!Open(Addr))
     {
-        `TILOGCLS("Failed to open connection to Twitch");
+        `TILOG("Failed to open connection to Twitch");
     }
 }
 
 event ResolveFailed() {
-    `TILOGCLS("Unable to resolve address " $ TargetHost);
+    `TILOG("Unable to resolve address " $ TargetHost);
 }
 
 event Opened() {
-    `TILOGCLS("Sending IRC connect request", LogTraffic);
+    `TILOG("Sending IRC connect request", LogTraffic);
 
     // IRC connection request: using a justinfan nickname means we can use a
 	// special password without needing OAuth, and enter chat in read-only mode.
@@ -216,7 +216,7 @@ event Opened() {
     `SENDLINE("NICK " $ TwitchUsername);
     `SENDLINE("JOIN #" $ TwitchChannel);
 
-    `TILOGCLS("IRC connect request sent", LogTraffic);
+    `TILOG("IRC connect request sent", LogTraffic);
 }
 
 event Closed() {
@@ -224,7 +224,7 @@ event Closed() {
     local int ReconnectExponent;
     local float ReconnectWaitTime;
 
-    `TILOGCLS("Connection closed", LogTraffic);
+    `TILOG("Connection closed", LogTraffic);
 
     ClearTimer(nameof(ProcessMessageQueue));
     ClearTimer(nameof(PurgeStaleViewers));
@@ -252,7 +252,7 @@ event ReceivedLine(string MessageStr) {
 	local TwitchMessage Message;
 	local TwitchViewer Viewer;
 
-    `TILOGCLS("Received message: " $ MessageStr, LogTraffic);
+    `TILOG("Received message: " $ MessageStr, LogTraffic);
 
     Message = ParseMessage(MessageStr, Viewer);
     HandleMessage(Message, Viewer);
@@ -264,7 +264,7 @@ private function HandleMessage(TwitchMessage Message, TwitchViewer FromViewer) {
 	}
 
 	if (Message.MessageType == eTwitchMessageType_MOTD) {
-		`TILOGCLS("Successfully connected to Twitch chat on attempt #" $ NumConnectAttempts, LogTraffic);
+		`TILOG("Successfully connected to Twitch chat on attempt #" $ NumConnectAttempts, LogTraffic);
         NumConnectAttempts = 0;
 
         SetTimer(MessageQueueProcessingFrequencySeconds, /* inbLoop */ true, nameof(ProcessMessageQueue));
@@ -278,7 +278,7 @@ private function HandleMessage(TwitchMessage Message, TwitchViewer FromViewer) {
 	}
 	else if (Message.MessageType == eTwitchMessageType_Ping) {
 		// Need to respond to pings as a connection keep-alive
-		`TILOGCLS("Replying to PING with PONG", LogTraffic);
+		`TILOG("Replying to PING with PONG", LogTraffic);
 		`SENDLINE("PONG :tmi.twitch.tv");
 	}
 
@@ -350,18 +350,18 @@ private function TwitchMessage ParseMessage(string Message, out TwitchViewer Vie
     if (MessageStruct.MessageType == eTwitchMessageType_Irrelevant) {
         // Stop processing here; if it's irrelevant then the message isn't from a real person and we don't
         // want to upsert a system user
-        `TILOGCLS("Final message struct (irrelevant): " $ MessageToString(MessageStruct), LogTraffic);
+        `TILOG("Final message struct (irrelevant): " $ MessageToString(MessageStruct), LogTraffic);
         return MessageStruct;
     }
 
     if (MessageStruct.MessageType == eTwitchMessageType_ClearMessage) {
         // Stop processing these because they don't have proper user info for UpsertViewer
-        `TILOGCLS("Final message struct (ClearMessage): " $ MessageToString(MessageStruct), LogTraffic);
+        `TILOG("Final message struct (ClearMessage): " $ MessageToString(MessageStruct), LogTraffic);
         return MessageStruct;
     }
 
     if (class'TwitchStateManager'.default.BlacklistedViewerNames.Find(LOCS(Sender)) != INDEX_NONE) {
-        `TILOGCLS("Not upserting viewer " $ Sender $ " because they're blacklisted", LogTraffic);
+        `TILOG("Not upserting viewer " $ Sender $ " because they're blacklisted", LogTraffic);
         return MessageStruct;
     }
 
@@ -373,7 +373,7 @@ private function TwitchMessage ParseMessage(string Message, out TwitchViewer Vie
         Index = Viewers.Find('Login', Viewer.Login);
 
         if (Index != INDEX_NONE) {
-            `TILOGCLS("Removing viewer " $ Viewer.Login $ " due to PART message", LogTraffic);
+            `TILOG("Removing viewer " $ Viewer.Login $ " due to PART message", LogTraffic);
             Viewers.Remove(Index, 1);
         }
     }
@@ -383,7 +383,7 @@ private function TwitchMessage ParseMessage(string Message, out TwitchViewer Vie
     	MessageStruct.Body = Message;
 	}
 
-    `TILOGCLS("Final message struct: " $ MessageToString(MessageStruct), LogTraffic);
+    `TILOG("Final message struct: " $ MessageToString(MessageStruct), LogTraffic);
 
 	return MessageStruct;
 }
@@ -455,7 +455,7 @@ private function ProcessMessageQueue() {
     }
 
     // TODO: implement rate limiting
-    `TILOGCLS("Processing message queue. There are currently " $ MessageQueue.Length $ " messages pending", LogTraffic);
+    `TILOG("Processing message queue. There are currently " $ MessageQueue.Length $ " messages pending", LogTraffic);
 
     for (Index = 0; Index < MessageQueue.Length; Index++) {
         Message = MessageQueue[Index];
@@ -479,7 +479,7 @@ private function ProcessMessageQueue() {
         Index--;
     }
 
-    `TILOGCLS("Sent " $ NumChatMessagesSent $ " chat messages and " $ NumWhispersSent $ " whispers", LogTraffic);
+    `TILOG("Sent " $ NumChatMessagesSent $ " chat messages and " $ NumWhispersSent $ " whispers", LogTraffic);
 }
 
 private function PurgeStaleViewers() {
@@ -561,7 +561,7 @@ private function TwitchViewer UpsertViewer(string SenderField, out array<Message
         Viewers[Index] = Viewer;
     }
 
-    `TILOGCLS("Upserted viewer (previous index " $ Index $ "). " $ ViewerToString(Viewer), LogTraffic);
+    `TILOG("Upserted viewer (previous index " $ Index $ "). " $ ViewerToString(Viewer), LogTraffic);
 
     return Viewer;
 }

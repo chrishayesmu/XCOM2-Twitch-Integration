@@ -69,7 +69,7 @@ function Initialize() {
     local X2EventManager EventManager;
 	local X2PollEventTemplate PollEventTemplate;
 
-	`TILOGCLS("Initializing state manager");
+	`TILOG("Initializing state manager");
 
     bIsTacticalGame = !`TI_IS_STRAT_GAME;
     ThisObj = self;
@@ -84,7 +84,7 @@ function Initialize() {
 	    CommandHandlers.AddItem(CommandHandler);
     }
 
-    `TILOGCLS("Loaded " $ CommandHandlers.Length $ " command handlers");
+    `TILOG("Loaded " $ CommandHandlers.Length $ " command handlers");
 
 	// Find all poll event templates and organize them by type for future use
 	EventTemplateManager = class'X2EventListenerTemplateManager'.static.GetEventListenerTemplateManager();
@@ -198,7 +198,7 @@ function HandleChatCommand(TwitchMessage Command, TwitchViewer Viewer) {
     			CommandHandler.Handle(self, Command, Viewer);
             }
             else {
-                `TILOGCLS("Handler for alias " $ CommandAlias $ " is not supported in current game layer; is strat = " $ `TI_IS_STRAT_GAME);
+                `TILOG("Handler for alias " $ CommandAlias $ " is not supported in current game layer; is strat = " $ `TI_IS_STRAT_GAME);
             }
 
             // Regardless of whether the command is enabled, each alias only belongs to one command
@@ -242,12 +242,12 @@ function int RaffleViewer() {
     }
 
     if (NumAvailableViewers == 0) {
-        `TILOGCLS("RaffleViewer: No available viewers out of " $ TwitchChatConn.Viewers.Length $ " connected");
+        `TILOG("RaffleViewer: No available viewers out of " $ TwitchChatConn.Viewers.Length $ " connected");
         return INDEX_NONE;
     }
 
     RaffledIndex = `SYNC_RAND(NumAvailableViewers);
-    `TILOGCLS("Out of " $ NumAvailableViewers $ " available viewers, rolled for #" $ RaffledIndex);
+    `TILOG("Out of " $ NumAvailableViewers $ " available viewers, rolled for #" $ RaffledIndex);
 
     for (Index = 0; Index < TwitchChatConn.Viewers.Length; Index++) {
         // We've raffled an index into a virtual array of only available viewers, so now we
@@ -338,7 +338,7 @@ function StartPoll(ePollType PollType, int DurationInTurns, optional XComGameSta
 }
 
 simulated event PostLoadGame() {
-    `TILOGCLS("PostLoadGame for TwitchStateManager");
+    `TILOG("PostLoadGame for TwitchStateManager");
 }
 
 // ----------------------------------------------
@@ -379,7 +379,7 @@ private function OnConnectedToTwitchChat() {
 }
 
 private function OnNamesListReceiveError(HttpResponse Response) {
-    `TILOGCLS("Error occurred when retrieving viewers; response code was " $ Response.ResponseCode);
+    `TILOG("Error occurred when retrieving viewers; response code was " $ Response.ResponseCode);
 
     HttpGet.Close();
     HttpGet.Destroy();
@@ -389,11 +389,11 @@ private function OnNamesListReceived(HttpResponse Response) {
 	local JsonObject JsonObj;
 
 	if (Response.ResponseCode != 200) {
-		`TILOGCLS("Error occurred when retrieving viewers; response code was " $ Response.ResponseCode);
+		`TILOG("Error occurred when retrieving viewers; response code was " $ Response.ResponseCode);
 		return;
 	}
 
-    `TILOGCLS("Received names list, parsing response");
+    `TILOG("Received names list, parsing response");
 
 	JsonObj = class'JsonObject'.static.DecodeJson(Response.Body);
 	JsonObj = JsonObj.GetObject("chatters");
@@ -562,7 +562,7 @@ private function array<X2PollEventTemplate> SelectEventsForPoll(ePollType PollTy
         foreach FilteredEvents(EventTemplate) {
             // ExclusiveWith could be in either direction, so just check both
             if (EventTemplate.ExclusiveWith.Find(SelectedEvent.DataName) != INDEX_NONE || SelectedEvent.ExclusiveWith.Find(EventTemplate.DataName) != INDEX_NONE) {
-                `TILOGCLS("Removing potential event due to ExclusiveWith: " $ EventTemplate.DataName);
+                `TILOG("Removing potential event due to ExclusiveWith: " $ EventTemplate.DataName);
                 FilteredEvents.RemoveItem(EventTemplate);
             }
         }
@@ -590,14 +590,14 @@ private function X2PollEventTemplate SelectEventWithWeighting(array<X2PollEventT
 
     foreach PossibleEvents(EventTemplate) {
         if (WeightRoll < RunningTotal + EventTemplate.Weight) {
-            `TILOGCLS("Weighted roll selected event " $ EventTemplate.DataName $ " on roll " $ WeightRoll);
+            `TILOG("Weighted roll selected event " $ EventTemplate.DataName $ " on roll " $ WeightRoll);
             return EventTemplate;
         }
 
         RunningTotal += EventTemplate.Weight;
     }
 
-    `TILOGCLS("Default selected event " $ PossibleEvents[PossibleEvents.Length - 1].DataName);
+    `TILOG("Default selected event " $ PossibleEvents[PossibleEvents.Length - 1].DataName);
     return PossibleEvents[PossibleEvents.Length - 1];
 }
 
@@ -615,7 +615,7 @@ private function ePollType SelectPollTypeByWeight() {
 
     foreach PollTypeWeights(Weighting) {
         if (WeightRoll < RunningTotal + Weighting.Weight) {
-            `TILOGCLS("Weighted roll selected poll type " $ Weighting.PollType $ " with roll " $ WeightRoll);
+            `TILOG("Weighted roll selected poll type " $ Weighting.PollType $ " with roll " $ WeightRoll);
             return Weighting.PollType;
         }
 
@@ -623,7 +623,7 @@ private function ePollType SelectPollTypeByWeight() {
     }
 
     // TODO: the last poll type might have a weight of 0, in which case this would be wrong
-    `TILOGCLS("Default selected poll type " $ PollTypeWeights[PollTypeWeights.Length - 1].PollType $ " TotalWeight " $ TotalWeight $ " roll " $ WeightRoll);
+    `TILOG("Default selected poll type " $ PollTypeWeights[PollTypeWeights.Length - 1].PollType $ " TotalWeight " $ TotalWeight $ " roll " $ WeightRoll);
     return PollTypeWeights[PollTypeWeights.Length - 1].PollType;
 }
 
@@ -649,7 +649,7 @@ private function bool ShouldStartPoll(XComGameState_Player PlayerState) {
     if (PollState != none) {
         if (PollState.RemainingTurns > 0) {
             // This poll is still going right now
-            `TILOGCLS("There's already an active poll, not starting a new one");
+            `TILOG("There's already an active poll, not starting a new one");
             return false;
         }
 
@@ -657,7 +657,7 @@ private function bool ShouldStartPoll(XComGameState_Player PlayerState) {
         TurnsSinceLastPollEnded = TurnsSinceLastPollStarted - PollState.DurationInTurns;
 
         if (TurnsSinceLastPollEnded < `TI_CFG(MinTurnsBetweenPolls)) {
-            `TILOGCLS("Last poll ended " $ TurnsSinceLastPollEnded $ " turns ago; cannot start another yet");
+            `TILOG("Last poll ended " $ TurnsSinceLastPollEnded $ " turns ago; cannot start another yet");
             return false;
         }
     }

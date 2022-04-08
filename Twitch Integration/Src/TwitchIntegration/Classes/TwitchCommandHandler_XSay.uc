@@ -119,7 +119,7 @@ function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer
     }
 
     if (Unit == none) {
-        `TILOGCLS("Did not find a unit for viewer " $ Viewer.Login $ ", aborting");
+        `TILOG("Did not find a unit for viewer " $ Viewer.Login $ ", aborting");
         return;
     }
 
@@ -275,7 +275,7 @@ function EventListenerReturn OnMessageDeleted(Object EventData, Object EventSour
     }
 
     if (!bHasGameState) {
-        `TILOGCLS("Didn't find an XSayGameState for MsgId " $ MsgId);
+        `TILOG("Didn't find an XSayGameState for MsgId " $ MsgId);
         return ELR_NoInterrupt;
     }
 
@@ -434,7 +434,7 @@ private function AkBaseSoundObject GetCivilianSound(XComGameState_Unit Unit) {
     bUnitIsFemale = Unit.kAppearance.iGender == 2;
 
     // Sound cues exist for English, French, German, Italian, Polish, Russian and Spanish
-    `TILOGCLS("GetCivilianSound: bUnitIsFemale = " $ bUnitIsFemale $ "; Country = " $ Unit.GetCountry());
+    `TILOG("GetCivilianSound: bUnitIsFemale = " $ bUnitIsFemale $ "; Country = " $ Unit.GetCountry());
 
     // Populate language pool. Some languages are added multiple times to shift their likelihood.
     switch (Unit.GetCountry()) {
@@ -546,7 +546,7 @@ private function AkBaseSoundObject GetCivilianSound(XComGameState_Unit Unit) {
     LanguageIndex = Unit.ObjectID % PossibleLanguages.Length;
     Language = PossibleLanguages[LanguageIndex];
 
-    //`TILOGCLS("Unit " $ Unit.GetFullName() $ " will speak language " $ Language $ " at index " $ LanguageIndex);
+    //`TILOG("Unit " $ Unit.GetFullName() $ " will speak language " $ Language $ " at index " $ LanguageIndex);
 
     switch (Language) {
         case 'ENG':
@@ -571,17 +571,17 @@ private function AkBaseSoundObject GetCivilianSound(XComGameState_Unit Unit) {
             PossibleSounds = bUnitIsFemale ? default.CivilianSoundCues_Spanish_Female : default.CivilianSoundCues_Spanish_Male;
             break;
         default:
-            `TILOGCLS("Language " $ Language $ " should not be possible!");
+            `TILOG("Language " $ Language $ " should not be possible!");
             return none;
     }
 
     if (PossibleSounds.Length == 0) {
-        `TILOGCLS("No sounds are configured for a " $ (bUnitIsFemale ? "female" : "male") $ " civilian with language " $ Language);
+        `TILOG("No sounds are configured for a " $ (bUnitIsFemale ? "female" : "male") $ " civilian with language " $ Language);
         return None;
     }
 
     CueName = PossibleSounds[`SYNC_RAND(PossibleSounds.Length)];
-    //`TILOGCLS("Using SoundCue " $ CueName $ " for civilian out of a possible " $ PossibleSounds.Length);
+    //`TILOG("Using SoundCue " $ CueName $ " for civilian out of a possible " $ PossibleSounds.Length);
 
     return SoundCue(DynamicLoadObject(string(CueName), class'SoundCue'));
 }
@@ -881,8 +881,8 @@ private function OnNarrativeCompleteCallback() {
 	kNarrativeMgr = `PRES.m_kNarrativeUIMgr;
 
     if (kNarrativeMgr.IsTimerActive('EndCurrentConversation')) {
-        `TILOGCLS("EndCurrentConversation timer is active");
-        //`TILOGCLS("Clearing EndCurrentConversation timer and ending conversation");
+        `TILOG("EndCurrentConversation timer is active");
+        //`TILOG("Clearing EndCurrentConversation timer and ending conversation");
         //kNarrativeMgr.ClearTimer('EndCurrentConversation');
         //kNarrativeMgr.EndCurrentConversation();
     }
