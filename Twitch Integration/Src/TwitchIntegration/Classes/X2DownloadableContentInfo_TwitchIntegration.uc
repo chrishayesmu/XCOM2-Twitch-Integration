@@ -93,6 +93,63 @@ exec function TwitchBinted() {
     TwitchChatCommand("xsay", "crumlord", " ");
 }
 
+exec function TwitchCleanStates(optional bool bForce = false) {
+    local int Index, NumStaleStates;
+    local TwitchChatTcpLink ChatConn;
+    local TwitchViewer Viewer;
+    local XComGameState NewGameState;
+    local XComGameStateHistory History;
+    local XComGameState_TwitchObjectOwnership OwnershipState;
+    local XComGameState_Unit Unit;
+
+    if (`TI_IS_TAC_GAME && !bForce)
+    {
+        class'Helpers'.static.OutputMsg("------------------------------------------------------------------------------------------------------------------");
+        class'Helpers'.static.OutputMsg("WARNING: Running this during a mission will clear raffle winners for any enemies/civilians.");
+        class'Helpers'.static.OutputMsg("Those units will will be re-raffled and will likely be assigned to different viewers.");
+        class'Helpers'.static.OutputMsg("It is therefore recommended to only use this command while in the Avenger.");
+        class'Helpers'.static.OutputMsg("------------------------------------------------------------------------------------------------------------------");
+        class'Helpers'.static.OutputMsg("   ");
+        class'Helpers'.static.OutputMsg("To force this command anyway, run \"TwitchCleanStates true\".");
+        return;
+    }
+
+    History = `XCOMHISTORY;
+	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Console Command: TwitchCleanStates");
+    ChatConn = `TISTATEMGR != none ? `TISTATEMGR.TwitchChatConn : none;
+
+    foreach History.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState) {
+        Unit = XComGameState_Unit(History.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID));
+
+        if (class'X2EventListener_TwitchNames'.static.IsOwnershipTransient(Unit)) {
+            // TODO: if in tactical, this shouldn't include units on the mission
+            class'Helpers'.static.OutputMsg("Deleting transient ownership of unit " $ Unit.GetFullName() $ " by viewer " $ OwnershipState.TwitchLogin);
+            class'XComGameState_TwitchObjectOwnership'.static.DeleteOwnership(OwnershipState, NewGameState);
+            NumStaleStates++;
+
+            if (ChatConn != none)
+            {
+                // Update the viewer so they aren't marked as owning something
+                Index = ChatConn.GetViewer(OwnershipState.TwitchLogin, /* unused out param*/ Viewer);
+
+                if (Index != INDEX_NONE)
+                {
+                    ChatConn.Viewers[Index].OwnedObjectID = 0;
+                }
+            }
+        }
+    }
+
+    if (NewGameState.GetNumGameStateObjects() > 0) {
+        class'Helpers'.static.OutputMsg("Cleaning up " $ NumStaleStates $ " ownership objects");
+		`GAMERULES.SubmitGameState(NewGameState);
+	}
+    else {
+        class'Helpers'.static.OutputMsg("Did not find any stale ownership to clean up");
+		`XCOMHISTORY.CleanupPendingGameState(NewGameState);
+    }
+}
+
 /// <summary>
 /// Connects to Twitch chat, forcibly disconnecting first if bForceReconnect is true.
 /// </summary>
