@@ -5,6 +5,7 @@ class UIScreenListener_TwitchTacticalHud extends UIScreenListener
 
 var private bool bIsAltDown;
 var private bool bIsControlDown;
+var private bool bIsShiftDown;
 
 event OnInit(UIScreen Screen) {
     local UITacticalHud TacticalHud;
@@ -89,7 +90,7 @@ protected function CheckUnitLosStatus() {
 }
 
 protected function bool OnTacticalHudInput(UIScreen Screen, int iInput, int ActionMask) {
-    if (iInput == class'UIUtilities_Input'.const.FXS_KEY_LEFT_ALT) {
+    if (iInput == class'UIUtilities_Input'.const.FXS_KEY_LEFT_ALT || iInput == class'UIUtilities_Input'.const.FXS_KEY_RIGHT_ALT) {
         if ((ActionMask & class'UIUtilities_Input'.const.FXS_ACTION_PRESS) == class'UIUtilities_Input'.const.FXS_ACTION_PRESS) {
             bIsAltDown = true;
         }
@@ -101,7 +102,7 @@ protected function bool OnTacticalHudInput(UIScreen Screen, int iInput, int Acti
         return false;
     }
 
-    if (iInput == class'UIUtilities_Input'.const.FXS_KEY_LEFT_CONTROL) {
+    if (iInput == class'UIUtilities_Input'.const.FXS_KEY_LEFT_CONTROL || iInput == class'UIUtilities_Input'.const.FXS_KEY_RIGHT_CONTROL) {
         if ((ActionMask & class'UIUtilities_Input'.const.FXS_ACTION_PRESS) == class'UIUtilities_Input'.const.FXS_ACTION_PRESS) {
             bIsControlDown = true;
         }
@@ -113,7 +114,19 @@ protected function bool OnTacticalHudInput(UIScreen Screen, int iInput, int Acti
         return false;
     }
 
-    if (iInput == class'UIUtilities_Input'.const.FXS_KEY_T && bIsControlDown && bIsAltDown) {
+    if (iInput == class'UIUtilities_Input'.const.FXS_KEY_LEFT_SHIFT || iInput == class'UIUtilities_Input'.const.FXS_KEY_RIGHT_SHIFT) {
+        if ((ActionMask & class'UIUtilities_Input'.const.FXS_ACTION_PRESS) == class'UIUtilities_Input'.const.FXS_ACTION_PRESS) {
+            bIsShiftDown = true;
+        }
+        else if ((ActionMask & class'UIUtilities_Input'.const.FXS_ACTION_RELEASE) == class'UIUtilities_Input'.const.FXS_ACTION_RELEASE) {
+            bIsShiftDown = false;
+        }
+
+        // Never consume shift, just track its state
+        return false;
+    }
+
+    if (iInput == class'UIUtilities_Input'.const.FXS_KEY_T && bIsControlDown) {
         if ((ActionMask & class'UIUtilities_Input'.const.FXS_ACTION_PRESS) == class'UIUtilities_Input'.const.FXS_ACTION_PRESS) {
             ToggleNameplates();
 
