@@ -941,7 +941,12 @@ private function OverrideCommLinkFields() {
     Sound = GetUnitSound(PendingNarrativeItems[0], Unit);
 
     if (Sound != none) {
-        class'WorldInfo'.static.GetWorldInfo().PlaySoundBase(Sound, true);
+        if (Unit.GetVisualizer() != none) {
+            Unit.GetVisualizer().PlaySoundBase(Sound, true);
+        }
+        else {
+            class'WorldInfo'.static.GetWorldInfo().PlaySoundBase(Sound, true);
+        }
     }
 
     PendingNarrativeItems.Remove(0, 1);
