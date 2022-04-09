@@ -28,7 +28,7 @@ var private delegate<ResponseHandler> OnRequestError;
 
 delegate ResponseHandler(HttpResponse Resp);
 
-const LogRequest = true;
+const LogRequest = false;
 
 function Call(string Url, delegate<ResponseHandler> CompletionHandler, delegate<ResponseHandler> ErrorHandler = none)
 {

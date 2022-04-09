@@ -20,7 +20,7 @@ const MaxFlyoverLength = 45;
 const MaxToastLength = 40;
 const MaxNarrativeQueueLength = 5;
 
-const MaxQueuedCommLinkNarratives = 1;
+const MaxQueuedCommLinkNarratives = 10;
 
 var private array<TNarrativeQueueItem> PendingNarrativeItems;
 
@@ -95,6 +95,8 @@ function Initialize(TwitchStateManager StateMgr) {
 
     ThisObj = self;
     `XEVENTMGR.RegisterForEvent(ThisObj, 'TwitchChatMessageDeleted', OnMessageDeleted, ELD_Immediate);
+
+    `XWORLDINFO.MyWatchVariableMgr.RegisterWatchVariable(`PRESBASE.m_kNarrativeUIMgr, 'm_arrConversations', self, EnqueueXSayToCommLinkIfPossible);
 }
 
 function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer Viewer) {
@@ -304,7 +306,7 @@ private function string TruncateMessage(string Message, int MaxLength) {
 }
 
 private function EnqueueCommLink(TNarrativeQueueItem NarrativeItem) {
-    if (PendingCommLinkNarratives >= MaxQueuedCommLinkNarratives)
+    if (PendingNarrativeItems.Length >= MaxQueuedCommLinkNarratives)
     {
         return;
     }
@@ -313,8 +315,25 @@ private function EnqueueCommLink(TNarrativeQueueItem NarrativeItem) {
     NarrativeItem.NarrativeMoment = PickNarrativeMoment(NarrativeItem.GameState.MessageBody);
     PendingNarrativeItems.AddItem(NarrativeItem);
 
+    EnqueueXSayToCommLinkIfPossible();
+}
+
+private function EnqueueXSayToCommLinkIfPossible() {
+    local UINarrativeMgr kNarrativeMgr;
+
+    kNarrativeMgr = `PRESBASE.m_kNarrativeUIMgr;
+
+    if (kNarrativeMgr.m_arrConversations.Length != 0 || kNarrativeMgr.PendingConversations.Length != 0 || PendingNarrativeItems.Length == 0) {
+        return;
+    }
+
     // Add our message, but don't remove it from queue; that's the job of OverrideCommLinkFields
-    `PRESBASE.UINarrative(NarrativeItem.NarrativeMoment, /* kFocusActor */ , OnNarrativeCompleteCallback);
+    `PRESBASE.UINarrative(PendingNarrativeItems[0].NarrativeMoment);
+
+    // End this timer if it's running or else our next conversation may get ended immediately
+    if (kNarrativeMgr.IsTimerActive('EndCurrentConversation')) {
+        kNarrativeMgr.ClearTimer('EndCurrentConversation');
+    }
 
     `TISTATEMGR.SetTimer(0.1, /* inbLoop */ true, nameof(OverrideCommLinkFields), self);
 }
@@ -336,7 +355,8 @@ private function string GetUnitPortrait(XComGameState_Unit Unit) {
     local XComGameState_Unit SourceUnit;
 
     if (Unit.IsSoldier()) {
-        return GetSoldierHeadshot(Unit.GetReference().ObjectID);
+        // Strip the "img:///" because the caller is expecting to add that
+        return Repl(GetSoldierHeadshot(Unit.GetReference().ObjectID), "img:///", "");
     }
 
     CharGroupName = Unit.GetMyTemplate().CharacterGroupName;
@@ -869,25 +889,6 @@ private function SoundCue LoadTwitchSoundCue(Name CueName) {
     return SoundCue(DynamicLoadObject("TwitchIntegration_UI." $ string(CueName), class'SoundCue'));
 }
 
-private function OnNarrativeCompleteCallback() {
-	local UINarrativeMgr kNarrativeMgr;
-
-    PendingCommLinkNarratives--;
-
-    // Normally when a conversation completes, if subtitles are enabled, the narrative manager waits to
-    // end the conversation so the subtitles can last a little longer. This doesn't work well at all with
-    // the way we're queuing conversations, so we cut it off. Otherwise the timer will fire and end our
-    // next conversation (if there's one queued).
-	kNarrativeMgr = `PRES.m_kNarrativeUIMgr;
-
-    if (kNarrativeMgr.IsTimerActive('EndCurrentConversation')) {
-        `TILOG("EndCurrentConversation timer is active");
-        //`TILOG("Clearing EndCurrentConversation timer and ending conversation");
-        //kNarrativeMgr.ClearTimer('EndCurrentConversation');
-        //kNarrativeMgr.EndCurrentConversation();
-    }
-}
-
 private function OverrideCommLinkFields() {
     local string UnitPortrait;
     local AkBaseSoundObject Sound;
@@ -954,6 +955,11 @@ private function OverrideCommLinkFields() {
 function XComNarrativeMoment PickNarrativeMoment(string Message) {
     local XComNarrativeMoment NarrativeMoment;
 
+    NarrativeMoment = NextNarrativeMomentLong;
+    NextNarrativeMomentLong = NextNarrativeMomentLong == NarrativeMomentLong01 ? NarrativeMomentLong02 : NarrativeMomentLong01;
+
+    // TODO: these are all way too short, figure something out later
+/*
     // Since we can't dynamically change the duration of a NarrativeMoment, we have 3 different lengths built into the mod.
     // The narrative manager won't let us queue the same NarrativeMoment twice in a row, so we have to alternate.
     if (Len(Message) < 50) {
@@ -968,11 +974,13 @@ function XComNarrativeMoment PickNarrativeMoment(string Message) {
         NarrativeMoment = NextNarrativeMomentLong;
         NextNarrativeMomentLong = NextNarrativeMomentLong == NarrativeMomentLong01 ? NarrativeMomentLong02 : NarrativeMomentLong01;
     }
+ */
 
     return NarrativeMoment;
 }
 
 function string GetSoldierHeadshot(int UnitObjectID) {
+    local string HeadshotPath;
     local Texture2D HeadshotTex;
 	local XComGameState_CampaignSettings SettingsState;
 
@@ -980,10 +988,10 @@ function string GetSoldierHeadshot(int UnitObjectID) {
     HeadshotTex = `XENGINE.m_kPhotoManager.GetHeadshotTexture(SettingsState.GameIndex, UnitObjectID, 512, 512);
 
     if (HeadshotTex != none) {
-        return class'UIUtilities_Image'.static.ValidateImagePath(PathName(HeadshotTex));
+        HeadshotPath = class'UIUtilities_Image'.static.ValidateImagePath(PathName(HeadshotTex));
     }
 
-    return "";
+    return HeadshotPath;
 }
 
 simulated function OnHeadshotReady(StateObjectReference UnitRef) {

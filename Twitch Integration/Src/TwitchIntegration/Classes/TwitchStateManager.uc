@@ -393,8 +393,6 @@ private function OnNamesListReceived(HttpResponse Response) {
 		return;
 	}
 
-    `TILOG("Received names list, parsing response");
-
 	JsonObj = class'JsonObject'.static.DecodeJson(Response.Body);
 	JsonObj = JsonObj.GetObject("chatters");
 
