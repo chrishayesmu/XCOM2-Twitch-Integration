@@ -153,8 +153,10 @@ function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer
     `GAMERULES.SubmitGameState(NewGameState);
 
     if (bShowInCommLink && PendingNarrativeItems.Length < MaxNarrativeQueueLength) {
+        // Don't record a unit was dead if we're on the strat layer, unless they're a dead soldier
+        // TODO: this won't work when Chosen are permanently killed
         NarrativeItem.GameState = XSayGameState;
-        NarrativeItem.bUnitWasDead = Unit.IsDead();
+        NarrativeItem.bUnitWasDead = Unit.IsDead() && (bIsTacticalGame || Unit.IsSoldier());
 
         EnqueueCommLink(NarrativeItem);
     }
