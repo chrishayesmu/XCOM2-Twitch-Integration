@@ -321,9 +321,18 @@ private function EnqueueCommLink(TNarrativeQueueItem NarrativeItem) {
 }
 
 private function EnqueueXSayToCommLinkIfPossible() {
+    local int Index;
     local UINarrativeMgr kNarrativeMgr;
 
     kNarrativeMgr = `PRESBASE.m_kNarrativeUIMgr;
+
+    for (Index = 0; Index < PendingNarrativeItems.Length; Index++) {
+        if (PendingNarrativeItems[Index].GameState.bMessageDeleted) {
+            PendingNarrativeItems.Remove(Index, 1);
+            Index--;
+            continue;
+        }
+    }
 
     if (kNarrativeMgr.m_arrConversations.Length != 0 || kNarrativeMgr.PendingConversations.Length != 0 || PendingNarrativeItems.Length == 0) {
         return;
