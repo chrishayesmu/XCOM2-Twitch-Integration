@@ -371,6 +371,8 @@ private function bool FilterRelevantTemplates(X2DataTemplate Template) {
 }
 
 private function OnConnectedToTwitchChat() {
+    `TILOG("Connection to Twitch chat established");
+
     if (ChatLog == none && !`TI_IS_STRAT_GAME) {
         // We always create a chat log, and let that component worry about hiding itself based on config
         ChatLog = Spawn(class'UIChatLog', `SCREENSTACK.GetFirstInstanceOf(class'UITacticalHud')).InitChatLog();

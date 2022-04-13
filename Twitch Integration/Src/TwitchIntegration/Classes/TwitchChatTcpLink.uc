@@ -188,8 +188,12 @@ function Connect() {
 }
 
 event Resolved(IpAddr Addr) {
+    local int PortNum;
+
+    PortNum = BindPort();
+
     `TILOG(TargetHost $ " resolved to " $ IpAddrToString(Addr), LogTraffic);
-    `TILOG("Bound to port: " $ BindPort(), LogTraffic);
+    `TILOG("Bound to port: " $ PortNum, LogTraffic);
 
     Addr.Port = TargetPort;
 
