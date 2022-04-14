@@ -45,13 +45,21 @@ static event ModifyTacticalTransferStartState(XComGameState TransferStartState)
 
 static function CopyStateObjectsToNewState(XComGameState NewGameState) {
     local XComGameState_TwitchObjectOwnership OwnershipState;
+    local XComGameState_Unit UnitState;
 
     `TILOG("Copying ownership objects to new game state");
 
     // Copy all ownership states
-    // TODO: make sure we don't copy transient states
     foreach `XCOMHISTORY.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState, , /* bUnlimitedSearch */ true) {
-        NewGameState.ModifyStateObject(class'XComGameState_TwitchObjectOwnership', OwnershipState.ObjectID);
+        UnitState = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID));
+
+        if (!class'X2EventListener_TwitchNames'.static.IsOwnershipTransient(UnitState)) {
+            `TILOG("Copying ownership state for viewer " $ OwnershipState.TwitchLogin);
+            NewGameState.ModifyStateObject(class'XComGameState_TwitchObjectOwnership', OwnershipState.ObjectID);
+        }
+        else {
+            `TILOG("Skipping transient ownership state for viewer " $ OwnershipState.TwitchLogin);
+        }
     }
 }
 
@@ -238,7 +246,6 @@ exec function TwitchQuickPoll(ePollType PollType) {
 /// cannot be re-raffled using this method.
 /// </summary>
 exec function TwitchRaffleUnitUnderMouse() {
-	local XComGameState NewGameState;
 	local XComGameState_TwitchObjectOwnership OwnershipState;
 	local XComGameState_Unit Unit;
 
@@ -253,9 +260,7 @@ exec function TwitchRaffleUnitUnderMouse() {
         class'Helpers'.static.OutputMsg("Deleting ownership data for unit..");
 
         // Delete the existing ownership so this unit can be raffled
-        NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Console: Reassign Owner");
-        NewGameState.RemoveStateObject(OwnershipState.ObjectID);
-        `TACTICALRULES.SubmitGameState(NewGameState);
+        class'XComGameState_TwitchObjectOwnership'.static.DeleteOwnership(OwnershipState);
     }
 
     class'Helpers'.static.OutputMsg("Triggering raffle of all unowned units");
