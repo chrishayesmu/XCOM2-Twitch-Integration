@@ -89,7 +89,6 @@ function AddMessage(string Sender, string Body, optional XComGameState_Unit Unit
         Messages.Remove(0, 1);
     }
 
-    // TODO: don't expand if it was manually collapsed; make expand button flash instead
     UpdateUI();
 
     if (IsCollapsed())
