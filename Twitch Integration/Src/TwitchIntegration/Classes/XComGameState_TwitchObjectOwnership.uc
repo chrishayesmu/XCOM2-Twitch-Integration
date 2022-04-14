@@ -43,6 +43,8 @@ static function DeleteOwnership(XComGameState_TwitchObjectOwnership Ownership, o
         bCreatedGameState = true;
     }
 
+    // TODO: handle the Chosen specially
+
     `TILOG("Removing ownership state object");
     GameState.RemoveStateObject(Ownership.ObjectID);
 
@@ -54,7 +56,7 @@ static function DeleteOwnership(XComGameState_TwitchObjectOwnership Ownership, o
 
         if (Unit.IsCivilian()) {
             // We don't know what name civilians used to have
-            // TODO: maybe we can just generate a new one
+            // TODO: it should be in the earliest history state for them
             Unit.SetUnitName("Name", "Deleted", "");
         }
         else {
@@ -69,7 +71,6 @@ static function DeleteOwnership(XComGameState_TwitchObjectOwnership Ownership, o
     }
 
     // TODO need to pass new game state through here too
-    `TILOG("Requesting unit flag update");
     class'X2TwitchUtils'.static.SyncUnitFlag(Unit);
 }
 
