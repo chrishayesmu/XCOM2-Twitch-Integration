@@ -128,7 +128,6 @@ if (ViewerIndex != INDEX_NONE) {
 
     if (Unit.GetTeam() == eTeam_XCom && ( Unit.IsSoldier() || Unit.GetMyTemplate().bIsCosmetic )) {
         // Don't do anything in this case; we don't modify soldiers because the player has full agency to do that
-        // TODO: need to check if this is a cosmetic unit also (i.e. Gremlin)
     }
     else {
         Unit = XComGameState_Unit(NewGameState.ModifyStateObject(class'XComGameState_Unit', Unit.GetReference().ObjectID));

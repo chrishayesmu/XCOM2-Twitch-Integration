@@ -142,6 +142,9 @@ function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer
 
     `GAMERULES.SubmitGameState(NewGameState);
 
+    // Submit to chat log immediately to avoid delays from waiting on visualization
+    class'X2TwitchUtils'.static.AddMessageToChatLog(XSayGameState.Sender, XSayGameState.MessageBody, Unit, XSayGameState.TwitchMessageId);
+
     // TODO: turn off comm link if not in LOS, or make it not show unit type, to avoid spoilers
     if (bShowInCommLink) {
         // Don't record a unit was dead if we're on the strat layer, unless they're a dead soldier
@@ -160,7 +163,6 @@ protected function BuildVisualization_TacLayer(XComGameState VisualizeGameState)
     local EWidgetColor MessageColor;
     local TwitchViewer Viewer;
 	local VisualizationActionMetadata ActionMetadata;
-    local X2Action_AddToChatLog ChatLogAction;
 	local X2Action_PlayMessageBanner MessageAction;
 	local X2Action_PlaySoundAndFlyOver SoundAndFlyover;
 	local XComGameState_TwitchXSay XSayGameState;
@@ -224,11 +226,6 @@ protected function BuildVisualization_TacLayer(XComGameState VisualizeGameState)
         LocalController = XComTacticalController(class'WorldInfo'.static.GetWorldInfo().GetALocalPlayerController());
         LocalController.bManuallySwitchedUnitsWhileVisualizerBusy = true;
     }
-
-    ChatLogAction = X2Action_AddToChatLog(class'X2Action_AddToChatLog'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext(), , ActionMetadata.LastActionAdded));
-    ChatLogAction.Sender = ViewerName;
-    ChatLogAction.Message = XSayGameState.MessageBody; // no need to sanitize, chat log will do it
-    ChatLogAction.MsgId = XSayGameState.TwitchMessageId;
 
     if (bShowToast) {
         SanitizedMessageBody = class'TextUtilities_Twitch'.static.SanitizeText(TruncateMessage(XSayGameState.MessageBody, MaxToastLength));
