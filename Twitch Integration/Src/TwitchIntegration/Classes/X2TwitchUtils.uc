@@ -64,6 +64,30 @@ static function XComGameState_Unit FindUnitOwnedByViewer(string ViewerLogin) {
     return XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID));
 }
 
+static function XComGameState_Unit GetViewerUnitOnMission(string TwitchLogin) {
+	local XComGameState_Unit Unit;
+    local XGUnit UnitActor;
+
+    if (`TI_IS_STRAT_GAME) {
+        return none;
+    }
+
+    Unit = FindUnitOwnedByViewer(TwitchLogin);
+
+    if (Unit == none) {
+        return none;
+    }
+
+    // Make sure they're on the current mission
+    foreach `XCOMGAME.AllActors(class'XGUnit', UnitActor) {
+        if (UnitActor.ObjectID == Unit.GetReference().ObjectID) {
+            return Unit;
+        }
+    }
+
+    return none;
+}
+
 static function GiveAbilityToUnit(Name AbilityName, XComGameState_Unit Unit, optional XComGameState NewGameState, optional int TurnsUntilAbilityExpires) {
 	local XComGameStateHistory History;
 	local X2TacticalGameRuleset TacticalRules;

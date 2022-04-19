@@ -20,27 +20,3 @@ protected function string GetCommandBody(TwitchMessage Command) {
 
     return Mid(Command.Body, Index + 1);
 }
-
-protected function XComGameState_Unit GetViewerUnitOnMission(string TwitchLogin) {
-	local XComGameState_Unit Unit;
-    local XGUnit UnitActor;
-
-    if (`TI_IS_STRAT_GAME) {
-        return none;
-    }
-
-    Unit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(TwitchLogin);
-
-    if (Unit == none) {
-        return none;
-    }
-
-    // Make sure they're on the current mission
-    foreach `XCOMGAME.AllActors(class'XGUnit', UnitActor) {
-        if (UnitActor.ObjectID == Unit.GetReference().ObjectID) {
-            return Unit;
-        }
-    }
-
-    return none;
-}

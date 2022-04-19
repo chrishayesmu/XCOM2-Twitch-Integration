@@ -72,6 +72,8 @@ static function DeleteOwnership(XComGameState_TwitchObjectOwnership Ownership, o
 
     // TODO need to pass new game state through here too
     class'X2TwitchUtils'.static.SyncUnitFlag(Unit);
+
+    `XEVENTMGR.TriggerEvent('TwitchUnitOwnerRemoved', /* EventData */ Ownership, /* EventSource */, GameState);
 }
 
 static function XComGameState_TwitchObjectOwnership FindForChosen(Name CharacterGroupName) {

@@ -160,6 +160,8 @@ if (ViewerIndex != INDEX_NONE) {
         `GAMERULES.SubmitGameState(NewGameState);
     }
 
+    `XEVENTMGR.TriggerEvent('TwitchUnitOwnerAssigned', /* EventData */ OwnershipState, /* EventSource */, NewGameState);
+
     return OwnershipState;
 }
 

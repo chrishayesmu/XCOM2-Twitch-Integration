@@ -305,7 +305,7 @@ private function bool CanViewerXSay(string ViewerLogin, out XComGameState_Unit U
 
     if (bIsTacticalGame) {
         // Tac game: your unit has to be on the mission
-        UnitState = GetViewerUnitOnMission(ViewerLogin);
+        UnitState = class'X2TwitchUtils'.static.GetViewerUnitOnMission(ViewerLogin);
     }
     else {
         // Strat game: if you own a unit, you can chat

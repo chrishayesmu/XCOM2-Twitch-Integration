@@ -21,7 +21,6 @@ struct ChatMessage {
     var ETeam UnitTeam;
 };
 
-var private int XPos;
 var private bool bUnreadMessages;
 
 var private UIButton m_ClearButton;
@@ -32,25 +31,26 @@ var private array<ChatMessage> Messages;
 
 function UIChatLog InitChatLog() {
     local Object ThisObj;
+
     InitPanel();
     SetPosition(Position.X, Position.Y);
     SetSize(Size.X, Size.Y);
 
     m_TextContainer = Spawn(class'UITextContainer', self);
-    m_TextContainer.InitTextContainer('', "", Position.X, Position.Y, Size.X, Size.Y, /* addBG */ true, class'UIUtilities_Controls'.const.MC_X2BackgroundSimple);
+    m_TextContainer.InitTextContainer('', "", 0, 0, Size.X, Size.Y, /* addBG */ true, class'UIUtilities_Controls'.const.MC_X2BackgroundSimple);
     m_TextContainer.SetAlpha(Opacity);
 
     m_ClearButton = Spawn(class'UIButton', self);
     m_ClearButton.InitButton(/* InitName */, ClearButtonLabel, OnClearButtonClicked);
     m_ClearButton.SetAlpha(Opacity);
-    m_ClearButton.SetPosition(Position.X, m_TextContainer.Y + m_TextContainer.Height + 8);
+    m_ClearButton.SetPosition(0, m_TextContainer.Height + 8);
 
     // TODO: get an actual icon on this button somehow
     m_ExpandCollapseButton = Spawn(class'UIButton', self);
     m_ExpandCollapseButton.ResizeToText = false;
     m_ExpandCollapseButton.InitButton(/* InitName */, "&lt;", OnExpandCollapseButtonClicked);
     m_ExpandCollapseButton.SetAlpha(Opacity);
-    m_ExpandCollapseButton.SetPosition(Position.X + m_TextContainer.Width + 3, m_TextContainer.Y);
+    m_ExpandCollapseButton.SetPosition(m_TextContainer.Width + 3, m_TextContainer.Y);
     m_ExpandCollapseButton.SetSize(28, 28);
 
     ThisObj = self;
@@ -116,8 +116,6 @@ function EventListenerReturn OnMessageDeleted(Object EventData, Object EventSour
 }
 
 function Collapse() {
-    XPos = X;
-
     // animate off screen
     // TODO: make the button flash/pulse
     AnimateX(-m_TextContainer.width);
@@ -126,7 +124,7 @@ function Collapse() {
 
 function Expand() {
     // animate back on screen
-    AnimateX(XPos);
+    AnimateX(Position.X);
     m_ExpandCollapseButton.SetText("&lt;");
     bUnreadMessages = false;
 }
@@ -255,7 +253,7 @@ private function UpdateUI() {
 
     // Individual messages can wrap but UITextContainer doesn't realize that when scrolling, so
     // we add a couple of newlines to move it along
-    FullChat = FullChat $ "\n\n";
+    FullChat = FullChat $ "\n";
 
     m_TextContainer.SetHTMLText(FullChat);
 
