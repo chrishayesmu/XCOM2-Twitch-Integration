@@ -400,6 +400,7 @@ private function string GetMessageBody(TNarrativeQueueItem NarrativeItem) {
     local string Body;
 
     Body = class'TextUtilities_Twitch'.static.SanitizeText(NarrativeItem.GameState.MessageBody);
+    Body = class'UIUtilities_Twitch'.static.InsertEmotes(Body);
 
     if (NarrativeItem.bUnitWasDead && `TI_CFG(bFormatDeadMessages)) {
         Body = class'UIUtilities_Twitch'.static.FormatDeadMessage(Body);

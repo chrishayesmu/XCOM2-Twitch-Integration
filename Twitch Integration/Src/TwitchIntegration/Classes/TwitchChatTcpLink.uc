@@ -364,7 +364,7 @@ private function TwitchMessage ParseMessage(string Message, out TwitchViewer Vie
         return MessageStruct;
     }
 
-    if (class'TwitchStateManager'.default.BlacklistedViewerNames.Find(LOCS(Sender)) != INDEX_NONE) {
+    if (`TISTATEMGR.BlacklistedViewerNames.Find(Locs(Sender)) != INDEX_NONE) {
         `TILOG("Not upserting viewer " $ Sender $ " because they're blacklisted", LogTraffic);
         return MessageStruct;
     }

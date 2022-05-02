@@ -2,6 +2,8 @@ class UIUtilities_Twitch extends Object;
 
 const TwitchIcon_3D = "img:///TwitchIntegration_UI.Icon_Twitch";
 
+var protected array<string> arrTwitchEmotes;
+
 static function string RPad(coerce string S, string Padding, int Length) {
     while (Len(S) < Length) {
         S $= Padding;
@@ -26,6 +28,27 @@ static function HideTwitchName(int ObjectID, optional UIWorldMessageMgr MessageM
     // We want to hide both temporary and permanent messages so do both
     MessageMgr.RemoveMessage(GetMsgID(ObjectID, false));
     MessageMgr.RemoveMessage(GetMsgID(ObjectID, true));
+}
+
+static function string InsertEmotes(string InString) {
+    local int EmoteIndex, TokenIndex;
+    local string OutString;
+    local array<String> arrTokens;
+
+    arrTokens = SplitString(InString, " ", /* bCullEmpty */ false);
+
+    for (TokenIndex = 0; TokenIndex < arrTokens.Length; TokenIndex++) {
+        EmoteIndex = default.arrTwitchEmotes.Find(arrTokens[TokenIndex]);
+
+        // Need to check the strings match manually because apparently array.Find uses case-insensitive matches for strings
+        if (EmoteIndex != INDEX_NONE && default.arrTwitchEmotes[EmoteIndex] == arrTokens[TokenIndex]) {
+            arrTokens[TokenIndex] = "<img src='img:///TwitchIntegration_UI.Emotes." $ default.arrTwitchEmotes[EmoteIndex] $ "' align='baseline' vspace='-5' width='22' height='22'>";
+        }
+    }
+
+    JoinArray(arrTokens, OutString, " ");
+
+    return OutString;
 }
 
 static function ShowTwitchName(int ObjectID, optional XComGameState NewGameState, optional bool bPermanent = false) {
@@ -72,4 +95,44 @@ private static function string GetMsgId(int ObjectID, bool bPermanent) {
     }
 
     return MsgId;
+}
+
+defaultproperties
+{
+    arrTwitchEmotes.Add("finoTB")
+    arrTwitchEmotes.Add("LUL")
+    arrTwitchEmotes.Add("mjbAyy")
+    arrTwitchEmotes.Add("mjbBONK")
+    arrTwitchEmotes.Add("mjbBRAD")
+    arrTwitchEmotes.Add("mjbCHAMP")
+    arrTwitchEmotes.Add("mjbCRY")
+    arrTwitchEmotes.Add("mjbDank")
+    arrTwitchEmotes.Add("mjbEags")
+    arrTwitchEmotes.Add("mjbEZ")
+    arrTwitchEmotes.Add("mjbF")
+    arrTwitchEmotes.Add("mjbGASM")
+    arrTwitchEmotes.Add("mjbGOOD")
+    arrTwitchEmotes.Add("mjbHmm")
+    arrTwitchEmotes.Add("mjbHYPERJAKE")
+    arrTwitchEmotes.Add("mjbHYPERMARK")
+    arrTwitchEmotes.Add("mjbHYPERNYA")
+    arrTwitchEmotes.Add("mjbHYPERPUP")
+    arrTwitchEmotes.Add("mjbJAKE")
+    arrTwitchEmotes.Add("mjbJBONK")
+    arrTwitchEmotes.Add("mjbJEFF")
+    arrTwitchEmotes.Add("mjbKARL")
+    arrTwitchEmotes.Add("mjbLOVE")
+    arrTwitchEmotes.Add("mjbMARK")
+    arrTwitchEmotes.Add("mjbNice")
+    arrTwitchEmotes.Add("mjbNya")
+    arrTwitchEmotes.Add("mjbOak")
+    arrTwitchEmotes.Add("mjbPOWER")
+    arrTwitchEmotes.Add("mjbPUP")
+    arrTwitchEmotes.Add("mjbRANGER")
+    arrTwitchEmotes.Add("mjbRIGGED")
+    arrTwitchEmotes.Add("mjbS")
+    arrTwitchEmotes.Add("mjbSMILE")
+    arrTwitchEmotes.Add("mjbSTAB")
+    arrTwitchEmotes.Add("mjbYARE")
+    arrTwitchEmotes.Add("mjbYell")
 }

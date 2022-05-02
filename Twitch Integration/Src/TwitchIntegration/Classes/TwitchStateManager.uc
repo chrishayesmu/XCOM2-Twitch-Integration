@@ -113,8 +113,8 @@ function Initialize() {
 	}
 
     // Make sure blacklisted viewers are all lowercase, since Twitch logins are lowercase
-    for (Index = 0; Index < default.BlacklistedViewerNames.Length; Index++) {
-        default.BlacklistedViewerNames[Index] = Locs(default.BlacklistedViewerNames[Index]);
+    for (Index = 0; Index < BlacklistedViewerNames.Length; Index++) {
+        BlacklistedViewerNames[Index] = Locs(BlacklistedViewerNames[Index]);
     }
 
 	// Connect to Twitch chat servers
@@ -504,7 +504,7 @@ private function PopulateViewers(array<string> ViewerLogins) {
             continue;
         }
 
-        if (BlacklistedViewerNames.Find(Login) != INDEX_NONE) {
+        if (BlacklistedViewerNames.Find(Locs(Login)) != INDEX_NONE) {
             continue;
         }
 

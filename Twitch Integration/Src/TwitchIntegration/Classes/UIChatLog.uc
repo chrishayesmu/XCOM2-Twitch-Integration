@@ -137,6 +137,7 @@ private function string FormatMessageBody(ChatMessage Message) {
     local string Body;
 
     Body = class'TextUtilities_Twitch'.static.SanitizeText(Message.Body);
+    Body = class'UIUtilities_Twitch'.static.InsertEmotes(Body);
 
     if (Message.Unit == none) {
         return Body;
