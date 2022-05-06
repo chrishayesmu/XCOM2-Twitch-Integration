@@ -129,7 +129,7 @@ defaultproperties
     arrTwitchEmotes.Add("mjbPOWER")
     arrTwitchEmotes.Add("mjbPUP")
     arrTwitchEmotes.Add("mjbRANGER")
-    arrTwitchEmotes.Add("mjbRIGGED")
+    arrTwitchEmotes.Add("mjbRIG")
     arrTwitchEmotes.Add("mjbS")
     arrTwitchEmotes.Add("mjbSMILE")
     arrTwitchEmotes.Add("mjbSTAB")
