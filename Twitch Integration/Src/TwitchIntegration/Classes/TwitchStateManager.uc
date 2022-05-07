@@ -243,7 +243,6 @@ function int RaffleViewer() {
     }
 
     if (NumAvailableViewers == 0) {
-        `TILOG("RaffleViewer: No available viewers out of " $ TwitchChatConn.Viewers.Length $ " connected");
         return INDEX_NONE;
     }
 

@@ -261,7 +261,7 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
 
     if (ViewerIndex == INDEX_NONE) {
         // We'll have to try again later when there might be more viewers in the pool
-        `TILOG("Unable to raffle unit " $ Unit.GetFullName() $ " because there are no viewers available");
+        `TILOG("Unable to raffle unit " $ Unit.GetFullName() $ " because there are no viewers available", DetailedLogs);
         TwitchMgr.bUnraffledUnitsExist = true;
         return ELR_NoInterrupt;
     }
