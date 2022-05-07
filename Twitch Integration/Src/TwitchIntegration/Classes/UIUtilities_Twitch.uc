@@ -20,6 +20,19 @@ static function string FormatDeadMessage(string S) {
     return "..." @ Locs(S) @ "...";
 }
 
+static function string GetEmoteImagePath(string Emote) {
+    local int Index;
+
+    Index = default.arrTwitchEmotes.Find(Emote);
+
+    // Need to check the strings match manually because apparently array.Find uses case-insensitive matches for strings
+    if (Index == INDEX_NONE || default.arrTwitchEmotes[Index] != Emote) {
+        return "";
+    }
+
+    return "img:///TwitchIntegration_UI.Emotes." $ default.arrTwitchEmotes[Index];
+}
+
 static function HideTwitchName(int ObjectID, optional UIWorldMessageMgr MessageMgr) {
     if (MessageMgr == none) {
         MessageMgr = `PRES.m_kWorldMessageManager;
@@ -31,19 +44,20 @@ static function HideTwitchName(int ObjectID, optional UIWorldMessageMgr MessageM
 }
 
 static function string InsertEmotes(string InString) {
-    local int EmoteIndex, TokenIndex;
-    local string OutString;
+    local int TokenIndex;
+    local string EmoteImagePath, OutString;
     local array<String> arrTokens;
 
     arrTokens = SplitString(InString, " ", /* bCullEmpty */ false);
 
     for (TokenIndex = 0; TokenIndex < arrTokens.Length; TokenIndex++) {
-        EmoteIndex = default.arrTwitchEmotes.Find(arrTokens[TokenIndex]);
+        EmoteImagePath = GetEmoteImagePath(arrTokens[TokenIndex]);
 
-        // Need to check the strings match manually because apparently array.Find uses case-insensitive matches for strings
-        if (EmoteIndex != INDEX_NONE && default.arrTwitchEmotes[EmoteIndex] == arrTokens[TokenIndex]) {
-            arrTokens[TokenIndex] = "<img src='img:///TwitchIntegration_UI.Emotes." $ default.arrTwitchEmotes[EmoteIndex] $ "' align='baseline' vspace='-5' width='22' height='22'>";
+        if (EmoteImagePath == "") {
+            continue;
         }
+
+        arrTokens[TokenIndex] = "<img src='" $ EmoteImagePath $ "' align='baseline' vspace='-5' width='22' height='22'>";
     }
 
     JoinArray(arrTokens, OutString, " ");

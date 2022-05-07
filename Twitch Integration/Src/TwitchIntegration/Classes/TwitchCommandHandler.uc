@@ -18,5 +18,9 @@ protected function string GetCommandBody(TwitchMessage Command) {
     local int Index;
     Index = Instr(Command.Body, " ");
 
+    if (Index == INDEX_NONE) {
+        return "";
+    }
+
     return Mid(Command.Body, Index + 1);
 }

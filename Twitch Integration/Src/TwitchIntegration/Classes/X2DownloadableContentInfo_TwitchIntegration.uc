@@ -78,13 +78,17 @@ exec function TwitchCastVote(string ViewerName, int Option) {
 /// <summary>
 /// Executes a Twitch command as though it were coming from the specified viewer.
 /// </summary>
-exec function TwitchChatCommand(string Command, string ViewerLogin, string CommandBody) {
+exec function TwitchChatCommand(string Command, string ViewerLogin, optional string CommandBody) {
     local TwitchMessage Message;
     local TwitchViewer Viewer;
     local TwitchStateManager StateMgr;
 
     StateMgr = `TISTATEMGR;
-    Message.Body = "!" $ Command @ CommandBody;
+    Message.Body = "!" $ Command;
+
+    if (CommandBody != "") {
+        Message.Body @= CommandBody;
+    }
 
     if (StateMgr.TwitchChatConn.GetViewer(ViewerLogin, Viewer) == INDEX_NONE) {
         `TILOG("Viewer " $ ViewerLogin $ " not found, supplying fake viewer");
