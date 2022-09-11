@@ -6,7 +6,7 @@ simulated state Executing
 {
     function SetNameplate() {
         if (bEnableNameplate) {
-            class'UIUtilities_Twitch'.static.ShowTwitchName(Unit.ObjectID, , /* bPermanent */ `TI_CFG(bPermanentNameplatesEnabled));
+            class'UIUtilities_Twitch'.static.ShowTwitchName(Unit.ObjectID, , true); // /* bPermanent */ `TI_CFG(bPermanentNameplatesEnabled));
         }
         else {
             class'UIUtilities_Twitch'.static.HideTwitchName(Unit.ObjectID);

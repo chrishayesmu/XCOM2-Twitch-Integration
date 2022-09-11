@@ -1,7 +1,9 @@
 class X2EventListener_TwitchNames extends X2EventListener
     config(TwitchIntegration);
 
-const DetailedLogs = false;
+const DetailedLogs = true;
+
+var config array<name> UnitTypesToNotRaffle;
 
 static function array<X2DataTemplate> CreateTemplates() {
 	local array<X2DataTemplate> Templates;
@@ -31,8 +33,8 @@ static function X2EventListenerTemplate UnitAssignName() {
 	`CREATE_X2TEMPLATE(class'CHEventListenerTemplate', Template, 'AssignTwitchName');
 
 	Template.RegisterInTactical = true;
-	Template.AddEvent('OnUnitBeginPlay', ChooseViewerName);
-	Template.AddEvent('UnitSpawned', ChooseViewerName);
+	Template.AddCHEvent('OnUnitBeginPlay', ChooseViewerName);
+	Template.AddCHEvent('UnitSpawned', ChooseViewerName);
 	Template.AddCHEvent('TwitchAssignUnitNames', AssignNamesToUnits, ELD_Immediate);
 
 	return Template;
@@ -96,6 +98,7 @@ static function XComGameState_TwitchObjectOwnership AssignOwnership(string Viewe
 // #endregion
 
     if (NewGameState == none || NewGameState.bReadOnly) {
+        `TILOG("Creating new game state; incoming game state was " $ NewGameState);
     	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Assign Twitch Owner");
         bCreatedGameState = true;
     }
@@ -104,27 +107,33 @@ static function XComGameState_TwitchObjectOwnership AssignOwnership(string Viewe
 
 // #region Create or update ownership state
     if (OwnershipState == none) {
+        `TILOG("Creating new state object in NewGameState " $ NewGameState);
         OwnershipState = XComGameState_TwitchObjectOwnership(NewGameState.CreateNewStateObject(class'XComGameState_TwitchObjectOwnership'));
     }
     else {
+        `TILOG("Modifying ownership state with object ID " $ OwnershipState.ObjectID);
         OwnershipState = XComGameState_TwitchObjectOwnership(NewGameState.ModifyStateObject(class'XComGameState_TwitchObjectOwnership', OwnershipState.ObjectID));
     }
 
+    `TILOG("Setting ownership state data");
     OwnershipState.TwitchLogin = Viewer.Login;
     OwnershipState.OwnedObjectRef = Unit.GetReference();
 // #endregion
 
 // #region Mark the viewer as owning something so they don't get raffled again
-if (ViewerIndex != INDEX_NONE) {
-    Viewer.OwnedObjectID = ObjID;
-    StateMgr.TwitchChatConn.Viewers[ViewerIndex] = Viewer;
-}
+    if (ViewerIndex != INDEX_NONE) {
+        Viewer.OwnedObjectID = ObjID;
+        StateMgr.TwitchChatConn.Viewers[ViewerIndex] = Viewer;
+    }
 // #endregion
 
 // #region Modify unit attributes as needed
     // Update our Twitch unit flag to show the viewer name. We want to do this *before* changing
     // the unit name, because we want the unit flag to show the original unit name, with our nameplate underneath.
+    `TILOG("Updating unit flag");
     class'X2TwitchUtils'.static.SyncUnitFlag(Unit, OwnershipState);
+    `TILOG("Updated unit flag");
+    `XWORLDINFO.ConsoleCommand("flushlogs");
 
     if (Unit.GetTeam() == eTeam_XCom && ( Unit.IsSoldier() || Unit.GetMyTemplate().bIsCosmetic )) {
         // Don't do anything in this case; we don't modify soldiers because the player has full agency to do that
@@ -144,6 +153,8 @@ if (ViewerIndex != INDEX_NONE) {
             LastName = "(" $ Unit.GetName(eNameType_Full) $ ")";
         }
 
+        `TILOG("Setting unit name");
+    `XWORLDINFO.ConsoleCommand("flushlogs");
         Unit.SetUnitName(FirstName, LastName, "");
     }
 // #endregion
@@ -157,7 +168,11 @@ if (ViewerIndex != INDEX_NONE) {
     }
 
     if (bCreatedGameState) {
+        `TILOG("Submitting new game state " $ NewGameState);
+    `XWORLDINFO.ConsoleCommand("flushlogs");
         `GAMERULES.SubmitGameState(NewGameState);
+        `TILOG("Game state submitted");
+    `XWORLDINFO.ConsoleCommand("flushlogs");
     }
 
     `XEVENTMGR.TriggerEvent('TwitchUnitOwnerAssigned', /* EventData */ OwnershipState, /* EventSource */, NewGameState);
@@ -206,7 +221,7 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
     TwitchConn = TwitchMgr.TwitchChatConn;
 	Unit = XComGameState_Unit(EventSource);
 
-    `TILOG("In ChooseViewerName for event " $ Event $ " and unit " $ Unit.GetFullName(), DetailedLogs);
+    `TILOG("In ChooseViewerName for event " $ Event $ " and unit " $ Unit.GetFullName() $ "; CharacterGroupName = " $ Unit.GetMyTemplate().CharacterGroupName, DetailedLogs);
 
     // UnitBeginPlay events can fire before we have a chance to initialize the TwitchStateManager
 	if (TwitchMgr == none) {
@@ -225,7 +240,12 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
 
     if (OwnershipState != none) {
         `TILOG("Aborting ChooseViewerName: unit is already owned by " $ OwnershipState.TwitchLogin, DetailedLogs);
-        // Someone already owns this unit
+        return ELR_NoInterrupt;
+    }
+
+    if (default.UnitTypesToNotRaffle.Find(Unit.GetMyTemplate().CharacterGroupName) != INDEX_NONE)
+    {
+        `TILOG("Unit character group name " $ Unit.GetMyTemplate().CharacterGroupName $ " is configured not to be raffled. Skipping.");
         return ELR_NoInterrupt;
     }
 
@@ -267,7 +287,7 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
     }
 
     Viewer = TwitchConn.Viewers[ViewerIndex];
-    AssignOwnership(Viewer.Login, Unit.GetReference().ObjectID);
+    AssignOwnership(Viewer.Login, Unit.GetReference().ObjectID, GameState);
 
 	return ELR_NoInterrupt;
 }

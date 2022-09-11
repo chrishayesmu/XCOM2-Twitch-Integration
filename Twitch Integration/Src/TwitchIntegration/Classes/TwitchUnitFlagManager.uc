@@ -48,20 +48,35 @@ function AddOrUpdateFlag(XComGameState_Unit Unit, optional XComGameState_TwitchO
     local UIUnitFlag UnitFlag;
     local XComPresentationLayer Pres;
 
+    `TILOG("AddOrUpdateFlag for Unit = " $ Unit $ ", Ownership = " $ Ownership);
     Pres = `PRES;
     UnitObjID = Unit.GetReference().ObjectID;
     UnitFlag = Pres.m_kUnitFlagManager.GetFlagForObjectID(UnitObjID);
 
     if (UnitFlag == none) {
+        `TILOG("Flag is none; creating new flag");
+        `XWORLDINFO.ConsoleCommand("flushlogs");
         Pres.m_kUnitFlagManager.AddFlag(Unit.GetReference());
+        `TILOG("Flag created, getting it");
+        `XWORLDINFO.ConsoleCommand("flushlogs");
         UnitFlag = Pres.m_kUnitFlagManager.GetFlagForObjectID(UnitObjID);
+        `TILOG("Flag retrieved: " $ UnitFlag);
+        `XWORLDINFO.ConsoleCommand("flushlogs");
     }
 
+    `XWORLDINFO.ConsoleCommand("flushlogs");
+
     if (Ownership == none) {
+        `TILOG("Ownership is none; retrieving it");
         Ownership = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Unit.ObjectID);
     }
 
+    `XWORLDINFO.ConsoleCommand("flushlogs");
+
     if (GetFlagForObject(UnitObjID, TFlag)) {
+        `TILOG("Already found internal Twitch flag for obj ID " $ UnitObjID);
+        `XWORLDINFO.ConsoleCommand("flushlogs");
+
         if (Ownership != none) {
             TFlag.TwitchName.SetText(Ownership.TwitchLogin);
             TFlag.TwitchName.Show();
@@ -75,6 +90,9 @@ function AddOrUpdateFlag(XComGameState_Unit Unit, optional XComGameState_TwitchO
         }
     }
     else if (Ownership != none) {
+        `TILOG("Creating new Twitch flag");
+        `XWORLDINFO.ConsoleCommand("flushlogs");
+
         TFlag = CreateTwitchFlag(UnitFlag, Unit, Ownership);
 
         m_kTwitchFlags.AddItem(TFlag);

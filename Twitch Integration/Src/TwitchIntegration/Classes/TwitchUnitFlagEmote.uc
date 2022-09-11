@@ -11,6 +11,11 @@ var private int TargetWidth, TargetHeight;
 simulated function TwitchUnitFlagEmote Init(int MaxWidth, int MaxHeight, optional name InitName, optional string initImagePath,  optional delegate<OnClickedCallback> OnClickDel) {
     super.InitImage(InitName, InitImagePath, OnClickDel);
 
+    // This element's opacity is multiplicative with the opacity of the unit flag that contains it.
+    // XCOM team's unit flags fade out for units who aren't selected. By setting our alpha arbitrarily
+    // high, we can force this element to remain opaque even when the flag is faded.
+    SetAlpha(500);
+
     SetSize(1, 1);
     Hide();
 

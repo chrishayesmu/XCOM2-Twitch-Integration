@@ -113,8 +113,30 @@ private static function string GetMsgId(int ObjectID, bool bPermanent) {
 
 defaultproperties
 {
-    arrTwitchEmotes.Add("finoTB")
+    arrTwitchEmotes.Add("anamiyWTF")        // From SilverMillsy
+    arrTwitchEmotes.Add("banzer2F")         // From Banzerschreck
+    arrTwitchEmotes.Add("banzer2Freeze")    // From Banzerschreck
+    arrTwitchEmotes.Add("banzer2Nino")      // From Banzerschreck
+    arrTwitchEmotes.Add("banzer2Wtf")       // From Banzerschreck
+    arrTwitchEmotes.Add("BnuuyKILL")        // From SerSnufflesTheStalwart (for StarbrightLass)
+    arrTwitchEmotes.Add("britar1Evil")      // From Britarnya
+    arrTwitchEmotes.Add("cprPickle")        // From MrCoppertop101
+    arrTwitchEmotes.Add("cptscr3Grem")      // From CptScrapples
+    arrTwitchEmotes.Add("eizackAngy")       // From Eizack
+    arrTwitchEmotes.Add("eizackHaha")       // From Eizack
+    arrTwitchEmotes.Add("eizackHeart")      // From Eizack
+    arrTwitchEmotes.Add("finoTB")           // For (not from) Incrodon
+    arrTwitchEmotes.Add("GSohno")           // From GravitasShortfall
+    arrTwitchEmotes.Add("GSohyes")          // From GravitasShortfall
+    arrTwitchEmotes.Add("TransgenderPride") // From Herensica
+
+    // Easter eggs
+    arrTwitchEmotes.Add("mjbBABY")
+
+    // Global emotes
     arrTwitchEmotes.Add("LUL")
+
+    // MJB emotes
     arrTwitchEmotes.Add("mjbAyy")
     arrTwitchEmotes.Add("mjbBONK")
     arrTwitchEmotes.Add("mjbBRAD")

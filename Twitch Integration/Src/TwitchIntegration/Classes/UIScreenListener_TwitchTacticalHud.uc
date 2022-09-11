@@ -65,7 +65,7 @@ protected function CheckUnitLosStatus() {
         return;
     }
 
-    bPermanentNameplatesEnabled = `TI_CFG(bPermanentNameplatesEnabled);
+    bPermanentNameplatesEnabled = true; //`TI_CFG(bPermanentNameplatesEnabled);
 
     foreach `XCOMGAME.AllActors(class'XGUnit', Unit) {
         UnitFlag = UnitFlagManager.GetFlagForObjectID(Unit.ObjectID);
