@@ -99,6 +99,8 @@ function Initialize(delegate<ConnectionListener> OnConnect = none, delegate<Mess
     TwitchUsername = Locs(`TI_CFG(TwitchUsername));
     OAuthToken = `TI_CFG(OAuthToken);
 
+    `TILOG("Initializing Twitch connection with channel = " $ TwitchChannel $ ", username = " $ TwitchUsername);
+
 	OnMessageReceived = OnMessage;
     OnConnectSuccessful = OnConnect;
 
@@ -210,8 +212,6 @@ event ResolveFailed() {
 event Opened() {
     `TILOG("Sending IRC connect request", LogTraffic);
 
-    // IRC connection request: using a justinfan nickname means we can use a
-	// special password without needing OAuth, and enter chat in read-only mode.
 	// Note that channel name needs to be all lowercase
     `SENDLINE("CAP REQ :twitch.tv/commands");
     `SENDLINE("CAP REQ :twitch.tv/membership");

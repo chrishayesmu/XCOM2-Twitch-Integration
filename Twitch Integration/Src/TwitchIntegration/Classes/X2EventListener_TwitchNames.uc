@@ -243,9 +243,9 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
         return ELR_NoInterrupt;
     }
 
-    if (default.UnitTypesToNotRaffle.Find(Unit.GetMyTemplate().CharacterGroupName) != INDEX_NONE)
+    if (default.UnitTypesToNotRaffle.Find(Unit.GetMyTemplateName()) != INDEX_NONE)
     {
-        `TILOG("Unit character group name " $ Unit.GetMyTemplate().CharacterGroupName $ " is configured not to be raffled. Skipping.");
+        `TILOG("Unit character template " $ Unit.GetMyTemplateName() $ " is configured not to be raffled. Skipping.");
         return ELR_NoInterrupt;
     }
 

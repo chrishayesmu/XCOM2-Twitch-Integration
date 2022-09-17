@@ -209,6 +209,12 @@ function HandleChatCommand(TwitchMessage Command, TwitchViewer Viewer) {
 }
 
 function LoadViewerList() {
+    if (`TI_CFG(TwitchChannel) == "")
+    {
+        `TILOG("ERROR: TwitchChannel config option is not set! Cannot retrieve viewers.");
+        return;
+    }
+
 	HttpGet = Spawn(class'HttpGetRequest');
 	HttpGet.Call("tmi.twitch.tv/group/user/" $ Locs(`TI_CFG(TwitchChannel)) $ "/chatters", OnNamesListReceived, OnNamesListReceiveError);
 }
