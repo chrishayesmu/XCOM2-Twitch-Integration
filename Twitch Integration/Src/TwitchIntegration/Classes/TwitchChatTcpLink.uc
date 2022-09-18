@@ -38,6 +38,7 @@ struct TwitchViewer {
     var int LastSeenTime;    // Unix timestamp (seconds) of when this viewer was last seen to be active
     var int OwnedObjectID;   // If > 0, the ID of an object this viewer has raffled as owner of
 
+    var bool bHasSentChat;   // Has this user ever sent a chat message?
     var bool bIsMod;         // Is this user a moderator?
     var bool bIsSub;         // Is this user subbed to the channel?
     var bool bIsVip;         // Is this user a channel VIP?
@@ -369,7 +370,7 @@ private function TwitchMessage ParseMessage(string Message, out TwitchViewer Vie
         return MessageStruct;
     }
 
-    Viewer = UpsertViewer(Sender, DataTags);
+    Viewer = UpsertViewer(Sender, DataTags, MessageStruct.MessageType);
     MessageStruct.SenderLogin = Viewer.Login;
 
     // Need to do this after UpsertViewer since that sets the viewer's login
@@ -504,7 +505,7 @@ private function PurgeStaleViewers() {
     }
 }
 
-private function TwitchViewer UpsertViewer(string SenderField, out array<MessageTag> Tags) {
+private function TwitchViewer UpsertViewer(string SenderField, const array<MessageTag> Tags, eTwitchMessageType MessageType) {
     local int Index;
     local string Login;
     local MessageTag MsgTag;
@@ -549,6 +550,10 @@ private function TwitchViewer UpsertViewer(string SenderField, out array<Message
             default: // bunch of keys we don't care about
                 break;
         }
+    }
+
+    if (MessageType == eTwitchMessageType_Chat) {
+        Viewer.bHasSentChat = true;
     }
 
     if (Index == INDEX_NONE) {

@@ -85,6 +85,8 @@ var localized string strAssignUnitNamesLabel;
 var localized string strAssignUnitNamesTooltip;
 var localized string strAssignChosenNamesLabel;
 var localized string strAssignChosenNamesTooltip;
+var localized string strRequireActiveChatterForChosenLabel;
+var localized string strRequireActiveChatterForChosenTooltip;
 var localized string strExcludeBroadcasterLabel;
 var localized string strExcludeBroadcasterTooltip;
 
@@ -135,6 +137,7 @@ var config int  ChanceToStartPoll;
 
 var config bool bAssignUnitNames;
 var config bool bAssignChosenNames;
+var config bool bRequireActiveChatterForChosen;
 var config bool bExcludeBroadcaster;
 
 // #endregion
@@ -202,6 +205,7 @@ function ClientModCallback(MCM_API_Instance ConfigAPI, int GameMode) {
     Group = Page.AddGroup('TwitchRaffleSettings', strRaffleSettingsGroupTitle);
     Setting = Group.AddCheckbox(nameof(bAssignUnitNames), strAssignUnitNamesLabel, strAssignUnitNamesTooltip, bAssignUnitNames, AssignUnitNamesSaveHandler, DisableGroupWhenFalseHandler);
     Group.AddCheckbox(nameof(bAssignChosenNames), strAssignChosenNamesLabel, strAssignChosenNamesTooltip, bAssignChosenNames, AssignChosenNamesSaveHandler);
+    Group.AddCheckbox(nameof(bRequireActiveChatterForChosen), strRequireActiveChatterForChosenLabel, strRequireActiveChatterForChosenTooltip, bRequireActiveChatterForChosen, RequireActiveChatterForChosenSaveHandler);
     Group.AddCheckbox(nameof(bExcludeBroadcaster), strExcludeBroadcasterLabel, strExcludeBroadcasterTooltip, bExcludeBroadcaster, ExcludeBroadcasterSaveHandler);
 
     DisableGroupWhenFalseHandler(Setting, bAssignUnitNames);
@@ -377,6 +381,7 @@ private function OnTwitchUsernameInputBoxClosed(string Text) {
 `MCM_API_BasicCheckboxSaveHandler(FormatDeadMessagesSaveHandler, bFormatDeadMessages);
 `MCM_API_BasicCheckboxSaveHandler(AssignUnitNamesSaveHandler, bAssignUnitNames);
 `MCM_API_BasicCheckboxSaveHandler(AssignChosenNamesSaveHandler, bAssignChosenNames);
+`MCM_API_BasicCheckboxSaveHandler(RequireActiveChatterForChosenSaveHandler, bRequireActiveChatterForChosen);
 `MCM_API_BasicCheckboxSaveHandler(ExcludeBroadcasterSaveHandler, bExcludeBroadcaster);
 `MCM_API_BasicSliderSaveHandler(ViewerTTLSaveHandler, ViewerTTLInMinutes);
 `MCM_API_BasicSliderSaveHandler(PollDurationInTurnsSaveHandler, PollDurationInTurns);

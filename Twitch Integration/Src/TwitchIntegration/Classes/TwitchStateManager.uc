@@ -224,7 +224,7 @@ function LoadViewerList() {
 /// ownership first, or you may get the same viewer repeatedly.
 /// </summary>
 /// <returns>The index of the viewer in the TwitchChatConn.Viewers array, or INDEX_NONE if no viewers are available.</returns>
-function int RaffleViewer() {
+function int RaffleViewer(bool bRequireActiveChatter) {
     local bool bExcludeBroadcaster;
     local int AvailableIndex, Index, RaffledIndex;
     local int NumAvailableViewers;
@@ -245,6 +245,10 @@ function int RaffleViewer() {
             continue;
         }
 
+        if (bRequireActiveChatter && !Viewer.bHasSentChat) {
+            continue;
+        }
+
         NumAvailableViewers++;
     }
 
@@ -256,13 +260,19 @@ function int RaffleViewer() {
     `TILOG("Out of " $ NumAvailableViewers $ " available viewers, rolled for #" $ RaffledIndex);
 
     for (Index = 0; Index < TwitchChatConn.Viewers.Length; Index++) {
+        Viewer = TwitchChatConn.Viewers[Index];
+
         // We've raffled an index into a virtual array of only available viewers, so now we
         // need to count through it by only incrementing at available viewers
-        if (TwitchChatConn.Viewers[Index].OwnedObjectID > 0) {
+        if (Viewer.OwnedObjectID > 0) {
             continue;
         }
 
         if (bExcludeBroadcaster && Viewer.Login ~= TwitchChannel) {
+            continue;
+        }
+
+        if (bRequireActiveChatter && !Viewer.bHasSentChat) {
             continue;
         }
 

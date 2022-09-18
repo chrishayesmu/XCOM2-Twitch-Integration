@@ -206,6 +206,7 @@ static protected function EventListenerReturn AssignNamesToUnits(Object EventDat
 }
 
 static protected function EventListenerReturn ChooseViewerName(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
+    local bool bRequireActiveChatter;
     local int ViewerIndex;
     local TwitchChatTcpLink TwitchConn;
     local TwitchStateManager TwitchMgr;
@@ -217,6 +218,7 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
 		return ELR_NoInterrupt;
     }
 
+    bRequireActiveChatter = false;
     TwitchMgr = `TISTATEMGR;
     TwitchConn = TwitchMgr.TwitchChatConn;
 	Unit = XComGameState_Unit(EventSource);
@@ -263,6 +265,15 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
         return ELR_NoInterrupt;
     }
 
+    if (Unit.IsChosen()) {
+        if (!`TI_CFG(bAssignChosenNames)) {
+            `TILOG("Aborting ChooseViewerName: unit is Chosen and bAssignChosenNames is false", DetailedLogs);
+            return ELR_NoInterrupt;
+        }
+
+        bRequireActiveChatter = `TI_CFG(bRequireActiveChatterForChosen);
+    }
+
     OriginalUnit = class'X2TwitchUtils'.static.FindSourceUnitFromSpawnEffect(Unit, GameState);
 
     if (OriginalUnit != none) {
@@ -277,7 +288,7 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
     }
 
     // Pick a viewer at random, if any available
-    ViewerIndex = TwitchMgr.RaffleViewer();
+    ViewerIndex = TwitchMgr.RaffleViewer(bRequireActiveChatter);
 
     if (ViewerIndex == INDEX_NONE) {
         // We'll have to try again later when there might be more viewers in the pool
