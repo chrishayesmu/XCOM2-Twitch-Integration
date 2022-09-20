@@ -50,7 +50,6 @@ static function X2EventListenerTemplate UnitAssignName() {
 static function XComGameState_TwitchObjectOwnership AssignOwnership(string ViewerLogin, int ObjID, optional XComGameState NewGameState, optional bool OverridePreviousOwnership = false, optional bool AllowMultipleOwnership = false) {
     local bool bCreatedGameState;
     local int ViewerIndex;
-	local string FirstName, LastName;
     local TwitchStateManager StateMgr;
     local TwitchViewer Viewer;
     local XComGameState_TwitchObjectOwnership OwnershipState;
@@ -135,28 +134,7 @@ static function XComGameState_TwitchObjectOwnership AssignOwnership(string Viewe
     `TILOG("Updated unit flag");
     `XWORLDINFO.ConsoleCommand("flushlogs");
 
-    if (Unit.GetTeam() == eTeam_XCom && ( Unit.IsSoldier() || Unit.GetMyTemplate().bIsCosmetic )) {
-        // Don't do anything in this case; we don't modify soldiers because the player has full agency to do that
-    }
-    else {
-        Unit = XComGameState_Unit(NewGameState.ModifyStateObject(class'XComGameState_Unit', Unit.GetReference().ObjectID));
 
-        if (Unit.IsCivilian() || Unit.IsSoldier()) {
-            // For civilians and Resistance soldiers, we only show the viewer name. We want to make sure it's
-            // in the LastName slot, because the name shows as "First Last", so if LastName is empty there's
-            // two spaces in a row, which is noticeable.
-            FirstName = "";
-            LastName = `TIVIEWERNAME(Viewer);
-        }
-        else {
-            FirstName = `TIVIEWERNAME(Viewer);
-            LastName = "(" $ Unit.GetName(eNameType_Full) $ ")";
-        }
-
-        `TILOG("Setting unit name");
-    `XWORLDINFO.ConsoleCommand("flushlogs");
-        Unit.SetUnitName(FirstName, LastName, "");
-    }
 // #endregion
 
     // For Chosen, we need a little extra info and have to modify a more global game state
@@ -276,7 +254,7 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
 
     OriginalUnit = class'X2TwitchUtils'.static.FindSourceUnitFromSpawnEffect(Unit, GameState);
 
-    if (OriginalUnit != none) {
+    if (OriginalUnit != none && Unit.GetMyTemplate().CharacterGroupName != 'Cyberus') {
         `TILOG("Unit appears to be spawned from something else. Attempting to transfer ownership");
 
         if (TransferOwnershipFromOriginal(OriginalUnit, Unit)) {

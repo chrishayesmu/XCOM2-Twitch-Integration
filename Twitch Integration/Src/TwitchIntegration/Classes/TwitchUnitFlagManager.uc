@@ -18,6 +18,8 @@ var config TLabelPosition UnalliedEmoteSize;
 var config TLabelPosition UnalliedNamePosition;
 var config float BackgroundOpacity;
 
+var private float fTimeSinceLastFlagCheck;
+var private array<int> UnitIDsPendingFlagUpdate;
 var private array<TwitchFlag> m_kTwitchFlags;
 
 const ICON_HEIGHT = 28;
@@ -42,33 +44,66 @@ function Initialize() {
     }
 }
 
-function AddOrUpdateFlag(XComGameState_Unit Unit, optional XComGameState_TwitchObjectOwnership Ownership = none) {
+event Tick(float DeltaTime) {
+    local XComGameState_Unit UnitState;
+    local int Index;
+
+    super.Tick(DeltaTime);
+
+    fTimeSinceLastFlagCheck += DeltaTime;
+
+    if (fTimeSinceLastFlagCheck >= 2.0f) {
+        fTimeSinceLastFlagCheck = 0.0f;
+
+        for (Index = UnitIDsPendingFlagUpdate.Length - 1; Index >= 0; Index--) {
+            `TILOG("Index = " $ Index $ "; UnitIDsPendingFlagUpdate.Length = " $ UnitIDsPendingFlagUpdate.Length);
+
+            UnitState = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(UnitIDsPendingFlagUpdate[Index]));
+
+            if (AddOrUpdateFlag(UnitState)) {
+                UnitIDsPendingFlagUpdate.Remove(Index, 1);
+            }
+        }
+    }
+}
+
+function bool AddOrUpdateFlag(XComGameState_Unit Unit, optional XComGameState_TwitchObjectOwnership Ownership = none) {
     local int UnitObjID;
     local TwitchFlag TFlag;
     local UIUnitFlag UnitFlag;
     local XComPresentationLayer Pres;
 
     `TILOG("AddOrUpdateFlag for Unit = " $ Unit $ ", Ownership = " $ Ownership);
+    `XWORLDINFO.ConsoleCommand("flushlogs");
+
+    if (Unit == none) {
+        `TILOG("ERROR: asked to update unit flag but Unit was none!");
+        return false;
+    }
+
     Pres = `PRES;
     UnitObjID = Unit.GetReference().ObjectID;
     UnitFlag = Pres.m_kUnitFlagManager.GetFlagForObjectID(UnitObjID);
 
-    if (UnitFlag == none) {
-        `TILOG("Flag is none; creating new flag");
-        `XWORLDINFO.ConsoleCommand("flushlogs");
-        Pres.m_kUnitFlagManager.AddFlag(Unit.GetReference());
-        `TILOG("Flag created, getting it");
-        `XWORLDINFO.ConsoleCommand("flushlogs");
-        UnitFlag = Pres.m_kUnitFlagManager.GetFlagForObjectID(UnitObjID);
-        `TILOG("Flag retrieved: " $ UnitFlag);
-        `XWORLDINFO.ConsoleCommand("flushlogs");
-    }
-
-    `XWORLDINFO.ConsoleCommand("flushlogs");
-
     if (Ownership == none) {
         `TILOG("Ownership is none; retrieving it");
         Ownership = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Unit.ObjectID);
+    }
+
+    if (Unit.GetMyTemplate().bIsCosmetic || Unit.IsCivilian() || Unit.bRemovedFromPlay) {
+        `TILOG("This unit will never have a flag; skipping it");
+        SetUnitName(Unit, Ownership);
+        return true; // act like we added a flag, because retrying is a waste
+    }
+
+    if (UnitFlag == none) {
+        `TILOG("Unit has no flag; adding to list of units to sync later");
+
+        if (UnitIDsPendingFlagUpdate.Find(UnitObjID) == INDEX_NONE) {
+            UnitIDsPendingFlagUpdate.AddItem(UnitObjID);
+        }
+
+        return false;
     }
 
     `XWORLDINFO.ConsoleCommand("flushlogs");
@@ -94,9 +129,15 @@ function AddOrUpdateFlag(XComGameState_Unit Unit, optional XComGameState_TwitchO
         `XWORLDINFO.ConsoleCommand("flushlogs");
 
         TFlag = CreateTwitchFlag(UnitFlag, Unit, Ownership);
-
         m_kTwitchFlags.AddItem(TFlag);
+
+        // Once our flag is created, it's time to set the unit's name. We don't want to do this
+        // before the unit flag is fully initialized, because we want the base game's flag to show
+        // the unit's original name, and not include the Twitch name in it.
+        SetUnitName(Unit, Ownership);
     }
+
+    return true;
 }
 
 function bool GetFlagForObject(int ObjectID, out TwitchFlag TFlag) {
@@ -162,6 +203,48 @@ private function TwitchFlag CreateTwitchFlag(UIUnitFlag UnitFlag, XComGameState_
     }
 
     return TFlag;
+}
+
+private function SetUnitName(XComGameState_Unit Unit, XComGameState_TwitchObjectOwnership Ownership) {
+
+    local XComGameState NewGameState;
+    local XComGameState_Unit OriginalUnit;
+    local TwitchViewer Viewer;
+	local string FirstName, LastName;
+
+    if (Unit.GetTeam() == eTeam_XCom && ( Unit.IsSoldier() || Unit.GetMyTemplate().bIsCosmetic )) {
+        // Don't do anything in this case; we don't modify soldiers because the player has full agency to do that
+        return;
+    }
+
+    `TISTATEMGR.TwitchChatConn.GetViewer(Ownership.TwitchLogin, Viewer);
+
+    if (Unit.bReadOnly) {
+        NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("TwitchIntegration: Set Unit Name");
+        Unit = XComGameState_Unit(NewGameState.ModifyStateObject(class'XComGameState_Unit', Unit.GetReference().ObjectID));
+    }
+
+    if (Unit.IsCivilian() || Unit.IsSoldier()) {
+        // For civilians and Resistance soldiers, we only show the viewer name. We want to make sure it's
+        // in the LastName slot, because the name shows as "First Last", so if LastName is empty there's
+        // two spaces in a row, which is noticeable.
+        FirstName = "";
+        LastName = `TIVIEWERNAME(Viewer);
+    }
+    else {
+        OriginalUnit = XComGameState_Unit(`XCOMHISTORY.GetOriginalGameStateRevision(Unit.GetReference().ObjectID));
+
+        FirstName = `TIVIEWERNAME(Viewer);
+        LastName = "(" $ OriginalUnit.GetName(eNameType_Full) $ ")";
+    }
+
+    `TILOG("Setting unit name");
+    `XWORLDINFO.ConsoleCommand("flushlogs");
+    Unit.SetUnitName(FirstName, LastName, "");
+
+    if (NewGameState != none) {
+        `GAMERULES.SubmitGameState(NewGameState);
+    }
 }
 
 private function OnTextSizeRealized() {

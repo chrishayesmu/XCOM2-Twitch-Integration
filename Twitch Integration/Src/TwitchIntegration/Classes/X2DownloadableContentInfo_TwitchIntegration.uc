@@ -252,6 +252,9 @@ exec function TwitchQuickPoll(ePollType PollType) {
 exec function TwitchRaffleUnitUnderMouse() {
 	local XComGameState_TwitchObjectOwnership OwnershipState;
 	local XComGameState_Unit Unit;
+    local TwitchStateManager StateMgr;
+
+    StateMgr = `TISTATEMGR;
 
 	Unit = `CHEATMGR.GetClosestUnitToCursor(, /* bConsiderDead */ true);
 	if (Unit == none) {
@@ -268,7 +271,8 @@ exec function TwitchRaffleUnitUnderMouse() {
     }
 
     class'Helpers'.static.OutputMsg("Triggering raffle of all unowned units");
-    `XEVENTMGR.TriggerEvent('TwitchAssignUnitNames');
+    StateMgr.bUnraffledUnitsExist = true;
+    StateMgr.fTimeSinceLastRaffle = 100.0f;
 }
 
 /// <summary>

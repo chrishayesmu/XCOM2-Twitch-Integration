@@ -26,7 +26,7 @@ var private HttpResponse Response;
 var private delegate<ResponseHandler> OnRequestComplete;
 var private delegate<ResponseHandler> OnRequestError;
 
-delegate ResponseHandler(HttpResponse Resp);
+delegate ResponseHandler(HttpGetRequest Request, HttpResponse Resp);
 
 const LogRequest = false;
 
@@ -36,7 +36,7 @@ function Call(string Url, delegate<ResponseHandler> CompletionHandler, delegate<
 	local int Index;
 
     if (bRequestInProgress) {
-        `WARN("[HttpGetRequest] Same object is being re-used while still in use, which is not allowed", );
+        `WARN("[HttpGetRequest] Same object is being re-used while still in use, which is not allowed");
         return;
     }
 
@@ -79,12 +79,12 @@ event Resolved(IpAddr Addr)
 
     if (!Open(Addr))
     {
-        `WARN("[HttpGetRequest] Failed to open request", );
+        `WARN("[HttpGetRequest] Failed to open request");
 
         Response.ResponseCode = 400;
 
         if (OnRequestError != none) {
-            OnRequestError(Response);
+            OnRequestError(self, Response);
         }
     }
 }
@@ -96,7 +96,7 @@ event ResolveFailed()
     Response.ResponseCode = 400;
 
     if (OnRequestError != none) {
-        OnRequestError(Response);
+        OnRequestError(self, Response);
     }
 }
 
@@ -122,7 +122,7 @@ event Closed()
 
     bRequestInProgress = false;
 
-	OnRequestComplete(Response);
+	OnRequestComplete(self, Response);
 }
 
 event ReceivedText(string Text)
@@ -180,7 +180,7 @@ event ReceivedText(string Text)
 
         if (Response.ResponseCode < 200 || Response.ResponseCode >= 300) {
             if (OnRequestError != none) {
-                OnRequestError(Response);
+                OnRequestError(self, Response);
             }
 
             return;
@@ -281,7 +281,7 @@ private function int HexToInt(string HexVal) {
         }
 
         if (CurrentCharAscii < 0 || CurrentCharAscii > 15) {
-            `TILOG("WARNING: character out of range; adjusted ASCII value is " $ CurrentCharAscii, );
+            `TILOG("WARNING: character out of range; adjusted ASCII value is " $ CurrentCharAscii);
             return -1;
         }
 

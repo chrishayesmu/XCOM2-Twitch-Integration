@@ -24,6 +24,7 @@ var private int OptionsPerPoll;
 // State variables
 
 var bool bUnraffledUnitsExist;
+var float fTimeSinceLastRaffle;
 var privatewrite bool bIsViewerListPopulated;
 var private array<string> VotersInCurrentPoll;
 
@@ -130,9 +131,26 @@ function Initialize() {
     LoadViewerList();
     SetTimer(180.0, /* inBLoop */ true, nameof(LoadViewerList));
 
-    // Periodically raffle any unraffled units. This covers us if there are more units than there are
-    // viewers; every time our viewer pool increases, we can clear out some of the unraffled units.
-    SetTimer(3.0, /* inBLoop */ true, nameof(RaffleUnitsIfNeeded));
+    // Initially raffle any unraffled units. We have to be careful to always do this from the main thread and
+    // not in response to web requests, or we can end up submitting a game state from an illegal thread and
+    // crash the game.
+    bUnraffledUnitsExist = true;
+    fTimeSinceLastRaffle = 100.0f;
+}
+
+event Tick(float DeltaTime) {
+    super.Tick(DeltaTime);
+
+    if (bUnraffledUnitsExist) {
+        fTimeSinceLastRaffle += DeltaTime;
+
+        if (fTimeSinceLastRaffle >= 5.0f && bIsViewerListPopulated) {
+            bUnraffledUnitsExist = false;
+            fTimeSinceLastRaffle = 0.0f;
+
+            `XEVENTMGR.TriggerEvent('TwitchAssignUnitNames');
+        }
+    }
 }
 
 function CastVote(TwitchViewer Viewer, int OptionIndex) {
@@ -353,10 +371,6 @@ function StartPoll(ePollType PollType, int DurationInTurns, optional XComGameSta
     class'UIPollPanel'.static.UpdateInProgress();
 }
 
-simulated event PostLoadGame() {
-    `TILOG("PostLoadGame for TwitchStateManager");
-}
-
 // ----------------------------------------------
 // Private functions
 
@@ -403,14 +417,14 @@ private function OnConnectedToTwitchChat() {
     }
 }
 
-private function OnNamesListReceiveError(HttpResponse Response) {
+private function OnNamesListReceiveError(HttpGetRequest Request, HttpResponse Response) {
     `TILOG("Error occurred when retrieving viewers; response code was " $ Response.ResponseCode);
 
-    HttpGet.Close();
-    HttpGet.Destroy();
+    Request.Close();
+    Request.Destroy();
 }
 
-private function OnNamesListReceived(HttpResponse Response) {
+private function OnNamesListReceived(HttpGetRequest Request, HttpResponse Response) {
 	local JsonObject JsonObj;
 
 	if (Response.ResponseCode != 200) {
@@ -430,9 +444,7 @@ private function OnNamesListReceived(HttpResponse Response) {
     PopulateViewers(JsonObj.GetObject("viewers").ValueArray);
 
     bIsViewerListPopulated = true;
-    HttpGet.Destroy();
-
-    `XEVENTMGR.TriggerEvent('TwitchAssignUnitNames');
+    Request.Destroy();
 }
 
 private function EventListenerReturn OnPlayerTurnBegun(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
@@ -531,13 +543,6 @@ private function PopulateViewers(array<string> ViewerLogins) {
         }
 
         TwitchChatConn.Viewers.AddItem(Viewer);
-    }
-}
-
-private function RaffleUnitsIfNeeded() {
-    if (bUnraffledUnitsExist) {
-        bUnraffledUnitsExist = false;
-        `XEVENTMGR.TriggerEvent('TwitchAssignUnitNames');
     }
 }
 
