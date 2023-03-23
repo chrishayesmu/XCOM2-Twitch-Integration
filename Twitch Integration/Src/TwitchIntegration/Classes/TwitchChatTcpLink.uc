@@ -283,14 +283,10 @@ event Tick(float DeltaTime) {
 private function HandleMessage(TwitchMessage Message, TwitchViewer FromViewer) {
     local QueuedInboundMessage InboundMessage;
 
-    bEnqueueMessage = true;
-
 	if (Message.MessageType == eTwitchMessageType_Irrelevant) {
-		bEnqueueMessage = false;
+		return;
 	}
 	else if (Message.MessageType == eTwitchMessageType_MOTD) {
-        bEnqueueMessage = false;
-
 		`TILOG("Successfully connected to Twitch chat on attempt #" $ NumConnectAttempts, LogTraffic);
         NumConnectAttempts = 0;
 
