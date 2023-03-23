@@ -53,6 +53,11 @@ struct QueuedOutboundMessage {
     // TODO support message priority
 };
 
+struct QueuedInboundMessage {
+    var TwitchMessage Message;
+    var TwitchViewer FromViewer;
+};
+
 // ------------------------------------------
 // Config vars
 
@@ -78,7 +83,8 @@ var private string TargetHost;
 var private int TargetPort;
 
 var private string MessagePrefix;
-var private array<QueuedOutboundMessage> MessageQueue;
+var private array<QueuedOutboundMessage> OutboundMessageQueue;
+var private array<QueuedInboundMessage> InboundMessageQueue;
 
 var private delegate<MessageListener> OnMessageReceived;
 var private delegate<ConnectionListener> OnConnectSuccessful;
@@ -152,7 +158,7 @@ function QueueChat(string Message, float TimeoutInSeconds) {
     QueueMsg.TimeoutInSeconds = TimeoutInSeconds;
     QueueMsg.SubmittedRealTimeSeconds = WorldInfo.RealTimeSeconds;
 
-    MessageQueue.AddItem(QueueMsg);
+    OutboundMessageQueue.AddItem(QueueMsg);
 }
 
 // Queues a whisper to be sent to the target viewer. Due to rate limiting, it may take
@@ -167,7 +173,7 @@ function QueueWhisper(string TargetViewerName, string Message, float TimeoutInSe
     QueueMsg.ViewerNameToWhisper = TargetViewerName;
     QueueMsg.SubmittedRealTimeSeconds = WorldInfo.RealTimeSeconds;
 
-    MessageQueue.AddItem(QueueMsg);
+    OutboundMessageQueue.AddItem(QueueMsg);
 }
 
 // ------------------------------------------
@@ -180,6 +186,7 @@ function Connect() {
     }
 
     if (IsConnected()) {
+        `TILOG("Connection already established to Twitch. Not reconnecting.");
         return;
     }
 
@@ -263,12 +270,27 @@ event ReceivedLine(string MessageStr) {
     HandleMessage(Message, Viewer);
 }
 
-private function HandleMessage(TwitchMessage Message, TwitchViewer FromViewer) {
-	if (Message.MessageType == eTwitchMessageType_Irrelevant) {
-		return;
-	}
+event Tick(float DeltaTime) {
+    local int I;
 
-	if (Message.MessageType == eTwitchMessageType_MOTD) {
+    for (I = 0; I < InboundMessageQueue.Length; I++) {
+        OnMessageReceived(InboundMessageQueue[I].Message, InboundMessageQueue[I].FromViewer);
+    }
+
+    InboundMessageQueue.Length = 0;
+}
+
+private function HandleMessage(TwitchMessage Message, TwitchViewer FromViewer) {
+    local QueuedInboundMessage InboundMessage;
+
+    bEnqueueMessage = true;
+
+	if (Message.MessageType == eTwitchMessageType_Irrelevant) {
+		bEnqueueMessage = false;
+	}
+	else if (Message.MessageType == eTwitchMessageType_MOTD) {
+        bEnqueueMessage = false;
+
 		`TILOG("Successfully connected to Twitch chat on attempt #" $ NumConnectAttempts, LogTraffic);
         NumConnectAttempts = 0;
 
@@ -277,18 +299,20 @@ private function HandleMessage(TwitchMessage Message, TwitchViewer FromViewer) {
 
 		`XEVENTMGR.TriggerEvent('TwitchChatConnectionSuccessful');
 
-        if (OnConnectSuccessful != none) {
-            OnConnectSuccessful();
-        }
+        OnConnectSuccessful();
 	}
 	else if (Message.MessageType == eTwitchMessageType_Ping) {
 		// Need to respond to pings as a connection keep-alive
 		`TILOG("Replying to PING with PONG", LogTraffic);
 		`SENDLINE("PONG :tmi.twitch.tv");
 	}
+    else {
+        // Our connection seems to run in a separate thread from the game logic, so we don't process most messages immediately.
+        // They're queued up until the connection's Tick function runs in the game thread.
+        InboundMessage.Message = Message;
+        InboundMessage.FromViewer = FromViewer;
 
-    if (OnMessageReceived != none) {
-        OnMessageReceived(Message, FromViewer);
+        InboundMessageQueue.AddItem(InboundMessage);
     }
 }
 
@@ -455,15 +479,15 @@ private function ProcessMessageQueue() {
     local int Index;
     local string IrcCommand;
 
-    if (MessageQueue.Length == 0) {
+    if (OutboundMessageQueue.Length == 0) {
         return;
     }
 
     // TODO: implement rate limiting
-    `TILOG("Processing message queue. There are currently " $ MessageQueue.Length $ " messages pending", LogTraffic);
+    `TILOG("Processing message queue. There are currently " $ OutboundMessageQueue.Length $ " messages pending", LogTraffic);
 
-    for (Index = 0; Index < MessageQueue.Length; Index++) {
-        Message = MessageQueue[Index];
+    for (Index = 0; Index < OutboundMessageQueue.Length; Index++) {
+        Message = OutboundMessageQueue[Index];
 
         bIsWhisper = (Message.ViewerNameToWhisper != "");
 
@@ -480,7 +504,7 @@ private function ProcessMessageQueue() {
 
         `SENDLINE(IrcCommand);
 
-        MessageQueue.Remove(Index, 1);
+        OutboundMessageQueue.Remove(Index, 1);
         Index--;
     }
 
