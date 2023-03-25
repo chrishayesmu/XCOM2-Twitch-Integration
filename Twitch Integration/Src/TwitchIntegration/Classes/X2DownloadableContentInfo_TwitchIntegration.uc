@@ -78,7 +78,7 @@ exec function TwitchCastVote(string ViewerName, int Option) {
 /// <summary>
 /// Executes a Twitch command as though it were coming from the specified viewer.
 /// </summary>
-exec function TwitchChatCommand(string Command, string ViewerLogin, optional string CommandBody) {
+exec function TwitchChatCommand(string ViewerLogin, string Command, optional string CommandBody) {
     local TwitchMessage Message;
     local TwitchViewer Viewer;
     local TwitchStateManager StateMgr;
@@ -96,13 +96,6 @@ exec function TwitchChatCommand(string Command, string ViewerLogin, optional str
     }
 
     StateMgr.HandleChatCommand(Message, Viewer);
-}
-
-exec function TwitchBinted() {
-    TwitchChatCommand("xsay", "cyberdiscluvr", "Hey, just wondering if you got your photos printed?");
-    TwitchChatCommand("xsay", "crumlord", "bogos binted?");
-    TwitchChatCommand("xsay", "cyberdiscluvr", "What");
-    TwitchChatCommand("xsay", "crumlord", " ");
 }
 
 exec function TwitchCleanStates(optional bool bForce = false) {
