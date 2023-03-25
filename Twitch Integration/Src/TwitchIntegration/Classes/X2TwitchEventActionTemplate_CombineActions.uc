@@ -54,9 +54,7 @@ function Apply(optional XComGameState_Unit InvokingUnit, optional XComGameState_
 
     // Now again for non-unit templates
     foreach ActionTemplates(Template) {
-        TargetsUnitTemplate = X2TwitchEventActionTemplate_TargetsUnits(Template);
-
-        if (TargetsUnitTemplate != none) {
+        if (Template.IsA('X2TwitchEventActionTemplate_TargetsUnits')) {
             continue;
         }
 
@@ -66,7 +64,6 @@ function Apply(optional XComGameState_Unit InvokingUnit, optional XComGameState_
 }
 
 protected function bool IsValidTarget(XComGameState_Unit Unit) {
-    local bool ValidForAny;
     local X2TwitchEventActionTemplate Template;
     local X2TwitchEventActionTemplate_TargetsUnits TargetsUnitTemplate;
 
@@ -77,14 +74,12 @@ protected function bool IsValidTarget(XComGameState_Unit Unit) {
             continue;
         }
 
-        ValidForAny = ValidForAny || TargetsUnitTemplate.IsValidTarget(Unit);
-
-        if (ValidForAny) {
-            break;
+        if (TargetsUnitTemplate.IsValidTarget(Unit)) {
+            return true;
         }
     }
 
-    return ValidForAny;
+    return false;
 }
 
 private function CacheTemplates() {

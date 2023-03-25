@@ -3,14 +3,6 @@
  */
 class X2TwitchEventAbilities extends X2Ability;
 
-var privatewrite name BurnSelfAbilityName;
-var privatewrite name DisorientSelfAbilityName;
-var privatewrite name InvincibleAbilityName;
-var privatewrite name KnockSelfUnconsciousAbilityName;
-var privatewrite name PanicSelfAbilityName;
-var privatewrite name ScaleSelfAbilityName;
-var privatewrite name StunSelfAbilityName;
-
 static function array<X2DataTemplate> CreateTemplates()
 {
 	local array<X2DataTemplate> Templates;
@@ -30,7 +22,7 @@ static function X2DataTemplate CreateBurnSelfAbility() {
     local X2AbilityTemplate Template;
 	local X2Effect_Persistent BurningEffect;
 
-    Template = CreateSelfTargetingAbility(default.BurnSelfAbilityName);
+    Template = CreateSelfTargetingAbility('Twitch_BurnSelf');
 
     BurningEffect = class'X2StatusEffects'.static.CreateBurningStatusEffect(1, 0); // TODO: use config values
     Template.AddTargetEffect(BurningEffect);
@@ -42,7 +34,7 @@ static function X2DataTemplate CreateDisorientSelfAbility() {
     local X2AbilityTemplate Template;
 	local X2Effect_Persistent DisorientedEffect;
 
-    Template = CreateSelfTargetingAbility(default.DisorientSelfAbilityName);
+    Template = CreateSelfTargetingAbility('Twitch_DisorientSelf');
 
     DisorientedEffect = class'X2StatusEffects'.static.CreateDisorientedStatusEffect(false, , false);
     Template.AddTargetEffect(DisorientedEffect);
@@ -54,7 +46,7 @@ static function X2DataTemplate CreateKnockSelfUnconsciousAbility() {
     local X2AbilityTemplate Template;
 	local X2Effect_Persistent UnconsciousEffect;
 
-    Template = CreateSelfTargetingAbility(default.KnockSelfUnconsciousAbilityName);
+    Template = CreateSelfTargetingAbility('Twitch_KnockSelfUnconscious');
 
     UnconsciousEffect = class'X2StatusEffects'.static.CreateUnconsciousStatusEffect();
     Template.AddTargetEffect(UnconsciousEffect);
@@ -66,7 +58,7 @@ static function X2DataTemplate CreatePanicSelfAbility() {
     local X2AbilityTemplate Template;
 	local X2Effect_Panicked PanickedEffect;
 
-    Template = CreateSelfTargetingAbility(default.PanicSelfAbilityName);
+    Template = CreateSelfTargetingAbility('Twitch_PanicSelf');
 
     PanickedEffect = class'X2StatusEffects'.static.CreatePanickedStatusEffect();
     Template.AddTargetEffect(PanickedEffect);
@@ -78,7 +70,7 @@ static function X2DataTemplate CreateScaleSelfAbility() {
     local X2AbilityTemplate Template;
 	local X2Effect_Twitch_ScaleUnit ScaleEffect;
 
-    Template = CreateSelfTargetingAbility(default.ScaleSelfAbilityName);
+    Template = CreateSelfTargetingAbility('Twitch_ScaleSelf');
 
     ScaleEffect = class'X2Effect_Twitch_ScaleUnit'.static.CreateScaleUnitEffect(0.5); // TODO use config value
     Template.AddTargetEffect(ScaleEffect);
@@ -90,7 +82,7 @@ static function X2DataTemplate CreateStunSelfAbility() {
     local X2AbilityTemplate Template;
 	local X2Effect_Stunned StunnedEffect;
 
-    Template = CreateSelfTargetingAbility(default.StunSelfAbilityName);
+    Template = CreateSelfTargetingAbility('Twitch_StunSelf');
 
     StunnedEffect = class'X2StatusEffects'.static.CreateStunnedStatusEffect(2, 100, false);
     Template.AddTargetEffect(StunnedEffect);
@@ -102,7 +94,7 @@ static function X2DataTemplate CreateInvincibleAbility() {
     local X2AbilityTemplate Template;
 	local X2Effect_Twitch_Invincible InvincibleEffect;
 
-    Template = CreateSelfTargetingAbility(default.InvincibleAbilityName);
+    Template = CreateSelfTargetingAbility('Twitch_BecomeInvincible');
 
     InvincibleEffect = class'X2Effect_Twitch_Invincible'.static.CreateInvincibleStatusEffect();
     Template.AddTargetEffect(InvincibleEffect);
@@ -137,15 +129,4 @@ static function X2AbilityTemplate CreateSelfTargetingAbility(Name AbilityName)
 	Template.BuildVisualizationFn = TypicalAbility_BuildVisualization;
 
 	return Template;
-}
-
-defaultproperties
-{
-    BurnSelfAbilityName="Twitch_BurnSelf"
-    DisorientSelfAbilityName="Twitch_DisorientSelf"
-    InvincibleAbilityName="Twitch_BecomeInvincible"
-    KnockSelfUnconsciousAbilityName="Twitch_KnockSelfUnconscious"
-    PanicSelfAbilityName="Twitch_PanicSelf"
-    ScaleSelfAbilityName="Twitch_ScaleSelf"
-    StunSelfAbilityName="Twitch_StunSelf"
 }

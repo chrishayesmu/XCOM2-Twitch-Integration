@@ -232,6 +232,7 @@ private function SetUnitName(XComGameState_Unit Unit, XComGameState_TwitchObject
         LastName = `TIVIEWERNAME(Viewer);
     }
     else {
+        // Always pull the unit name from its original version, so we don't accidentally append onto our own name if running more than once
         OriginalUnit = XComGameState_Unit(`XCOMHISTORY.GetOriginalGameStateRevision(Unit.GetReference().ObjectID));
 
         FirstName = `TIVIEWERNAME(Viewer);

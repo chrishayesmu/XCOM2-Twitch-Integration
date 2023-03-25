@@ -16,10 +16,10 @@ static function AddMessageToChatLog(string Sender, string Body, optional XComGam
 }
 
 static function X2TwitchEventActionTemplate GetTwitchEventActionTemplate(Name TemplateName) {
-    local X2EventListenerTemplateManager TemplateMgr;
+    local X2TwitchEventActionTemplateManager TemplateMgr;
 
-    TemplateMgr = class'X2EventListenerTemplateManager'.static.GetEventListenerTemplateManager();
-    return X2TwitchEventActionTemplate(TemplateMgr.FindEventListenerTemplate(TemplateName));
+    TemplateMgr = class'X2TwitchEventActionTemplateManager'.static.GetTwitchEventActionTemplateManager();
+    return TemplateMgr.FindTwitchEventActionTemplate(TemplateName);
 }
 
 static function XComGameState_Unit FindSourceUnitFromSpawnEffect(XComGameState_Unit SpawnedUnit, optional XComGameState GameState) {

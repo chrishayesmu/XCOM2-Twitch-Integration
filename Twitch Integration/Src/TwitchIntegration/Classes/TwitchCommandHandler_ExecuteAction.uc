@@ -1,7 +1,7 @@
 class TwitchCommandHandler_ExecuteAction extends TwitchCommandHandler;
 
 struct TCH_ActionTuple {
-    var string Alias;
+    var array<string> Aliases;
     var name ActionName;
 
     var bool bMustBeSub;
@@ -13,20 +13,24 @@ var config array<TCH_ActionTuple> ActionTuples;
 function Initialize(TwitchStateManager StateMgr) {
     local TCH_ActionTuple Tuple;
     local array<string> Aliases;
+    local string Alias;
 
     // This command ignores any aliases set in config, in favor of ones defined in ActionTuples
     CommandAliases.Length = 0;
 
     foreach ActionTuples(Tuple) {
-        Aliases.AddItem(Tuple.Alias);
+        foreach Tuple.Aliases(Alias) {
+            `TILOG("Tuple: ActionName = " $ Tuple.ActionName $ ", Alias = " $ Alias);
+            Aliases.AddItem(Alias);
+        }
     }
 
     CommandAliases = Aliases;
 }
 
 function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer Viewer) {
-    local string Alias;
-
+    local bool bMatchesTuple;
+    local string Alias, CmdAlias;
     local TCH_ActionTuple Tuple;
     local X2TwitchEventActionTemplate Action;
     local XComGameState_Unit ViewerOwnedUnit;
@@ -36,7 +40,17 @@ function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer
 
     // Figure out which tuple is being invoked
     foreach ActionTuples(Tuple) {
-        if (Tuple.Alias != Alias) {
+        bMatchesTuple = false;
+
+        // Can't just use .Find due to case-sensitivity
+        foreach Tuple.Aliases(CmdAlias) {
+            if (CmdAlias ~= Alias) {
+                bMatchesTuple = true;
+                break;
+            }
+        }
+
+        if (!bMatchesTuple) {
             continue;
         }
 
@@ -68,7 +82,7 @@ function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer
     ViewerOwnedUnit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(Viewer.Login);
 
     if (!Action.IsValid(ViewerOwnedUnit)) {
-        `TILOG("Action '" $ Tuple.ActionName $ "' is not presently valid. Not executing.");
+        `TILOG("Action '" $ Tuple.ActionName $ "' is not presently valid. Not executing. Action class is " $ Action.Class);
         return;
     }
 

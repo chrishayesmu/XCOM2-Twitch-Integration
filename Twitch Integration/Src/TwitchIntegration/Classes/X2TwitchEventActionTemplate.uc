@@ -1,6 +1,6 @@
 // This class does not use any event listener logic, but being part of a preset template type
 // gives us access to the associated template manager to retrieve instances by name.
-class X2TwitchEventActionTemplate extends X2EventListenerTemplate
+class X2TwitchEventActionTemplate extends X2DataTemplate
     config(TwitchActions)
     abstract;
 
