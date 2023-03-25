@@ -209,11 +209,14 @@ function HandleChatCommand(TwitchMessage Command, TwitchViewer Viewer) {
     Index = Instr(Command.Body, " ");
     CommandAlias = Mid(Command.Body, 1, Index - 1);
 
+    `TILOG("Handling chat command " $ CommandAlias);
+
 	foreach CommandHandlers(CommandHandler) {
 		if (CommandHandler.CommandAliases.Find(CommandAlias) != INDEX_NONE) {
             // Only forward the command to the handler if it should be enabled right now
             if ( (CommandHandler.bEnableInStrategy && `TI_IS_STRAT_GAME)
               || (CommandHandler.bEnableInTactical && !`TI_IS_STRAT_GAME) ) {
+                `TILOG("Sending alias to command handler " $ CommandHandler.Class.Name);
     			CommandHandler.Handle(self, Command, Viewer);
             }
             else {
@@ -531,7 +534,7 @@ private function PopulateViewers(array<string> ViewerLogins) {
             continue;
         }
 
-        if (BlacklistedViewerNames.Find(Locs(Login)) != INDEX_NONE) {
+        if (default.BlacklistedViewerNames.Find(Locs(Login)) != INDEX_NONE) {
             continue;
         }
 
