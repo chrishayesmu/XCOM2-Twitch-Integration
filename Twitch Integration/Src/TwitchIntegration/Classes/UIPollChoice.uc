@@ -10,16 +10,12 @@ var UIBGBox m_ChoiceTextBg; // fixed background behind the choice
 var UIBGBox m_ChoiceTextOutline; // outline around choice; separate element to stack above everything else
 var UIBGBox m_ChoiceTextVotesBar; // background that scales with % of votes received
 
-var UIText m_VotePrompt;
-var UIBGBox m_VotePromptBg;
-
 var UIText m_VotePercentage;
 
 
 var private int ElemHeight;
 var private int Padding;
 var private int VotePercentageTextWidth;
-var private int VotePromptBgWidth;
 
 delegate OnSizeRealized();
 
@@ -60,15 +56,7 @@ simulated function UIPollChoice InitPollChoice(int VoteNumber,
 	m_ChoiceTextOutline.SetAlpha(0.9);
     m_ChoiceTextOutline.SetOutline(true, class'UIUtilities_Colors'.const.FADED_HTML_COLOR);
 
-    if (!ShowingResults) {
-        m_VotePromptBg = Spawn(class'UIBGBox', self).InitBG('', 0, 0, , ElemHeight, eUIState_Normal).SetBGColor("gray");
-        m_VotePromptBg.SetAlpha(0.9);
-
-        m_VotePrompt = Spawn(class'UIText', self);
-        m_VotePrompt.InitText('', "!vote " $ VoteNumber);
-        m_VotePrompt.SetColor(class'UIUtilities_Colors'.const.FADED_HTML_COLOR);
-    }
-    else {
+    if (ShowingResults) {
         if (bDidWinPoll) {
             // Highlight the winning option
             m_ChoiceText.SetColor(class'UIUtilities_Colors'.const.HILITE_HTML_COLOR);
@@ -111,7 +99,7 @@ simulated function UIPollChoice SetVotes(int personal, int total) {
 	}
 	else {
 		m_ChoiceTextVotesBar.Show();
-		m_ChoiceTextVotesBar.SetSize(CalculateBarWidth(Percent / 100.0), ElemHeight);
+		m_ChoiceTextVotesBar.AnimateSize(CalculateBarWidth(Percent / 100.0), ElemHeight, /* Time */ 0.5);
 	}
 
 	return self;
@@ -138,7 +126,7 @@ private simulated function DoLayout() {
 	local int ChoiceBgWidth;
 
     // Choice text takes up the whole element in results mode
-    ChoiceBgWidth = ShowingResults ? self.Width : self.Width - VotePromptBgWidth - Padding;
+    ChoiceBgWidth = self.Width;
 
     m_ChoiceTextBg.SetSize(ChoiceBgWidth, ElemHeight);
     m_ChoiceTextOutline.SetSize(ChoiceBgWidth, ElemHeight);
@@ -150,13 +138,6 @@ private simulated function DoLayout() {
 	m_VotePercentage.SetX(m_ChoiceTextBg.Width - VotePercentageTextWidth - Padding);
 
     SetVotes(PersonalNumVotes, TotalNumVotes); // this does some sizing
-
-    if (!ShowingResults) {
-        // Vote prompt follows vote percentage, takes up remaining units of space
-        m_VotePromptBg.SetX(m_ChoiceTextBg.X + m_ChoiceTextBg.Width + Padding);
-        m_VotePromptBg.SetSize(VotePromptBgWidth, ElemHeight);
-        m_VotePrompt.SetX(m_VotePromptBg.X + 5);
-    }
 }
 
 private simulated function OnTextSizeRealized() {
@@ -168,10 +149,6 @@ private simulated function OnTextSizeRealized() {
 
     // The choice text's width is dynamic; everything else is static
     TotalWidth = ChoiceTextBgWidth + VotePercentageTextWidth + Padding;
-
-    if (!ShowingResults) {
-        TotalWidth += VotePromptBgWidth + Padding;
-    }
 
     SetChoiceWidth(TotalWidth, false);
 
@@ -185,5 +162,4 @@ defaultproperties
     ElemHeight = 28
     Padding = 8
     VotePercentageTextWidth = 55
-    VotePromptBgWidth = 70
 }

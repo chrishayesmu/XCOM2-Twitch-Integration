@@ -6,15 +6,6 @@ class TwitchIntegrationConfigDefaults extends Object
 
 var config int ConfigVersion;
 
-// #region General settings
-
-var config string TwitchChannel;
-var config string TwitchUsername;
-var config string OAuthToken;
-var config int    ViewerTTLInMinutes;
-
-// #endregion
-
 // #region Chat log settings
 
 var config bool                             bShowChatLog;
@@ -38,6 +29,8 @@ var config int  PollDurationInTurns;
 var config int  MinTurnsBeforeFirstPoll;
 var config int  MinTurnsBetweenPolls;
 var config int  ChanceToStartPoll;
+var config bool bAllowChannelPointVotes;
+var config int  ChannelPointsPerVote;
 
 // #endregion
 

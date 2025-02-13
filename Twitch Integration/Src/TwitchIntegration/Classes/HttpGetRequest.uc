@@ -1,4 +1,5 @@
-class HttpGetRequest extends TcpLink;
+class HttpGetRequest extends TcpLink
+    config(TwitchDebug);
 
 struct HttpHeader {
 	var string Key;
@@ -11,9 +12,12 @@ struct HttpResponse {
 	var int ResponseCode;
 };
 
+var config bool LogRequest;
+
 var private string CurrentUrl;
 var private string Host;
 var private string RequestPath;
+var private int TargetPort;
 
 // State tracking for reading the response data in chunks
 var private bool bIsChunkTransferEncoding;
@@ -28,15 +32,14 @@ var private delegate<ResponseHandler> OnRequestError;
 
 delegate ResponseHandler(HttpGetRequest Request, HttpResponse Resp);
 
-const LogRequest = false;
 
-function Call(string Url, delegate<ResponseHandler> CompletionHandler, delegate<ResponseHandler> ErrorHandler = none)
+function Call(string Url, delegate<ResponseHandler> CompletionHandler = none, delegate<ResponseHandler> ErrorHandler = none)
 {
     local HttpResponse EmptyResponse;
 	local int Index;
 
     if (bRequestInProgress) {
-        `WARN("[HttpGetRequest] Same object is being re-used while still in use, which is not allowed");
+        `TILOG("ERROR: Same object is being re-used while still in use, which is not allowed");
         return;
     }
 
@@ -47,6 +50,19 @@ function Call(string Url, delegate<ResponseHandler> CompletionHandler, delegate<
 	Index = InStr(CurrentUrl, "/");
 	Host = Left(CurrentUrl, Index);
 	RequestPath = Mid(CurrentUrl, Index);
+    TargetPort = 80;
+
+    // The host portion may have a port number in it, e.g. "localhost:5000"; check for that
+    Index = InStr(Host, ":");
+
+    if (Index != INDEX_NONE)
+    {
+        `TILOG("Parsing host string " $ Host, LogRequest);
+        `TILOG("Host portion: " $ Host, LogRequest);
+        `TILOG("Port portion: " $ Mid(Host, Index + 1), LogRequest);
+        TargetPort = int(Mid(Host, Index + 1));
+        Host = Left(Host, Index);
+    }
 
     // Reset per-request state
     bIsChunkTransferEncoding = false;
@@ -71,15 +87,15 @@ event Resolved(IpAddr Addr)
 {
     local int LocalPort;
 
-    Addr.Port = 80;
+    Addr.Port = TargetPort;
     LocalPort = BindPort();
 
-    `TILOG("" $ CurrentUrl $ " resolved to " $ IpAddrToString(Addr), LogRequest);
+    `TILOG(CurrentUrl $ " resolved to " $ IpAddrToString(Addr), LogRequest);
     `TILOG("Bound to local port: " $ LocalPort, LogRequest);
 
     if (!Open(Addr))
     {
-        `WARN("[HttpGetRequest] Failed to open request");
+        `TILOG("ERROR: Failed to open request");
 
         Response.ResponseCode = 400;
 
@@ -122,7 +138,9 @@ event Closed()
 
     bRequestInProgress = false;
 
-	OnRequestComplete(self, Response);
+    if (OnRequestComplete != none) {
+    	OnRequestComplete(self, Response);
+    }
 }
 
 event ReceivedText(string Text)
@@ -186,6 +204,8 @@ event ReceivedText(string Text)
             return;
         }
 
+        `TILOG("bIsChunkTransferEncoding: " $ bIsChunkTransferEncoding, LogRequest);
+
         // For the body, in a chunked encoding, the first line of the body will be a hex number indicating the number of bytes
         // in the first chunk; otherwise we go straight into the body
         if (bIsChunkTransferEncoding) {
@@ -193,7 +213,8 @@ event ReceivedText(string Text)
             Response.Body = Split(ResponseParts[1], CRLF, /* bOmitSplitStr */ true);
 
             RemainingBytesInChunk = HexToInt(ChunkSizeInHex);
-            RemainingBytesInChunk -= Len(Response.Body);
+            `TILOG("First chunk size: " $ RemainingBytesInChunk $ " bytes", LogRequest);
+            RemainingBytesInChunk -= Len(Response.Body); // TODO: this is probably wrong; the terminating zero-length chunk could be in the first received text
         }
         else {
             Response.Body = ResponseParts[1];
@@ -215,6 +236,8 @@ event ReceivedText(string Text)
 
             Text = Mid(Text, Instr(Text, CRLF) + 2);
         }
+
+        `TILOG("RemainingBytesInChunk: " $ RemainingBytesInChunk, LogRequest);
 
         // We might get multiple chunks concatenated thanks to TcpLink buffering, so we need to be able to identify a new chunk mid-stream
         if (Len(Text) > RemainingBytesInChunk) {
@@ -254,7 +277,7 @@ event ReceivedText(string Text)
         `TILOG("Chunk processed. Remaining bytes: " $ RemainingBytesInChunk, LogRequest);
 
         if (RemainingBytesInChunk < 0) {
-            `WARN("[HttpGetRequest] WARNING: negative number of bytes remaining in chunk: " $ RemainingBytesInChunk);
+            `TILOG("WARNING: negative number of bytes remaining in chunk: " $ RemainingBytesInChunk);
         }
     }
 }

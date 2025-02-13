@@ -23,21 +23,6 @@ enum eTwitchConfig_ChatLogNameFormat {
 
 var localized string strChangeButtonLabel;
 
-// #region General settings strings
-
-var localized string strGeneralSettingsGroupTitle;
-var localized string strTwitchChannelLabel;
-var localized string strTwitchChannelTooltip;
-var localized string strTwitchUsernameLabel;
-var localized string strTwitchUsernameTooltip;
-var localized string strOAuthTokenInputBoxTitle;
-var localized string strOAuthTokenLabel;
-var localized string strOAuthTokenTooltip;
-var localized string strViewerTTLLabel;
-var localized string strViewerTTLTooltip;
-
-// #endregion
-
 // #region Chat log strings
 
 var localized string strChatLogSettingsGroupTitle;
@@ -75,6 +60,10 @@ var localized string strMinTurnsBetweenPollsLabel;
 var localized string strMinTurnsBetweenPollsTooltip;
 var localized string strChanceToStartPollLabel;
 var localized string strChanceToStartPollTooltip;
+var localized string strAllowChannelPointVotesLabel;
+var localized string strAllowChannelPointVotesTooltip;
+var localized string strChannelPointsPerVoteLabel;
+var localized string strChannelPointsPerVoteTooltip;
 
 // #endregion
 
@@ -97,15 +86,6 @@ var localized string strExcludeBroadcasterTooltip;
 // #region Config variables
 
 var config int ConfigVersion;
-
-// #region General settings
-
-var config string TwitchChannel;
-var config string TwitchUsername;
-var config string OAuthToken;
-var config int    ViewerTTLInMinutes;
-
-// #endregion
 
 // #region Chat log settings
 
@@ -130,6 +110,8 @@ var config int  PollDurationInTurns;
 var config int  MinTurnsBeforeFirstPoll;
 var config int  MinTurnsBetweenPolls;
 var config int  ChanceToStartPoll;
+var config bool bAllowChannelPointVotes;
+var config int  ChannelPointsPerVote;
 
 // #endregion
 
@@ -162,15 +144,6 @@ function ClientModCallback(MCM_API_Instance ConfigAPI, int GameMode) {
     Page = ConfigAPI.NewSettingsPage("Twitch Integration");
     Page.SetSaveHandler(SaveButtonClicked);
 
-    // TODO: right now channel name will update even without the settings being saved; need a temporary storage for the channel value until save time
-    Group = Page.AddGroup('TwitchGeneralSettings', strGeneralSettingsGroupTitle);
-    Group.AddButton(nameof(TwitchChannel), strTwitchChannelLabel, strTwitchChannelTooltip, strChangeButtonLabel, OpenTwitchChannelInputBox);
-    Group.AddButton(nameof(TwitchUsername), strTwitchUsernameLabel, strTwitchUsernameTooltip, strChangeButtonLabel, OpenTwitchUsernameInputBox);
-    Group.AddButton(nameof(OAuthToken), strOAuthTokenLabel, strOAuthTokenTooltip, strChangeButtonLabel, OpenOAuthTokenInputBox);
-    Group.AddSlider(nameof(ViewerTTLInMinutes), strViewerTTLLabel, strViewerTTLTooltip, 10, 60, 1, ViewerTTLInMinutes, ViewerTTLSaveHandler);
-
-
-
     Group = Page.AddGroup('TwitchChatLogSettings', strChatLogSettingsGroupTitle);
     Setting = Group.AddCheckbox(nameof(bShowChatLog), strShowChatLogLabel, strShowChatLogTooltip, bShowChatLog, ShowChatLogSaveHandler, DisableGroupWhenFalseHandler);
 
@@ -190,16 +163,16 @@ function ClientModCallback(MCM_API_Instance ConfigAPI, int GameMode) {
 
     DisableGroupWhenFalseHandler(Setting, bShowChatLog);
 
-/*
     Group = Page.AddGroup('TwitchPollSettings', strPollSettingsGroupTitle);
     Setting = Group.AddCheckbox(nameof(bEnablePolls), strEnablePollsLabel, strEnablePollsTooltip, bEnablePolls, EnablePollsSaveHandler, DisableGroupWhenFalseHandler);
     Group.AddSlider(nameof(PollDurationInTurns), strPollDurationLabel, strPollDurationTooltip, 1, 5, 1, PollDurationInTurns, PollDurationInTurnsSaveHandler);
     Group.AddSlider(nameof(MinTurnsBeforeFirstPoll), strMinTurnsBeforeFirstPollLabel, strMinTurnsBeforeFirstPollTooltip, 0, 10, 1, MinTurnsBeforeFirstPoll, MinTurnsBeforeFirstPollSaveHandler);
     Group.AddSlider(nameof(MinTurnsBetweenPolls), strMinTurnsBetweenPollsLabel, strMinTurnsBetweenPollsTooltip, 0, 10, 1, MinTurnsBetweenPolls, MinTurnsBetweenPollsSaveHandler);
     Group.AddSlider(nameof(ChanceToStartPoll), strChanceToStartPollLabel, strChanceToStartPollTooltip, 1, 100, 1, ChanceToStartPoll, ChanceToStartPollSaveHandler);
+    Group.AddCheckbox(nameof(bAllowChannelPointVotes), strAllowChannelPointVotesLabel, strAllowChannelPointVotesTooltip, bAllowChannelPointVotes, AllowChannelPointVotesSaveHandler);
+    Group.AddSlider(nameof(ChannelPointsPerVote), strChannelPointsPerVoteLabel, strChannelPointsPerVoteTooltip, 1, 1000000, 1, ChannelPointsPerVote, ChannelPointsPerVoteSaveHandler);
 
     DisableGroupWhenFalseHandler(Setting, bEnablePolls);
- */
 
 
     Group = Page.AddGroup('TwitchRaffleSettings', strRaffleSettingsGroupTitle);
@@ -251,11 +224,6 @@ private function DisableGroupWhenFalseHandler(MCM_API_Setting Setting, bool Valu
 }
 
 private function LoadSavedSettings() {
-    TwitchChannel = `TI_CFG(TwitchChannel);
-    TwitchUsername = `TI_CFG(TwitchUsername);
-    OAuthToken = `TI_CFG(OAuthToken);
-    ViewerTTLInMinutes = `TI_CFG(ViewerTTLInMinutes);
-
     bShowChatLog = `TI_CFG(bShowChatLog);
     ChatLogColorScheme = `TI_CFG(ChatLogColorScheme);
     ChatLogEnemyNameFormat = `TI_CFG(ChatLogEnemyNameFormat);
@@ -346,62 +314,17 @@ private function SaveChatLogFriendlyNameFormat(MCM_API_Setting _Setting, string 
     ChatLogFriendlyNameFormat = ChatLogNameFormatFromString(Value);
 }
 
-private function OpenOAuthTokenInputBox(MCM_API_Setting _Setting) {
-	local TInputDialogData kData;
-
-    kData.strTitle = strOAuthTokenInputBoxTitle;
-    kData.iMaxChars = 36; // token is 30 characters, plus 6 for the "oauth:" prefix
-    kData.fnCallbackAccepted = OnOAuthTokenInputBoxClosed;
-    kData.strInputBoxText = OAuthToken;
-    kData.bIsPassword = true;
-
-    `PRESBASE.UIInputDialog(kData);
-}
-
-private function OnOAuthTokenInputBoxClosed(string Text) {
-    OAuthToken = Text;
-}
-
-private function OpenTwitchChannelInputBox(MCM_API_Setting _Setting) {
-	local TInputDialogData kData;
-
-    kData.strTitle = strTwitchChannelLabel;
-    kData.iMaxChars = 40; // supposedly max Twitch name is 25 but it's not documented
-    kData.fnCallbackAccepted = OnTwitchChannelInputBoxClosed;
-    kData.strInputBoxText = TwitchChannel;
-
-    `PRESBASE.UIInputDialog(kData);
-}
-
-private function OnTwitchChannelInputBoxClosed(string Text) {
-    TwitchChannel = Text;
-}
-
-private function OpenTwitchUsernameInputBox(MCM_API_Setting _Setting) {
-	local TInputDialogData kData;
-
-    kData.strTitle = strTwitchUsernameLabel;
-    kData.iMaxChars = 40; // supposedly max Twitch name is 25 but it's not documented
-    kData.fnCallbackAccepted = OnTwitchUsernameInputBoxClosed;
-    kData.strInputBoxText = TwitchUsername;
-
-    `PRESBASE.UIInputDialog(kData);
-}
-
-private function OnTwitchUsernameInputBoxClosed(string Text) {
-    TwitchUsername = Text;
-}
-
 `MCM_CH_VersionChecker(class'TwitchIntegrationConfigDefaults'.default.ConfigVersion, ConfigVersion);
-`MCM_API_BasicCheckboxSaveHandler(EnablePollsSaveHandler, bEnablePolls);
-`MCM_API_BasicCheckboxSaveHandler(ShowChatLogSaveHandler, bShowChatLog);
-`MCM_API_BasicCheckboxSaveHandler(FormatDeadMessagesSaveHandler, bFormatDeadMessages);
-`MCM_API_BasicCheckboxSaveHandler(AssignUnitNamesSaveHandler, bAssignUnitNames);
+`MCM_API_BasicCheckboxSaveHandler(AllowChannelPointVotesSaveHandler, bAllowChannelPointVotes);
 `MCM_API_BasicCheckboxSaveHandler(AssignChosenNamesSaveHandler, bAssignChosenNames);
-`MCM_API_BasicCheckboxSaveHandler(RequireActiveChatterForChosenSaveHandler, bRequireActiveChatterForChosen);
+`MCM_API_BasicCheckboxSaveHandler(AssignUnitNamesSaveHandler, bAssignUnitNames);
+`MCM_API_BasicCheckboxSaveHandler(EnablePollsSaveHandler, bEnablePolls);
 `MCM_API_BasicCheckboxSaveHandler(ExcludeBroadcasterSaveHandler, bExcludeBroadcaster);
-`MCM_API_BasicSliderSaveHandler(ViewerTTLSaveHandler, ViewerTTLInMinutes);
-`MCM_API_BasicSliderSaveHandler(PollDurationInTurnsSaveHandler, PollDurationInTurns);
+`MCM_API_BasicCheckboxSaveHandler(FormatDeadMessagesSaveHandler, bFormatDeadMessages);
+`MCM_API_BasicCheckboxSaveHandler(RequireActiveChatterForChosenSaveHandler, bRequireActiveChatterForChosen);
+`MCM_API_BasicCheckboxSaveHandler(ShowChatLogSaveHandler, bShowChatLog);
+`MCM_API_BasicSliderSaveHandler(ChanceToStartPollSaveHandler, ChanceToStartPoll);
+`MCM_API_BasicSliderSaveHandler(ChannelPointsPerVoteSaveHandler, ChannelPointsPerVote);
 `MCM_API_BasicSliderSaveHandler(MinTurnsBeforeFirstPollSaveHandler, MinTurnsBeforeFirstPoll);
 `MCM_API_BasicSliderSaveHandler(MinTurnsBetweenPollsSaveHandler, MinTurnsBetweenPolls);
-`MCM_API_BasicSliderSaveHandler(ChanceToStartPollSaveHandler, ChanceToStartPoll);
+`MCM_API_BasicSliderSaveHandler(PollDurationInTurnsSaveHandler, PollDurationInTurns);

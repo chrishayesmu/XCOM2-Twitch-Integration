@@ -6,18 +6,9 @@ class UIPollPanel extends UIPanel
 // Localization strings
 var localized string strTotalVotesPlural;
 var localized string strTotalVotesSingular;
+var localized string strTimeRemaining;
 var localized string strTurnsRemainingPlural;
 var localized string strTurnsRemainingSingular;
-
-var localized string strPollTitleHarbinger;
-var localized string strPollSubtitleHarbinger;
-
-var localized string strPollTitleProvidence;
-var localized string strPollSubtitleProvidence;
-
-var localized string strPollTitleSabotage;
-var localized string strPollSubtitleSabotage;
-
 
 // ------------------------------------
 // Internally-handled config
@@ -39,20 +30,29 @@ var private array<UIPollChoice> m_PollChoices;
 
 // ------------------------------------
 // Poll data
-var privatewrite ePollType m_PollType;
+var privatewrite name m_PollGroupTemplateName;
+var float m_PollEndTime;
 
 // ------------------------------------
 // Public interface
 // ------------------------------------
 
-simulated function UIPollPanel InitPollPanel(ePollType PollType, array<string> Choices, int DurationInTurns) {
+simulated function UIPollPanel InitPollPanel(name PollGroupTemplateName, TwitchPollModel Poll, int DurationInTurns) {
     local EUIState ColorState;
-	local string PollColor;
+	local string PollColor, DurationString;
+    local X2PollGroupTemplate Template;
 
-	m_PollType = PollType;
+    m_PollGroupTemplateName = PollGroupTemplateName;
+	Template = class'X2PollGroupTemplateManager'.static.GetPollGroupTemplateManager().GetPollGroupTemplate(PollGroupTemplateName);
 
-    ColorState = class'X2TwitchUtils'.static.GetPollColorState(PollType);
-	PollColor = class'X2TwitchUtils'.static.GetPollColor(PollType);
+    if (Template == none) {
+        `TILOG("ERROR: couldn't find a poll group template named " $ PollGroupTemplateName);
+        return none;
+    }
+
+    m_PollEndTime = WorldInfo.RealTimeSeconds + Poll.SecondsRemaining;
+    ColorState = Template.ColorState;
+	PollColor = Template.TextColor;
 
 	// Positioning/sizing data just based on what looks good
     // TODO pass these in so tactical/strategy panels can be in different spots
@@ -65,14 +65,22 @@ simulated function UIPollPanel InitPollPanel(ePollType PollType, array<string> C
 	m_bgBox.SetAlpha(0.75);
 
 	m_TitleHeader = Spawn(class'UIX2PanelHeader', self);
-	m_TitleHeader.InitPanelHeader('', GetPollTitle(), GetSubtitleText());
+	m_TitleHeader.InitPanelHeader('', Template.PollTitle, Template.PollSubtitle);
 	m_TitleHeader.SetColor(PollColor);
 	m_TitleHeader.SetHeaderWidth(self.width - 2 * HorizontalPadding);
 	m_TitleHeader.SetPosition(HorizontalPadding, 0);
 
+    // Show time remaining rather than turns, when needed
+    if (DurationInTurns > 0) {
+        DurationString = DurationInTurns @ (DurationInTurns == 1 ? strTurnsRemainingSingular : strTurnsRemainingPlural);
+    }
+    else {
+        DurationString = class'X2TwitchUtils'.static.SecondsToTimeString(Poll.SecondsRemaining) @ strTimeRemaining;
+    }
+
 	m_TimeRemaining = Spawn(class'UIText', self);
     m_TimeRemaining.OnTextSizeRealized = OnTextSizeRealized;
-	m_TimeRemaining.InitText('', DurationInTurns @ (DurationInTurns == 1 ? strTurnsRemainingSingular : strTurnsRemainingPlural));
+	m_TimeRemaining.InitText('', DurationString);
 	m_TimeRemaining.SetColor(PollColor);
 	m_TimeRemaining.SetAlpha(0.9);
 
@@ -82,9 +90,27 @@ simulated function UIPollPanel InitPollPanel(ePollType PollType, array<string> C
 	m_TotalVotes.SetAlpha(0.9);
     m_TotalVotes.SetX(HorizontalPadding);
 
-	SetChoices(Choices);
+	SetChoices(Poll.Choices);
 
 	return self;
+}
+
+event Tick(float DeltaTime) {
+    local float SecondsRemaining;
+
+    SecondsRemaining = Max(0, m_PollEndTime - WorldInfo.RealTimeSeconds);
+
+    SetTimeRemainingText(int(SecondsRemaining));
+}
+
+function UIPollPanel SetTimeRemainingText(int SecondsRemaining) {
+    local string TimeString;
+
+    TimeString = class'X2TwitchUtils'.static.SecondsToTimeString(SecondsRemaining);
+
+	m_TimeRemaining.SetText(TimeString @ strTimeRemaining);
+
+    return self;
 }
 
 function UIPollPanel SetTurnsRemaining(int NumTurnsRemaining) {
@@ -108,52 +134,55 @@ function UIPollPanel SetVotes(int ChoiceIndex, int NumVotes, int NumTotalVotes) 
 /// Update the UI for an in-progress poll. Normally this would be handled by the visualization system,
 /// but for some reason that kept recentering the camera on the selected unit.
 /// </summary>
-static function UpdateInProgress() {
-    local PollChoice Choice;
+static function UpdateInProgress(TwitchPollModel Poll) {
     local int Index;
-    local array<string> SelectedEventNames;
-    local X2PollEventTemplate PollEventTemplate;
+    local int TotalVotes;
     local XComGameState_TwitchEventPoll PollGameState;
     local UIPollPanel PollPanel;
-    local int TotalVotes;
+    local PollChoice Choice;
+
+    `TILOG("UpdateInProgress");
 
     PollGameState = class'X2TwitchUtils'.static.GetActivePoll();
 
     if (PollGameState == none) {
-        `RedScreen("Game state doesn't contain a Twitch poll, cannot update UI");
+        `TILOG("ERROR: game state doesn't contain a Twitch poll, cannot update UI");
         return;
     }
 
     // This function doesn't handle polls that have ended
-    if (PollGameState.RemainingTurns <= 0) {
+    if (PollGameState.RemainingTurns == 0 || Poll.Status != "ACTIVE") {
+        `TILOG("RemainingTurns is " $ PollGameState.RemainingTurns);
         return;
     }
 
     PollPanel = static.GetPanel();
 
     if (PollPanel == none) {
-        // Poll is being shown for the first time
-        foreach PollGameState.Choices(Choice) {
-            PollEventTemplate = class'X2TwitchUtils'.static.GetPollEventTemplate(Choice.PollEventTemplateName);
-            SelectedEventNames.AddItem(PollEventTemplate.FriendlyName);
-        }
+        `TILOG("Spawning a PollPanel");
 
+        // Poll is being shown for the first time
         PollPanel = `XCOMGAME.Spawn(class'UIPollPanel', `SCREENSTACK.GetFirstInstanceOf(class'UITacticalHud'));
-        PollPanel.InitPollPanel(PollGameState.PollType, SelectedEventNames, PollGameState.DurationInTurns);
+        PollPanel.InitPollPanel(PollGameState.Data.PollGroupTemplateName, Poll, PollGameState.Data.DurationInTurns);
     }
     else {
-        PollPanel.SetTurnsRemaining(PollGameState.RemainingTurns);
+        `TILOG("Updating existing PollPanel");
+
+        if (PollGameState.RemainingTurns > 0) {
+            PollPanel.SetTurnsRemaining(PollGameState.RemainingTurns);
+        }
+        else {
+            // PollPanel.SetTimeRemainingText(Poll.SecondsRemaining);
+        }
 
         // First iterate to count total votes
-        foreach PollGameState.Choices(Choice) {
+        foreach Poll.Choices(Choice) {
             TotalVotes += Choice.NumVotes;
         }
 
         // Now iterate to update the UI
-        for (Index = 0; Index < PollGameState.Choices.Length; Index++) {
-            Choice = PollGameState.Choices[Index];
-
-            PollPanel.SetVotes(Index, Choice.NumVotes, TotalVotes);
+        for (Index = 0; Index < Poll.Choices.Length; Index++) {
+            PollPanel.SetVotes(Index, Poll.Choices[Index].NumVotes, TotalVotes);
         }
     }
 }
@@ -183,7 +212,7 @@ static function HidePanel() {
 // Private functions
 // ------------------------------------
 
-private function SetChoices(array<string> Choices) {
+private function SetChoices(array<PollChoice> Choices) {
 	local UIPollChoice PollChoice;
 	local int Index;
 	local int TotalHeight;
@@ -199,7 +228,7 @@ private function SetChoices(array<string> Choices) {
 			PollChoice.InitPollChoice(Index + 1, '', , 2 * HorizontalPadding, , self.width - 2 * Padding, , OnChoiceSizeRealized);
 		}
 
-		PollChoice.SetText(Choices[Index]);
+		PollChoice.SetText(Choices[Index].Title);
 		PollChoice.SetY(HeaderHeight + SubtitleHeight + 2 * SubtitlePadding + Index * PollChoice.GetTextHeight() + Index * InterChoicePadding);
 		PollChoice.SetVotes(0, 0);
 
@@ -212,28 +241,6 @@ private function SetChoices(array<string> Choices) {
 	m_bgBox.SetHeight(TotalHeight);
 	m_TimeRemaining.SetY(self.Height - SubtitleHeight - BottomPadding);
 	m_TotalVotes.SetY(self.Height - SubtitleHeight - BottomPadding);
-}
-
-private function string GetPollTitle() {
-	switch (m_PollType) {
-		case ePollType_Harbinger:
-			return strPollTitleHarbinger;
-		case ePollType_Providence:
-			return strPollTitleProvidence;
-		case ePollType_Sabotage:
-			return strPollTitleSabotage;
-	}
-}
-
-private function string GetSubtitleText() {
-	switch (m_PollType) {
-		case ePollType_Harbinger:
-			return strPollSubtitleHarbinger;
-		case ePollType_Providence:
-			return strPollSubtitleProvidence;
-		case ePollType_Sabotage:
-			return strPollSubtitleSabotage;
-	}
 }
 
 private function OnChoiceSizeRealized() {

@@ -19,7 +19,7 @@ function bool IsValid(optional XComGameState_Unit InvokingUnit) {
     return false;
 }
 
-function Apply(optional XComGameState_Unit InvokingUnit, optional XComGameState_TwitchEventPoll PollGameState) {
+function Apply(optional XComGameState_Unit InvokingUnit) {
     local X2TwitchEventActionTemplate Template;
     local X2TwitchEventActionTemplate_TargetsUnits TargetsUnitTemplate;
     local array<XComGameState_Unit> TargetUnits;
@@ -44,7 +44,7 @@ function Apply(optional XComGameState_Unit InvokingUnit, optional XComGameState_
             // Target may only be valid for some action templates
             if (TargetsUnitTemplate.IsValidTarget(Unit)) {
                 `TILOG("Unit is a valid target, applying action " $ Template.Class.Name);
-                TargetsUnitTemplate.Apply(Unit, PollGameState);
+                TargetsUnitTemplate.Apply(Unit);
             }
             else {
                 `TILOG("Unit is not a valid target, skipping action " $ Template.Class.Name);
@@ -59,7 +59,7 @@ function Apply(optional XComGameState_Unit InvokingUnit, optional XComGameState_
         }
 
         `TILOG("Applying non-unit action template " $ Template.Class.Name);
-        Template.Apply(none, PollGameState);
+        Template.Apply(/* InvokingUnit */ none);
     }
 }
 

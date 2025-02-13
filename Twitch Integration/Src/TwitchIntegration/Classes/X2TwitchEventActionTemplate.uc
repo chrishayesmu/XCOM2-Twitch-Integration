@@ -9,7 +9,7 @@ struct TwitchActionEntry {
     var int Weight;       // Individual weight in a situation where the action is selected randomly from a pool
 };
 
-function Apply(optional XComGameState_Unit InvokingUnit, optional XComGameState_TwitchEventPoll PollGameState);
+function Apply(optional XComGameState_Unit InvokingUnit);
 
 ///
 /// <summary>

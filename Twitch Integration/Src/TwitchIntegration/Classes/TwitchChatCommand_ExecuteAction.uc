@@ -1,4 +1,4 @@
-class TwitchCommandHandler_ExecuteAction extends TwitchCommandHandler;
+class TwitchChatCommand_ExecuteAction extends TwitchChatCommand;
 
 struct TCH_ActionTuple {
     var array<string> Aliases;
@@ -13,54 +13,41 @@ var config array<TCH_ActionTuple> ActionTuples;
 function Initialize(TwitchStateManager StateMgr) {
     local TCH_ActionTuple Tuple;
     local array<string> Aliases;
-    local string Alias;
+    local int I, J;
 
-    // This command ignores any aliases set in config, in favor of ones defined in ActionTuples
+    // This command ignores any aliases set in config, in favor of ones defined in ActionTuples.
+    // All aliases are lowercased, as expected by TwitchEventHandler_ChatCommand.
     CommandAliases.Length = 0;
 
-    foreach ActionTuples(Tuple) {
-        foreach Tuple.Aliases(Alias) {
-            `TILOG("Tuple: ActionName = " $ Tuple.ActionName $ ", Alias = " $ Alias);
-            Aliases.AddItem(Alias);
+    for (I = 0; I < ActionTuples.Length; I++) {
+        for (J = 0; J < ActionTuples[I].Aliases.Length; J++) {
+            ActionTuples[I].Aliases[J] = Locs(ActionTuples[I].Aliases[J]);
+
+            `TILOG("Tuple: ActionName = " $ Tuple.ActionName $ ", Alias = " $ ActionTuples[I].Aliases[J]);
+            Aliases.AddItem(ActionTuples[I].Aliases[J]);
         }
     }
 
     CommandAliases = Aliases;
 }
 
-function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer Viewer) {
-    local bool bMatchesTuple;
-    local string Alias, CmdAlias;
+function Invoke(string CommandAlias, string Body, string MessageId, TwitchChatter Viewer) {
+    local string Alias;
     local TCH_ActionTuple Tuple;
     local X2TwitchEventActionTemplate Action;
     local XComGameState_Unit ViewerOwnedUnit;
 
     // Remove leading exclamation point and find the alias we were invoked with
-    Alias = Mid(Command.Body, 1, Instr(Command.Body, " ") - 1);
+    Alias = Locs(CommandAlias);
 
     // Figure out which tuple is being invoked
     foreach ActionTuples(Tuple) {
-        bMatchesTuple = false;
-
-        // Can't just use .Find due to case-sensitivity
-        foreach Tuple.Aliases(CmdAlias) {
-            if (CmdAlias ~= Alias) {
-                bMatchesTuple = true;
-                break;
-            }
-        }
-
-        if (!bMatchesTuple) {
+        if (Tuple.Aliases.Find(Alias) == INDEX_NONE) {
             continue;
         }
 
-        if (Tuple.bMustBeSub && !Viewer.bIsSub) {
+        if (Tuple.bMustBeSub && Viewer.SubTier == 0) {
             `TILOG("Viewer is not a sub and cannot use this command");
-            return;
-        }
-
-        if (Tuple.CostInBits > Command.NumBits) {
-            `TILOG("Not enough bits sent to use command; require " $ Tuple.CostInBits $ " but received " $ Command.NumBits);
             return;
         }
 
@@ -87,5 +74,5 @@ function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer
     }
 
     `TILOG("Executing action '" $ Tuple.ActionName $ "'");
-    Action.Apply(ViewerOwnedUnit, none);
+    Action.Apply(ViewerOwnedUnit);
 }

@@ -1,6 +1,6 @@
 class UIChatLog extends UIPanel
     config(TwitchChatCommands)
-    dependson(TwitchChatTcpLink, TwitchIntegrationConfig, UIScreenListener_TwitchUsernameInjector);
+    dependson(TwitchIntegrationConfig, UIScreenListener_TwitchUsernameInjector);
 
 const MaxMessagesStored = 100;
 
@@ -155,7 +155,7 @@ private function string FormatSenderName(ChatMessage Message) {
     local string SenderColor, Sender;
     local eTwitchConfig_ChatLogColorScheme ColorScheme;
     local eTwitchConfig_ChatLogNameFormat NameFormat;
-    local TwitchViewer Viewer;
+    local TwitchChatter Viewer;
     local XComGameState_TwitchObjectOwnership Ownership;
 
     Sender = Message.Sender;
@@ -176,8 +176,10 @@ private function string FormatSenderName(ChatMessage Message) {
     ColorScheme = `TI_CFG(ChatLogColorScheme);
 
     if (ColorScheme == ETC_TwitchColors) {
-        if (`TISTATEMGR.TwitchChatConn.GetViewer(Ownership.TwitchLogin, Viewer) != INDEX_NONE) {
-            SenderColor = Mid(Viewer.ChatColor, 1); // strip leading # from color
+        if (`TISTATEMGR.GetViewer(Ownership.TwitchLogin, Viewer) != INDEX_NONE) {
+            // TODO: don't have viewer chat colors right now
+            SenderColor = class'UIUtilities_Colors'.const.NORMAL_HTML_COLOR;
+            // SenderColor = Mid(Viewer.ChatColor, 1); // strip leading # from color
         }
     }
     else if (ColorScheme == ETC_TeamColors) {

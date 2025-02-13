@@ -17,6 +17,7 @@ var localized string strSubtitle_Sabotage;
 
 // The game state to refer to when rendering the UI - must be set before calling InitScreen
 var XComGameState_TwitchEventPoll PollGameState;
+var TwitchPollModel PollModel; // most recent data from Twitch
 
 // ----------------------------
 // Private state
@@ -29,86 +30,68 @@ var private UIX2PanelHeader	m_TitleHeader;
 var private array<UIPollChoice> m_PollChoices;
 
 simulated function InitScreen(XComPlayerController InitController, UIMovie InitMovie, optional name InitName) {
-    local array<string> ChoiceNames;
     local int Index;
     local int TotalVotes;
     local PollChoice WinningPollChoice;
-    local X2PollEventTemplate WinningEventTemplate;
+    local X2PollGroupTemplate GroupTemplate;
+    local X2PollChoiceTemplate WinningEventTemplate;
     local int WinningPollChoiceIndex;
     local EUIState ColorState;
 	local string PollColor;
 
     super.InitScreen(InitController, InitMovie, InitName);
 
+    `TILOG("InitScreen: PollModel has " $ PollModel.Choices.Length $ " choices");
+
     if (PollGameState == none) {
         `RedScreen("No PollGameState provided to UIPollResultsScreen!");
         return;
     }
 
-    ColorState = class'X2TwitchUtils'.static.GetPollColorState(PollGameState.PollType);
-	PollColor = class'X2TwitchUtils'.static.GetPollColor(PollGameState.PollType);
-    WinningPollChoice = class'X2TwitchUtils'.static.GetWinningPollChoice(PollGameState, WinningPollChoiceIndex);
-    WinningEventTemplate = class'X2TwitchUtils'.static.GetPollEventTemplate(WinningPollChoice.PollEventTemplateName);
+    WinningPollChoice = class'X2TwitchUtils'.static.GetWinningPollChoice(PollModel, WinningPollChoiceIndex);
+    GroupTemplate = class'X2PollGroupTemplateManager'.static.GetPollGroupTemplateManager().GetPollGroupTemplate(PollGameState.Data.PollGroupTemplateName);
+
+    // Make sure to get the template name from the game state. The TwitchPollModel is specifically based on data from Twitch and may not
+    // have kept the template data attached to it.
+    WinningEventTemplate = class'X2TwitchUtils'.static.GetPollChoiceTemplate(PollGameState.Data.PollChoices[WinningPollChoiceIndex].TemplateName);
+
+    ColorState = GroupTemplate.ColorState;
+	PollColor = GroupTemplate.TextColor;
 
     SetAnchor(class'UIUtilities'.const.ANCHOR_MIDDLE_CENTER);
 
     m_bgBox = Spawn(class'UIBGBox', self);
-    m_bgBox.InitBG('', 0, 0, 500, 300, ColorState);
+    m_bgBox.InitBG('', 0, 0, 700, 300, ColorState);
 
     m_CloseButton = Spawn(class'UIButton', self);
     m_CloseButton.InitButton('ClosePollResultsButton', strCloseButton, OnCloseResultsButtonPress);
     m_CloseButton.OnSizeRealized = RealizeUI;
 
 	m_TitleHeader = Spawn(class'UIX2PanelHeader', self);
-	m_TitleHeader.InitPanelHeader('', strDialogTitle, GetSubtitleText(PollGameState.PollType));
+	m_TitleHeader.InitPanelHeader('', strDialogTitle, GroupTemplate.ResultsTitle);
 	m_TitleHeader.SetColor(PollColor);
 
     m_PollTypeFlavorText = Spawn(class'UIText', self);
     m_PollTypeFlavorText.InitText('', WinningEventTemplate.Explanation, , RealizeUI);
     m_PollTypeFlavorText.SetColor(PollColor);
 
-    ChoiceNames = GetChoiceNames();
     TotalVotes = GetTotalVotes();
 
-    m_PollChoices.Length = PollGameState.Choices.Length;
+    m_PollChoices.Length = PollModel.Choices.Length;
     for (Index = 0; Index < m_PollChoices.Length; Index++) {
-        m_PollChoices[Index] = Spawn(class'UIPollChoice', self).InitPollChoice(1, '', ChoiceNames[Index], 0, 0, m_bgBox.Width - 50, , , /* bShowResults */ true, /* bDidWinPoll */ Index == WinningPollChoiceIndex);
-        m_PollChoices[Index].SetVotes(PollGameState.Choices[Index].NumVotes, TotalVotes);
+        m_PollChoices[Index] = Spawn(class'UIPollChoice', self).InitPollChoice(1, '', PollModel.Choices[Index].Title, 0, 0, m_bgBox.Width - 50, , , /* bShowResults */ true, /* bDidWinPoll */ Index == WinningPollChoiceIndex);
+        m_PollChoices[Index].SetVotes(PollModel.Choices[Index].NumVotes, TotalVotes);
     }
 
     m_TotalVotesText = Spawn(class'UIText', self);
     m_TotalVotesText.InitText('', TotalVotes @ (TotalVotes == 1 ? strTotalVotesSingular : strTotalVotesPlural));
 }
 
-private function array<string> GetChoiceNames() {
-    local array<string> ChoiceNames;
-    local PollChoice Choice;
-    local X2PollEventTemplate PollEventTemplate;
-
-    foreach PollGameState.Choices(Choice) {
-        PollEventTemplate = class'X2TwitchUtils'.static.GetPollEventTemplate(Choice.PollEventTemplateName);
-        ChoiceNames.AddItem(PollEventTemplate.FriendlyName);
-    }
-
-    return ChoiceNames;
-}
-
-private function string GetSubtitleText(ePollType PollType) {
-	switch (PollType) {
-		case ePollType_Harbinger:
-			return strSubtitle_Harbinger;
-		case ePollType_Providence:
-			return strSubtitle_Providence;
-		case ePollType_Sabotage:
-			return strSubtitle_Sabotage;
-	}
-}
-
 private function int GetTotalVotes() {
     local int Total;
     local PollChoice Choice;
 
-    foreach PollGameState.Choices(Choice) {
+    foreach PollModel.Choices(Choice) {
         Total += Choice.NumVotes;
     }
 
@@ -116,7 +99,17 @@ private function int GetTotalVotes() {
 }
 
 private function OnCloseResultsButtonPress(UIButton Button) {
+    local int WinningPollChoiceIndex;
+	local PollChoice WinningOption;
+    local X2PollChoiceTemplate PollEventTemplate;
+
     `SCREENSTACK.Pop(self);
+
+	WinningOption = class'X2TwitchUtils'.static.GetWinningPollChoice(PollModel, WinningPollChoiceIndex);
+
+    PollEventTemplate = class'X2TwitchUtils'.static.GetPollChoiceTemplate(PollGameState.Data.PollChoices[WinningPollChoiceIndex].TemplateName);
+    `TILOG("Resolving poll choice template " $ PollEventTemplate.DataName);
+    PollEventTemplate.Resolve();
 }
 
 private function RealizeUI() {

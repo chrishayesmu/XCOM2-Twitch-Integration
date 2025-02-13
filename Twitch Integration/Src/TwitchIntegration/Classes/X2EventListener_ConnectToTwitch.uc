@@ -1,5 +1,4 @@
-class X2EventListener_ConnectToTwitch extends X2EventListener
-	dependson(TwitchChatTcpLink);
+class X2EventListener_ConnectToTwitch extends X2EventListener;
 
 static function array<X2DataTemplate> CreateTemplates()
 {

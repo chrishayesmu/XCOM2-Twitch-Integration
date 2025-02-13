@@ -7,7 +7,7 @@ var localized string strPointsRemovedPlural;
 
 var config int PointsToGive;
 
-function Apply(optional XComGameState_Unit InvokingUnit, optional XComGameState_TwitchEventPoll PollGameState) {
+function Apply(optional XComGameState_Unit InvokingUnit) {
     local int TargetNumActionPoints;
     local XComGameState NewGameState;
 	local XComGameStateContext_ChangeContainer NewContext;
@@ -54,14 +54,14 @@ function Apply(optional XComGameState_Unit InvokingUnit, optional XComGameState_
     }
 }
 
-protected function GetFlyoverParams(XComGameState_Unit PreviousUnitState, XComGameState_Unit CurrentUnitState, out TwitchActionFlyoverParams FlyoverParams) {
+protected function GetFlyoverParams(XComGameState VisualizeGameState, XComGameState_Unit PreviousUnitState, XComGameState_Unit CurrentUnitState, out TwitchActionFlyoverParams FlyoverParams) {
     local int ChangeInActionPoints;
     local string FlyoverText;
 
     ChangeInActionPoints = CurrentUnitState.ActionPoints.Length - PreviousUnitState.ActionPoints.Length;
 
     if (ChangeInActionPoints == 0) {
-        `WARN(self.Class.Name $ ": ChangeInActionPoints was 0, but such a game state should not reach visualization", , 'TwitchIntegration');
+        `TILOG("WARNING: ChangeInActionPoints was 0, but such a game state should not reach visualization", , 'TwitchIntegration');
         return;
     }
 

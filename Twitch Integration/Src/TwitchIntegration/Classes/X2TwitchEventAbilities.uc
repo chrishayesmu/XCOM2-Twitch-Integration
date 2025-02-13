@@ -25,6 +25,8 @@ static function X2DataTemplate CreateBurnSelfAbility() {
     Template = CreateSelfTargetingAbility('Twitch_BurnSelf');
 
     BurningEffect = class'X2StatusEffects'.static.CreateBurningStatusEffect(1, 0); // TODO: use config values
+	BurningEffect.VisualizationFn = BurningVisualization;
+
     Template.AddTargetEffect(BurningEffect);
 
     return Template;
@@ -121,7 +123,7 @@ static function X2AbilityTemplate CreateSelfTargetingAbility(Name AbilityName)
 	Template.AbilityTriggers.AddItem(new class'X2AbilityTrigger_Placeholder');
 
 	Template.AbilityToHitCalc = default.DeadEye;
-	Template.bFrameEvenWhenUnitIsHidden = true;
+	Template.bFrameEvenWhenUnitIsHidden = false;
 	Template.bSkipFireAction = true;
     Template.ConcealmentRule = eConceal_AlwaysEvenWithObjective;
 
@@ -129,4 +131,32 @@ static function X2AbilityTemplate CreateSelfTargetingAbility(Name AbilityName)
 	Template.BuildVisualizationFn = TypicalAbility_BuildVisualization;
 
 	return Template;
+}
+
+protected static function BurningVisualization(XComGameState VisualizeGameState, out VisualizationActionMetadata ActionMetadata, const name EffectApplyResult)
+{
+    // Copied from X2StatusEffects.BurningVisualization to add LookAtDuration
+	if (EffectApplyResult != 'AA_Success')
+		return;
+	if (!ActionMetadata.StateObject_NewState.IsA('XComGameState_Unit'))
+		return;
+
+	class'X2StatusEffects'.static.AddEffectSoundAndFlyOverToTrack(
+        ActionMetadata,
+        VisualizeGameState.GetContext(),
+        class'X2StatusEffects'.default.BurningFriendlyName,
+        'Burning',
+        eColor_Bad,
+        class'UIUtilities_Image'.const.UnitStatus_Burning,
+        /* LookAtDuration */ 1.0f); // TODO this isn't helping
+
+	class'X2StatusEffects'.static.AddEffectMessageToTrack(
+		ActionMetadata,
+		class'X2StatusEffects'.default.BurningEffectAcquiredString,
+		VisualizeGameState.GetContext(),
+		class'UIEventNoticesTactical'.default.BurningTitle,
+		"img:///UILibrary_PerkIcons.UIPerk_burn",
+		eUIState_Bad);
+
+	class'X2StatusEffects'.static.UpdateUnitFlag(ActionMetadata, VisualizeGameState.GetContext());
 }

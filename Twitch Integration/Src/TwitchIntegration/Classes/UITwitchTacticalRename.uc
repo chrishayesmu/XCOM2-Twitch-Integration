@@ -1,4 +1,5 @@
-class UITwitchTacticalRename extends UIPanel;
+class UITwitchTacticalRename extends UIPanel
+    dependson(TwitchStateManager);
 
 var private UIButton ChangeButton;
 var private UIText Text;
@@ -77,7 +78,7 @@ function OnChangeOwnerInputClosed(string Value) {
 
 function RealizeUI() {
     local string ViewerName;
-    local TwitchViewer Viewer;
+    local TwitchChatter Viewer;
 	local XComGameState_Effect_TemplarFocus FocusState;
     local XComGameState_Unit UnitState;
     local XComGameState_TwitchObjectOwnership OwnershipState;
@@ -102,7 +103,7 @@ function RealizeUI() {
         ViewerName = "&lt;Unowned&gt;";
     }
     else {
-        `TISTATEMGR.TwitchChatConn.GetViewer(OwnershipState.TwitchLogin, Viewer);
+        `TISTATEMGR.GetViewer(OwnershipState.TwitchLogin, Viewer);
         ViewerName = `TIVIEWERNAME(Viewer);
     }
 

@@ -5,7 +5,7 @@ var config int SpawnCountdown; // Number of turns between reinforcement notifica
 var config int SpawnDistanceFromSquad; // Ideal distance from XCOM's squad (in tiles) that reinforcements will spawn
 var config bool SpawnForceScamper; // If true, enemies will scamper instead of having a chance to shoot on spawn
 
-function Apply(optional XComGameState_Unit InvokingUnit, optional XComGameState_TwitchEventPoll PollGameState) {
+function Apply(optional XComGameState_Unit InvokingUnit) {
 	if (EncounterID != '') {
 		`TILOG("Spawning encounter with ID " $ EncounterID);
 

@@ -29,6 +29,7 @@ simulated state Executing
 
         Screen = Spawn(class'UIPollResultsScreen', `PRES);
         Screen.PollGameState = PollGameState;
+        Screen.PollModel = `TISTATEMGR.LatestPollModel;
         `SCREENSTACK.Push(Screen);
     }
 

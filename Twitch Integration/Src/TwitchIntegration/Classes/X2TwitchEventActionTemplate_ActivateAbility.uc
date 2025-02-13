@@ -2,7 +2,7 @@ class X2TwitchEventActionTemplate_ActivateAbility extends X2TwitchEventActionTem
 
 var config Name AbilityName;
 
-function Apply(optional XComGameState_Unit InvokingUnit, optional XComGameState_TwitchEventPoll PollGameState) {
+function Apply(optional XComGameState_Unit InvokingUnit) {
     local array<XComGameState_Unit> Targets;
     local XComGameState_Unit Unit;
 
@@ -10,6 +10,7 @@ function Apply(optional XComGameState_Unit InvokingUnit, optional XComGameState_
 
     `TILOG("Applying ActivateAbility action to " $ Targets.Length $ " targets");
     foreach Targets(Unit) {
+        `TILOG("Target: " $ Unit.GetFullName());
         class'X2TwitchUtils'.static.GiveAbilityToUnit(AbilityName, Unit, /* NewGameState */, /* TurnsUntilAbilityExpires */ 1);
         class'XComGameStateContext_Ability'.static.ActivateAbilityByTemplateName(Unit.GetReference(), AbilityName, Unit.GetReference());
     }

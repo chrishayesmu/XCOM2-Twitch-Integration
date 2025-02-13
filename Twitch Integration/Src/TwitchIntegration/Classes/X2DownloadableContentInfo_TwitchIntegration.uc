@@ -66,42 +66,28 @@ static function CopyStateObjectsToNewState(XComGameState NewGameState) {
 // #region Console commands
 
 /// <summary>
-/// Casts a vote in the current poll as though it was cast by the specified viewer.
-/// </summary>
-exec function TwitchCastVote(string ViewerName, int Option) {
-    local TwitchViewer Viewer;
-    Viewer.Login = ViewerName;
-
-	`TISTATEMGR.CastVote(Viewer, Option - 1);
-}
-
-/// <summary>
 /// Executes a Twitch command as though it were coming from the specified viewer.
 /// </summary>
 exec function TwitchChatCommand(string ViewerLogin, string Command, optional string CommandBody) {
-    local TwitchMessage Message;
-    local TwitchViewer Viewer;
     local TwitchStateManager StateMgr;
+    local JsonObject JsonObj;
 
     StateMgr = `TISTATEMGR;
-    Message.Body = "!" $ Command;
 
-    if (CommandBody != "") {
-        Message.Body @= CommandBody;
-    }
+    JsonObj = new class'JsonObject';
+    JsonObj.SetStringValue("$type", "chatCommand");
+    JsonObj.SetStringValue("user_login", ViewerLogin);
+    JsonObj.SetStringValue("body", CommandBody);
+    JsonObj.SetStringValue("command", Command);
+    JsonObj.SetStringValue("message_id", "fake_message_id");
 
-    if (StateMgr.TwitchChatConn.GetViewer(ViewerLogin, Viewer) == INDEX_NONE) {
-        `TILOG("Viewer " $ ViewerLogin $ " not found, supplying fake viewer");
-        Viewer.Login = ViewerLogin;
-    }
-
-    StateMgr.HandleChatCommand(Message, Viewer);
+    StateMgr.EventQueue.AddItem(JsonObj);
 }
 
 exec function TwitchCleanStates(optional bool bForce = false) {
     local int Index, NumStaleStates;
-    local TwitchChatTcpLink ChatConn;
-    local TwitchViewer Viewer;
+    local TwitchChatter Viewer;
+    local TwitchStateManager StateMgr;
     local XComGameState NewGameState;
     local XComGameStateHistory History;
     local XComGameState_TwitchObjectOwnership OwnershipState;
@@ -120,8 +106,8 @@ exec function TwitchCleanStates(optional bool bForce = false) {
     }
 
     History = `XCOMHISTORY;
+    StateMgr = `TISTATEMGR;
 	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Console Command: TwitchCleanStates");
-    ChatConn = `TISTATEMGR != none ? `TISTATEMGR.TwitchChatConn : none;
 
     foreach History.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState) {
         Unit = XComGameState_Unit(History.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID));
@@ -132,14 +118,14 @@ exec function TwitchCleanStates(optional bool bForce = false) {
             class'XComGameState_TwitchObjectOwnership'.static.DeleteOwnership(OwnershipState, NewGameState);
             NumStaleStates++;
 
-            if (ChatConn != none)
+            if (StateMgr != none)
             {
                 // Update the viewer so they aren't marked as owning something
-                Index = ChatConn.GetViewer(OwnershipState.TwitchLogin, /* unused out param*/ Viewer);
+                Index = StateMgr.GetViewer(OwnershipState.TwitchLogin, /* unused out param*/ Viewer);
 
                 if (Index != INDEX_NONE)
                 {
-                    ChatConn.Viewers[Index].OwnedObjectID = 0;
+                    StateMgr.CurrentChatters[Index].OwnedObjectID = 0;
                 }
             }
         }
@@ -153,21 +139,6 @@ exec function TwitchCleanStates(optional bool bForce = false) {
         class'Helpers'.static.OutputMsg("Did not find any stale ownership to clean up");
 		`XCOMHISTORY.CleanupPendingGameState(NewGameState);
     }
-}
-
-/// <summary>
-/// Connects to Twitch chat, forcibly disconnecting first if bForceReconnect is true.
-/// </summary>
-exec function TwitchConnect(bool bForceReconnect = false) {
-    `TISTATEMGR.ConnectToTwitchChat(bForceReconnect);
-}
-
-exec function TwitchDebugSendRawIrc(string RawIrcMessage) {
-    `TISTATEMGR.TwitchChatConn.DebugSendRawIrc(RawIrcMessage);
-}
-
-exec function TwitchDebugSendWhisper(string Recipient, string Message) {
-    `TISTATEMGR.TwitchChatConn.QueueWhisper(Recipient, Message, 5.0);
 }
 
 /// <summary>
@@ -225,17 +196,6 @@ exec function TwitchListRaffledViewers() {
         class'Helpers'.static.OutputMsg(Message);
         `TILOG(Message);
     }
-}
-
-/// <summary>
-/// Executes a quick poll with predetermined results for testing purposes.
-/// </summary>
-exec function TwitchQuickPoll(ePollType PollType) {
-    TwitchStartPoll(PollType, 2);
-    TwitchCastVote("user1", 1);
-    TwitchCastVote("user2", 2);
-    TwitchCastVote("user3", 2);
-    TwitchEndPoll();
 }
 
 /// <summary>
@@ -333,10 +293,43 @@ exec function TwitchUnassignViewer(string ViewerLogin)
 }
 
 /// <summary>
-/// Starts a new poll with randomly-selected events from the given poll type.
+/// Starts a new poll with randomly-selected events from the given poll group.
 /// </summary>
-exec function TwitchStartPoll(ePollType PollType, int DurationInTurns) {
-	`TISTATEMGR.StartPoll(PollType, DurationInTurns);
+exec function TwitchStartPoll(name PollGroupTemplateName) {
+    local X2PollGroupTemplate Template;
+
+    Template = class'X2PollGroupTemplateManager'.static.GetPollGroupTemplateManager().GetPollGroupTemplate(PollGroupTemplateName);
+
+    `TISTATEMGR.StartPoll(Template);
+}
+
+exec function TwitchListPollChoiceTemplates() {
+    local X2DataTemplate Template;
+    local X2PollChoiceTemplate PollChoiceTemplate;
+
+    class'Helpers'.static.OutputMsg("X2PollChoiceTemplates:");
+    class'Helpers'.static.OutputMsg("-----------------------------------------");
+
+    foreach class'X2PollChoiceTemplateManager'.static.GetPollChoiceTemplateManager().IterateTemplates(Template) {
+        PollChoiceTemplate = X2PollChoiceTemplate(Template);
+
+        class'Helpers'.static.OutputMsg(PollChoiceTemplate.DataName $ ": '" $ PollChoiceTemplate.FriendlyName $ "' has " $ PollChoiceTemplate.ActionNames.Length $ " actions");
+    }
+}
+
+
+exec function TwitchListPollGroupTemplates() {
+    local X2DataTemplate Template;
+    local X2PollGroupTemplate PollGroupTemplate;
+
+    class'Helpers'.static.OutputMsg("X2PollGroupTemplates:");
+    class'Helpers'.static.OutputMsg("-----------------------------------------");
+
+    foreach class'X2PollGroupTemplateManager'.static.GetPollGroupTemplateManager().IterateTemplates(Template) {
+        PollGroupTemplate = X2PollGroupTemplate(Template);
+
+        class'Helpers'.static.OutputMsg(PollGroupTemplate.DataName $ ": '" $ PollGroupTemplate.PollTitle $ "' has " $ PollGroupTemplate.Choices.Length $ " choices");
+    }
 }
 
 // #endregion

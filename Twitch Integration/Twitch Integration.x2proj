@@ -41,10 +41,10 @@
     <Content Include="Src\TwitchIntegration\Classes\HttpGetRequest.uc">
       <SubType>Content</SubType>
     </Content>
-    <Content Include="Src\TwitchIntegration\Classes\TwitchCommandHandler.uc">
+    <Content Include="Src\TwitchIntegration\Classes\TwitchEventHandler.uc">
       <SubType>Content</SubType>
     </Content>
-    <Content Include="Src\TwitchIntegration\Classes\TwitchCommandHandler_Vote.uc">
+    <Content Include="Src\TwitchIntegration\Classes\TwitchEventHandler_Vote.uc">
       <SubType>Content</SubType>
     </Content>
     <Content Include="Src\TwitchIntegration\Classes\TwitchStateManager.uc">
@@ -69,7 +69,7 @@
     <Content Include="Src\TwitchIntegration\Classes\X2PollEvent.uc">
       <SubType>Content</SubType>
     </Content>
-    <Content Include="Src\TwitchIntegration\Classes\X2PollEventTemplate.uc">
+    <Content Include="Src\TwitchIntegration\Classes\X2PollChoiceTemplate.uc">
       <SubType>Content</SubType>
     </Content>
     <Content Include="Src\TwitchIntegration\Classes\X2TwitchUtils.uc">

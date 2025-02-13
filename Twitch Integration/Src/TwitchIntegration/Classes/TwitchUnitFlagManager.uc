@@ -164,9 +164,9 @@ function SetTwitchEmoteImage(XComGameState_Unit Unit, string ImagePath) {
 private function TwitchFlag CreateTwitchFlag(UIUnitFlag UnitFlag, XComGameState_Unit Unit, XComGameState_TwitchObjectOwnership Ownership) {
     local TLabelPosition EmoteSize;
     local TwitchFlag TFlag;
-    local TwitchViewer Viewer;
+    local TwitchChatter Chatter;
 
-    `TISTATEMGR.TwitchChatConn.GetViewer(Ownership.TwitchLogin, Viewer);
+    `TISTATEMGR.GetViewer(Ownership.TwitchLogin, Chatter);
 
     TFlag.AttachedObjectID = UnitFlag.StoredObjectID;
     EmoteSize = Unit.GetTeam() == eTeam_XCom ? FriendlyEmoteSize : UnalliedEmoteSize;
@@ -182,7 +182,7 @@ private function TwitchFlag CreateTwitchFlag(UIUnitFlag UnitFlag, XComGameState_
 
     TFlag.TwitchName = Spawn(class'UIText', UnitFlag);
     TFlag.TwitchName.OnTextSizeRealized = OnTextSizeRealized;
-    TFlag.TwitchName.InitText(, `TIVIEWERNAME(Viewer));
+    TFlag.TwitchName.InitText(, `TIVIEWERNAME(Chatter));
 
     // Position differently for friendly units, because the action points indicator is in the way
     if (Unit.GetTeam() == eTeam_XCom) {
@@ -209,7 +209,7 @@ private function SetUnitName(XComGameState_Unit Unit, XComGameState_TwitchObject
 
     local XComGameState NewGameState;
     local XComGameState_Unit OriginalUnit;
-    local TwitchViewer Viewer;
+    local TwitchChatter Viewer;
 	local string FirstName, LastName;
 
     if (Unit.GetTeam() == eTeam_XCom && ( Unit.IsSoldier() || Unit.GetMyTemplate().bIsCosmetic )) {
@@ -217,7 +217,7 @@ private function SetUnitName(XComGameState_Unit Unit, XComGameState_TwitchObject
         return;
     }
 
-    `TISTATEMGR.TwitchChatConn.GetViewer(Ownership.TwitchLogin, Viewer);
+    `TISTATEMGR.GetViewer(Ownership.TwitchLogin, Viewer);
 
     if (Unit.bReadOnly) {
         NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("TwitchIntegration: Set Unit Name");

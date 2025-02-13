@@ -1,4 +1,4 @@
-class TwitchCommandHandler_XSay extends TwitchCommandHandler
+class TwitchChatCommand_XSay extends TwitchChatCommand
     dependson(TwitchStateManager);
 
 struct TNarrativeQueueItem {
@@ -114,7 +114,7 @@ function Initialize(TwitchStateManager StateMgr) {
     `XWORLDINFO.MyWatchVariableMgr.RegisterWatchVariable(`PRESBASE.m_kNarrativeUIMgr, 'm_arrConversations', self, EnqueueXSayToCommLinkIfPossible);
 }
 
-function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer Viewer) {
+function Invoke(string CommandAlias, string Body, string MessageId, TwitchChatter Viewer) {
     local bool bIsTacticalGame, bShowInCommLink;
     local TNarrativeQueueItem NarrativeItem;
     local TViewerXSayOverride ViewerOverride;
@@ -123,7 +123,10 @@ function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer
 	local XComGameState_TwitchXSay XSayGameState;
 	local XComGameState_Unit Unit;
 
+    `TILOG("in xsay");
+
     if (!CanViewerXSay(Viewer.Login, Unit, ViewerOverride)) {
+        `TILOG("Viewer is not able to xsay right now; skipping");
         return;
     }
 
@@ -132,10 +135,10 @@ function Handle(TwitchStateManager StateMgr, TwitchMessage Command, TwitchViewer
 	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("XSay From " $ Viewer.Login);
 
 	XSayGameState = XComGameState_TwitchXSay(NewGameState.CreateNewStateObject(class'XComGameState_TwitchXSay'));
-	XSayGameState.MessageBody = GetCommandBody(Command);
+	XSayGameState.MessageBody = Body;
 	XSayGameState.Sender = Viewer.Login;
     XSayGameState.SendingUnitObjectID = Unit != none ? Unit.GetReference().ObjectID : 0;
-    XSayGameState.TwitchMessageId = Command.MsgId;
+    XSayGameState.TwitchMessageId = MessageId;
 
     // Need to include a new game state for the unit or else the visualizer may think it's still
     // visualizing an old ability and fail to do the flyover
@@ -169,7 +172,7 @@ protected function BuildVisualization_TacLayer(XComGameState VisualizeGameState)
     local string SanitizedMessageBody;
     local string ViewerName;
     local EWidgetColor MessageColor;
-    local TwitchViewer Viewer;
+    local TwitchChatter Chatter;
 	local VisualizationActionMetadata ActionMetadata;
 	local X2Action_PlayMessageBanner MessageAction;
 	local X2Action_PlaySoundAndFlyOver SoundAndFlyover;
@@ -189,9 +192,9 @@ protected function BuildVisualization_TacLayer(XComGameState VisualizeGameState)
         return;
     }
 
-    `TISTATEMGR.TwitchChatConn.GetViewer(XSayGameState.Sender, Viewer);
-    ViewerName = `TIVIEWERNAME(Viewer);
-    Unit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(Viewer.Login);
+    `TISTATEMGR.GetViewer(XSayGameState.Sender, Chatter);
+    ViewerName = `TIVIEWERNAME(Chatter);
+    Unit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(Chatter.Login);
     bUnitIsVisibleToSquad = Unit != none && class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(Unit.ObjectID);
 
 	ActionMetadata.StateObject_OldState = Unit;

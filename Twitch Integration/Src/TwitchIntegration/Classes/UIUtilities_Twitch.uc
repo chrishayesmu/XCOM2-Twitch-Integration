@@ -68,7 +68,7 @@ static function string InsertEmotes(string InString) {
 static function ShowTwitchName(int ObjectID, optional XComGameState NewGameState, optional bool bPermanent = false) {
     local float DisplayTime;
     local int MsgBehavior;
-    local TwitchViewer Viewer;
+    local TwitchChatter Viewer;
     local XComGameState_TwitchObjectOwnership OwnershipState;
     local Vector Position;
 
@@ -78,7 +78,7 @@ static function ShowTwitchName(int ObjectID, optional XComGameState NewGameState
         return;
     }
 
-    `TISTATEMGR.TwitchChatConn.GetViewer(OwnershipState.TwitchLogin, Viewer);
+    `TISTATEMGR.GetViewer(OwnershipState.TwitchLogin, Viewer);
     DisplayTime = bPermanent ? 0.0 : 7.0;
     MsgBehavior = bPermanent ? class'UIWorldMessageMgr'.const.FXS_MSG_BEHAVIOR_STEADY : class'UIWorldMessageMgr'.const.FXS_MSG_BEHAVIOR_FLOAT;
 

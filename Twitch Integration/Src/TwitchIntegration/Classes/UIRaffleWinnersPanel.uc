@@ -1,6 +1,6 @@
 class UIRaffleWinnersPanel extends UIPanel
     config(TwitchUI)
-    dependson(TwitchChatTcpLink, TwitchIntegrationConfig, UIScreenListener_TwitchUsernameInjector);
+    dependson(TwitchIntegrationConfig, UIScreenListener_TwitchUsernameInjector);
 
 var config TLabelPosition Position;
 var config TLabelPosition Size;

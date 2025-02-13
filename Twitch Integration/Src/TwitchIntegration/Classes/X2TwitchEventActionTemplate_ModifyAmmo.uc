@@ -7,7 +7,7 @@ var localized string strAmmoRemovedPlural;
 
 var config int AmmoToGive;
 
-function Apply(optional XComGameState_Unit InvokingUnit, optional XComGameState_TwitchEventPoll PollGameState) {
+function Apply(optional XComGameState_Unit InvokingUnit) {
     local int TargetAmmoAmount;
     local XComGameState NewGameState;
 	local XComGameStateContext_ChangeContainer NewContext;
@@ -36,6 +36,10 @@ function Apply(optional XComGameState_Unit InvokingUnit, optional XComGameState_
 
         Weapon = XComGameState_Item(NewGameState.ModifyStateObject(class'XComGameState_Item', Weapon.ObjectID));
         Weapon.Ammo = TargetAmmoAmount;
+
+        // Just create a new unit state to attach the flyover visualization to it
+        // TODO: use a custom viz function instead
+        Unit = XComGameState_Unit(NewGameState.ModifyStateObject(class'XComGameState_Unit', Unit.ObjectID));
     }
 
     if (NewGameState.GetNumGameStateObjects() > 0) {
@@ -46,18 +50,21 @@ function Apply(optional XComGameState_Unit InvokingUnit, optional XComGameState_
     }
 }
 
-protected function GetFlyoverParams(XComGameState_Unit PreviousUnitState, XComGameState_Unit CurrentUnitState, out TwitchActionFlyoverParams FlyoverParams) {
+protected function GetFlyoverParams(XComGameState VisualizeGameState, XComGameState_Unit PreviousUnitState, XComGameState_Unit CurrentUnitState, out TwitchActionFlyoverParams FlyoverParams) {
     local XComGameState_Item CurrentWeaponState, PreviousWeaponState;
     local int ChangeInAmmo;
     local string FlyoverText;
 
     // TODO: may need to pass actual game states here?
     CurrentWeaponState = CurrentUnitState.GetItemInSlot(eInvSlot_PrimaryWeapon);
-    PreviousWeaponState = PreviousUnitState.GetItemInSlot(eInvSlot_PrimaryWeapon);
+    PreviousWeaponState = XComGameState_Item(`XCOMHISTORY.GetGameStateForObjectID(CurrentWeaponState.ObjectID, eReturnType_Reference, VisualizeGameState.HistoryIndex - 1));
     ChangeInAmmo = CurrentWeaponState.Ammo - PreviousWeaponState.Ammo;
 
+    `TILOG("GetFlyoverParams for unit " $ CurrentUnitState.GetFullName() $ ". ChangeInAmmo = " $ ChangeInAmmo);
+    `TILOG("Comparing " $ `SHOWVAR(CurrentWeaponState) $ " to " $ `SHOWVAR(PreviousWeaponState));
+
     if (ChangeInAmmo == 0) {
-        `WARN(self.Class.Name $ ": ChangeInAmmo was 0, but such a game state should not reach visualization", , 'TwitchIntegration');
+        `TILOG("WARNING: ChangeInAmmo was 0, but such a game state should not reach visualization", , 'TwitchIntegration');
         return;
     }
 
@@ -79,6 +86,8 @@ protected function GetFlyoverParams(XComGameState_Unit PreviousUnitState, XComGa
         FlyoverText = strAmmoRemovedPlural;
     }
 
+    `TILOG("Text: '" $ FlyoverText $ "'. Color: " $ FlyoverParams.Color);
+
     FlyoverParams.Text = Repl(FlyoverText, "<Ammo/>", int(Abs(ChangeInAmmo)));
 }
 
@@ -91,7 +100,7 @@ protected function bool IsValidTarget(XComGameState_Unit Unit) {
 
     Weapon = Unit.GetItemInSlot(eInvSlot_PrimaryWeapon);
 
-    `TILOG("Weapon " $ Weapon.Name $ " currently has ammo: " $ Weapon.Ammo $ " for clip size: " $ Weapon.GetItemClipSize());
+    `TILOG("Unit " $ Unit.GetFullName() $ "'s weapon " $ Weapon.Name $ " currently has ammo: " $ Weapon.Ammo $ " for clip size: " $ Weapon.GetItemClipSize());
 
     if (AmmoToGive > 0 && Weapon.Ammo >= Weapon.GetItemClipSize()) {
         return false; // no ammo missing to refill
@@ -102,4 +111,9 @@ protected function bool IsValidTarget(XComGameState_Unit Unit) {
     }
 
     return true;
+}
+
+defaultproperties
+{
+    bHasPerUnitFlyover=true
 }

@@ -146,8 +146,7 @@ static function XComGameState_TwitchEventPoll GetActivePoll() {
 
     PollGameState = GetMostRecentPoll();
 
-    // I don't know why the hell UE wouldn't let me do this as a ternary
-    if (PollGameState != none && PollGameState.RemainingTurns > 0) {
+    if (PollGameState != none && PollGameState.IsActive) {
         return PollGameState;
     }
 
@@ -162,36 +161,16 @@ static function XComGameState_TwitchEventPoll GetMostRecentPoll() {
     return PollGameState;
 }
 
-static function EUIState GetPollColorState(ePollType PollType) {
-	switch (PollType) {
-		case ePollType_Providence:
-			return eUIState_Good;
-		case ePollType_Harbinger:
-		case ePollType_Sabotage:
-			return eUIState_Bad;
-	}
-}
-
-static function string GetPollColor(ePollType PollType) {
-	switch (PollType) {
-		case ePollType_Providence:
-			return class'UIUtilities_Colors'.const.GOOD_HTML_COLOR;
-		case ePollType_Harbinger:
-		case ePollType_Sabotage:
-			return class'UIUtilities_Colors'.const.BAD_HTML_COLOR;
-	}
-}
-
-static function PollChoice GetWinningPollChoice(XComGameState_TwitchEventPoll PollGameState, optional out int WinningIndex) {
+static function PollChoice GetWinningPollChoice(TwitchPollModel PollModel, optional out int WinningIndex) {
     local int Index;
 	local PollChoice CurrentOption;
 	local PollChoice WinningOption;
 
     WinningIndex = 0;
-	WinningOption = PollGameState.Choices[0];
+	WinningOption = PollModel.Choices[0];
 
-    for (Index = 0; Index < PollGameState.Choices.Length; Index++) {
-        CurrentOption = PollGameState.Choices[Index];
+    for (Index = 0; Index < PollModel.Choices.Length; Index++) {
+        CurrentOption = PollModel.Choices[Index];
 		if (CurrentOption.NumVotes > WinningOption.NumVotes) {
             WinningIndex = Index;
 			WinningOption = CurrentOption;
@@ -201,9 +180,52 @@ static function PollChoice GetWinningPollChoice(XComGameState_TwitchEventPoll Po
     return WinningOption;
 }
 
-static function X2PollEventTemplate GetPollEventTemplate(Name TemplateName) {
-    local X2EventListenerTemplateManager TemplateMgr;
+static function X2PollChoiceTemplate GetPollChoiceTemplate(Name TemplateName) {
+    local X2PollChoiceTemplateManager TemplateMgr;
 
-    TemplateMgr = class'X2EventListenerTemplateManager'.static.GetEventListenerTemplateManager();
-    return X2PollEventTemplate(TemplateMgr.FindEventListenerTemplate(TemplateName));
+    TemplateMgr = class'X2PollChoiceTemplateManager'.static.GetPollChoiceTemplateManager();
+    return TemplateMgr.GetPollChoiceTemplate(TemplateName);
+}
+
+static function string SecondsToTimeString(int TotalSeconds) {
+    local string Text;
+    local int HoursPart, MinutesPart, SecondsPart;
+
+    HoursPart = TotalSeconds / 3600;
+    MinutesPart = TotalSeconds / 60;
+    SecondsPart = TotalSeconds % 60;
+
+    if (HoursPart > 0) {
+        Text = HoursPart >= 10 ? string(HoursPart) : "0" $ string(HoursPart);
+        Text $= ":";
+    }
+
+    Text $= MinutesPart >= 10 ? string(MinutesPart) : "0" $ string(MinutesPart);
+    Text $= ":";
+
+    Text $= SecondsPart >= 10 ? string(SecondsPart) : "0" $ string(SecondsPart);
+
+    return Text;
+}
+
+static function ETeam WhoseTurnIsIt()
+{
+    local XComGameStateHistory History;
+    local XComGameStateContext_TacticalGameRule Context;
+    local XComGameState_Player PlayerState;
+
+    History = `XCOMHISTORY;
+
+    // Iterate history looking for a turn begin
+    foreach History.IterateContextsByClassType(class'XComGameStateContext_TacticalGameRule', Context, /* DesiredReturnType */, /* IterateIntoThePast */ true)
+    {
+        if (Context.GameRuleType == eGameRule_PlayerTurnBegin)
+        {
+            PlayerState = XComGameState_Player(History.GetGameStateForObjectID(Context.PlayerRef.ObjectID));
+            return PlayerState.TeamFlag;
+        }
+    }
+
+    // For completeness
+    return eTeam_None;
 }

@@ -1,7 +1,7 @@
 class X2EventListener_TwitchNames extends X2EventListener
     config(TwitchIntegration);
 
-const DetailedLogs = true;
+const DetailedLogs = false;
 
 var config array<name> UnitTypesToNotRaffle;
 
@@ -51,15 +51,16 @@ static function XComGameState_TwitchObjectOwnership AssignOwnership(string Viewe
     local bool bCreatedGameState;
     local int ViewerIndex;
     local TwitchStateManager StateMgr;
-    local TwitchViewer Viewer;
+    local TwitchChatter Viewer;
     local XComGameState_TwitchObjectOwnership OwnershipState;
 	local XComGameState_Unit Unit;
 
     StateMgr = `TISTATEMGR;
-    ViewerIndex = StateMgr.TwitchChatConn.GetViewer(ViewerLogin, Viewer);
+    ViewerIndex = StateMgr.GetViewer(ViewerLogin, Viewer);
     Unit = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(ObjID));
 
 // #region Check if either unit or viewer already has associated ownership
+
     // Start by handling the Chosen units specially, because their ownership needs to persist between missions
     // but it needs separate logic to do so
     if (Unit.IsChosen()) {
@@ -119,23 +120,18 @@ static function XComGameState_TwitchObjectOwnership AssignOwnership(string Viewe
     OwnershipState.OwnedObjectRef = Unit.GetReference();
 // #endregion
 
-// #region Mark the viewer as owning something so they don't get raffled again
+    // Mark the viewer as owning something so they don't get raffled again
     if (ViewerIndex != INDEX_NONE) {
         Viewer.OwnedObjectID = ObjID;
-        StateMgr.TwitchChatConn.Viewers[ViewerIndex] = Viewer;
+        StateMgr.CurrentChatters[ViewerIndex] = Viewer;
     }
-// #endregion
 
-// #region Modify unit attributes as needed
     // Update our Twitch unit flag to show the viewer name. We want to do this *before* changing
     // the unit name, because we want the unit flag to show the original unit name, with our nameplate underneath.
     `TILOG("Updating unit flag");
     class'X2TwitchUtils'.static.SyncUnitFlag(Unit, OwnershipState);
     `TILOG("Updated unit flag");
-    `XWORLDINFO.ConsoleCommand("flushlogs");
-
-
-// #endregion
+    `XWORLDINFO.ConsoleCommand("flushlogs"); // TODO remove these flush calls
 
     // For Chosen, we need a little extra info and have to modify a more global game state
     if (Unit.IsChosen()) {
@@ -147,10 +143,12 @@ static function XComGameState_TwitchObjectOwnership AssignOwnership(string Viewe
 
     if (bCreatedGameState) {
         `TILOG("Submitting new game state " $ NewGameState);
-    `XWORLDINFO.ConsoleCommand("flushlogs");
+        `XWORLDINFO.ConsoleCommand("flushlogs");
+
         `GAMERULES.SubmitGameState(NewGameState);
+
         `TILOG("Game state submitted");
-    `XWORLDINFO.ConsoleCommand("flushlogs");
+        `XWORLDINFO.ConsoleCommand("flushlogs");
     }
 
     `XEVENTMGR.TriggerEvent('TwitchUnitOwnerAssigned', /* EventData */ OwnershipState, /* EventSource */, NewGameState);
@@ -186,9 +184,8 @@ static protected function EventListenerReturn AssignNamesToUnits(Object EventDat
 static protected function EventListenerReturn ChooseViewerName(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
     local bool bRequireActiveChatter;
     local int ViewerIndex;
-    local TwitchChatTcpLink TwitchConn;
     local TwitchStateManager TwitchMgr;
-    local TwitchViewer Viewer;
+    local TwitchChatter Viewer;
 	local XComGameState_Unit OriginalUnit, Unit;
     local XComGameState_TwitchObjectOwnership OwnershipState;
 
@@ -198,7 +195,6 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
 
     bRequireActiveChatter = false;
     TwitchMgr = `TISTATEMGR;
-    TwitchConn = TwitchMgr.TwitchChatConn;
 	Unit = XComGameState_Unit(EventSource);
 
     `TILOG("In ChooseViewerName for event " $ Event $ " and unit " $ Unit.GetFullName() $ "; CharacterGroupName = " $ Unit.GetMyTemplate().CharacterGroupName, DetailedLogs);
@@ -275,7 +271,7 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
         return ELR_NoInterrupt;
     }
 
-    Viewer = TwitchConn.Viewers[ViewerIndex];
+    Viewer = TwitchMgr.CurrentChatters[ViewerIndex];
     AssignOwnership(Viewer.Login, Unit.GetReference().ObjectID, GameState);
 
 	return ELR_NoInterrupt;
@@ -398,7 +394,7 @@ static protected function bool TransferOwnershipFromOriginal(XComGameState_Unit 
     return (OwnershipState != none);
 }
 
-static protected function UpdateChosenGameStateFromUnit(XComGameState_Unit ChosenUnit, XComGameState NewGameState, TwitchViewer Viewer) {
+static protected function UpdateChosenGameStateFromUnit(XComGameState_Unit ChosenUnit, XComGameState NewGameState, TwitchChatter Viewer) {
     local XComGameState_AdventChosen ChosenState;
 
     `TILOG("UpdateChosenGameStateFromUnit entered");

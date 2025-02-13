@@ -1,13 +1,17 @@
 class TwitchStateManager extends Actor
 	config(TwitchIntegration)
-	dependson(TwitchChatTcpLink, XComGameState_TwitchEventPoll);
+	dependson(TwitchPollModel, XComGameState_TwitchEventPoll);
 
 // ----------------------------------------------
 // Structs/enums
 
-struct PollTypeWeighting {
-    var ePollType PollType;
-    var int Weight;
+struct TwitchChatter {
+    var string Login;        // The login of the viewer (should be same as Name but all lowercase)
+	var string DisplayName;  // The name the viewer uses in chat
+    var string UserId;       // Unique user ID assigned by Twitch
+    var int SubTier;         // Subscription tier (0, 1, 2, or 3), where 0 means not subbed. Prime subs are tier 1.
+    var bool IsBroadcaster;  // Whether this viewer is the broadcaster.
+    var int OwnedObjectID;   // If > 0, the ID of an object this viewer has raffled as owner of
 };
 
 // ----------------------------------------------
@@ -16,9 +20,6 @@ struct PollTypeWeighting {
 var config array<string> BlacklistedViewerNames;
 
 var config(TwitchChatCommands) array<string> EnabledCommands;
-var config(TwitchEvents) array<PollTypeWeighting> PollTypeWeights;
-
-var private int OptionsPerPoll;
 
 // ----------------------------------------------
 // State variables
@@ -26,21 +27,16 @@ var private int OptionsPerPoll;
 var bool bUnraffledUnitsExist;
 var float fTimeSinceLastRaffle;
 var privatewrite bool bIsViewerListPopulated;
-var private array<string> VotersInCurrentPoll;
+var array<TwitchChatter> CurrentChatters;
+var array<JsonObject> EventQueue;
+var TwitchPollModel LatestPollModel;
 
-var private HttpGetRequest HttpGet;
-var privatewrite TwitchChatTcpLink TwitchChatConn;
 var privatewrite TwitchUnitFlagManager TwitchFlagMgr;
 var privatewrite UIChatLog ChatLog;
 var privatewrite UIRaffleWinnersPanel RaffleWinnersPanel;
 
-var private array<X2PollEventTemplate> HarbingerEventTemplates;
-var private array<X2PollEventTemplate> ProvidenceEventTemplates;
-var private array<X2PollEventTemplate> ReinforcementEventTemplates;
-var private array<X2PollEventTemplate> SabotageEventTemplates;
-var private array<X2PollEventTemplate> SerendipityEventTemplates;
-
-var private array<TwitchCommandHandler> CommandHandlers;
+var private array<TwitchEventHandler> EventHandlers;
+var private TwitchEventHandler_CreatePoll CreatePollEventHandler; // also present in EventHandlers array
 
 // ----------------------------------------------
 // Static functions
@@ -59,69 +55,37 @@ static function TwitchStateManager GetStateManager() {
 // Public functions
 
 function Initialize() {
-    local bool bIsTacticalGame;
-    local string CommandHandlerName;
-    local Class CommandHandlerClass;
-    local TwitchCommandHandler CommandHandler;
-
     local int Index;
     local Object ThisObj;
-    local X2DataTemplate Template;
-    local X2EventListenerTemplateManager EventTemplateManager;
+    local TwitchEventHandler EventHandler;
     local X2EventManager EventManager;
-	local X2PollEventTemplate PollEventTemplate;
 
 	`TILOG("Initializing state manager");
 
-    bIsTacticalGame = !`TI_IS_STRAT_GAME;
-    ThisObj = self;
-	EventManager = `XEVENTMGR;
-	EventManager.RegisterForEvent(ThisObj, 'PlayerTurnBegun', OnPlayerTurnBegun, ELD_OnStateSubmitted);
+    // Set up event handlers
+    CreatePollEventHandler = new class'TwitchEventHandler_CreatePoll';
 
-    // Load command handlers from config
-    foreach EnabledCommands(CommandHandlerName) {
-        CommandHandlerClass = class'Engine'.static.FindClassType(CommandHandlerName);
-        CommandHandler = TwitchCommandHandler(new(None, CommandHandlerName) CommandHandlerClass);
-        CommandHandler.Initialize(self);
-	    CommandHandlers.AddItem(CommandHandler);
+    EventHandlers.AddItem(new class'TwitchEventHandler_ChatCommand');
+    EventHandlers.AddItem(new class'TwitchEventHandler_ChatDeleted');
+    EventHandlers.AddItem(CreatePollEventHandler);
+    EventHandlers.AddItem(new class'TwitchEventHandler_UpdatePoll');
+
+    foreach EventHandlers(EventHandler) {
+        EventHandler.Initialize(self);
     }
 
-    `TILOG("Loaded " $ CommandHandlers.Length $ " command handlers");
-
-	// Find all poll event templates and organize them by type for future use
-	EventTemplateManager = class'X2EventListenerTemplateManager'.static.GetEventListenerTemplateManager();
-
-	foreach EventTemplateManager.IterateTemplates(Template, static.FilterRelevantTemplates) {
-		PollEventTemplate = X2PollEventTemplate(Template);
-
-		switch (PollEventTemplate.UseInPollType) {
-			case ePollType_Harbinger:
-				HarbingerEventTemplates.AddItem(PollEventTemplate);
-				break;
-			case ePollType_Providence:
-				ProvidenceEventTemplates.AddItem(PollEventTemplate);
-				break;
-			case ePollType_Reinforcement:
-				ReinforcementEventTemplates.AddItem(PollEventTemplate);
-				break;
-			case ePollType_Sabotage:
-				SabotageEventTemplates.AddItem(PollEventTemplate);
-				break;
-            case ePollType_Serendipity:
-                SerendipityEventTemplates.AddItem(PollEventTemplate);
-                break;
-		}
-	}
+    `TILOG("Loaded " $ EventHandlers.Length $ " event handlers");
 
     // Make sure blacklisted viewers are all lowercase, since Twitch logins are lowercase
     for (Index = 0; Index < BlacklistedViewerNames.Length; Index++) {
         BlacklistedViewerNames[Index] = Locs(BlacklistedViewerNames[Index]);
     }
 
-	// Connect to Twitch chat servers
-    ConnectToTwitchChat();
+    if (`TI_IS_TAC_GAME) {
+        ThisObj = self;
+	    EventManager = `XEVENTMGR;
+	    EventManager.RegisterForEvent(ThisObj, 'PlayerTurnBegun', OnPlayerTurnBegun, ELD_OnStateSubmitted);
 
-    if (bIsTacticalGame) {
         TwitchFlagMgr = Spawn(class'TwitchUnitFlagManager');
         TwitchFlagMgr.Initialize();
     }
@@ -129,7 +93,10 @@ function Initialize() {
 	// Retrieve list of viewers from Twitch API at startup and periodically. It's heavily cached,
     // so we don't need to retrieve it very often.
     LoadViewerList();
-    SetTimer(180.0, /* inBLoop */ true, nameof(LoadViewerList));
+    SetTimer(60.0, /* inBLoop */ true, nameof(LoadViewerList));
+
+    // Load pending events very frequently, so the game is pretty responsive to viewers
+    SetTimer(1.0, /* inBLoop */ true, nameof(LoadPendingEvents));
 
     // Initially raffle any unraffled units. We have to be careful to always do this from the main thread and
     // not in response to web requests, or we can end up submitting a game state from an illegal thread and
@@ -139,7 +106,38 @@ function Initialize() {
 }
 
 event Tick(float DeltaTime) {
+    local TwitchEventHandler EventHandler;
+    local array<JsonObject> Events;
+    local string EventType;
+    local int I;
+    local bool bEventHandled;
+
     super.Tick(DeltaTime);
+
+    `TILOG("EventQueue contains " $ EventQueue.Length $ " items", EventQueue.Length > 0);
+
+    // Processing events might take a while; operate on a copy of the queue to reduce concurrency issues
+    Events = EventQueue;
+    EventQueue.Length = 0;
+
+    for (I = 0; I < Events.Length; I++) {
+        bEventHandled = false;
+        EventType = Events[i].GetStringValue("$type");
+
+        `TILOG("Processing event of type " $ EventType);
+
+        foreach EventHandlers(EventHandler) {
+            if (EventHandler.EventType == EventType) {
+                EventHandler.Handle(self, Events[i]);
+
+                bEventHandled = true;
+            }
+        }
+
+        if (!bEventHandled) {
+            `TILOG("WARNING: received an event with type " $ EventType $ " but no handler is registered for this type");
+        }
+    }
 
     if (bUnraffledUnitsExist) {
         fTimeSinceLastRaffle += DeltaTime;
@@ -153,122 +151,102 @@ event Tick(float DeltaTime) {
     }
 }
 
-function CastVote(TwitchViewer Viewer, int OptionIndex) {
-	local XComGameState NewGameState;
-    local XComGameState_TwitchEventPoll PollGameState;
+function CreatePoll(string Title, array<string> Choices, int DurationInSeconds, int ChannelPointsPerVote) {
+    local HttpGetRequest httpGet;
+    local string Url;
+    local int I;
 
-	if (VotersInCurrentPoll.Find(Viewer.Login) != INDEX_NONE) {
-		// No changing votes at this time
-		return;
-	}
+    `TILOG("Creating a poll: title is '" $ Title $ "', there are " $ Choices.Length $ " choices, duration is " $ DurationInSeconds $ " seconds, ChannelPointsPerVote is " $ ChannelPointsPerVote);
 
-    PollGameState = class'X2TwitchUtils'.static.GetActivePoll();
+    Url = "localhost:5000/api/poll/create";
+    Url $= "?title=" $ class'TextUtilities_Twitch'.static.UrlEncode(Title);
+    Url $= "&duration=" $ DurationInSeconds;
+    Url $= "&pointsPerVote=" $ ChannelPointsPerVote;
 
-    if (PollGameState == none) {
-        return;
+    for (I = 0; I < Choices.Length; I++) {
+        `TILOG("Choice " $ I $ " is " $ Choices[I]);
+        Url $= "&choices=" $ class'TextUtilities_Twitch'.static.UrlEncode(Choices[I]);
     }
 
-	if (OptionIndex < 0 || OptionIndex >= PollGameState.Choices.Length) {
-		return;
-	}
-
-	VotersInCurrentPoll.AddItem(Viewer.Login);
-
-	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Poll Vote");
-    PollGameState = XComGameState_TwitchEventPoll(NewGameState.ModifyStateObject(class'XComGameState_TwitchEventPoll', PollGameState.ObjectID));
-    PollGameState.Choices[OptionIndex].NumVotes++;
-
-	`GAMERULES.SubmitGameState(NewGameState);
-
-    class'UIPollPanel'.static.UpdateInProgress();
+    httpGet = Spawn(class'HttpGetRequest');
+    httpGet.Call(Url, OnPollCreated, OnPollCreateError);
 }
 
-function ConnectToTwitchChat(bool bForceReconnect = false) {
-    if (TwitchChatConn != none && TwitchChatConn.IsConnected() && !bForceReconnect) {
-        return; // already connected
-    }
+function EndPoll(string Id) {
+    local HttpGetRequest httpGet;
 
-    if (TwitchChatConn == none) {
-        TwitchChatConn = Spawn(class'TwitchChatTcpLink');
-        TwitchChatConn.Initialize(OnConnectedToTwitchChat, OnTwitchMessageReceived);
-    }
-    else {
-        if (TwitchChatConn.IsConnected()) {
-            TwitchChatConn.Close();
-        }
-
-        TwitchChatConn.Connect();
-    }
+    `TILOG("EndPoll: Id=" $ Id);
+    httpGet = Spawn(class'HttpGetRequest');
+    httpGet.Call("localhost:5000/api/poll/end?id=" $ Id);
 }
 
-function HandleChatCommand(TwitchMessage Command, TwitchViewer Viewer) {
+function GetCurrentPollState() {
+    local HttpGetRequest httpGet;
+
+    `TILOG("GetCurrentPollState");
+    httpGet = Spawn(class'HttpGetRequest');
+    httpGet.Call("localhost:5000/api/poll/current", OnCurrentPollReceived, OnCurrentPollReceiveError);
+}
+
+// Retrieves the viewer with the given login, if they're in chat. Returns their index in the
+// CurrentChatters array if found, or INDEX_NONE if not.
+function int GetViewer(string Login, out TwitchChatter Chatter) {
+    local TwitchChatter Empty;
     local int Index;
-    local string CommandAlias;
-	local TwitchCommandHandler CommandHandler;
 
-    Index = Instr(Command.Body, " ");
-    CommandAlias = Mid(Command.Body, 1, Index - 1);
+    Index = CurrentChatters.Find('Login', Login);
 
-    `TILOG("Handling chat command " $ CommandAlias);
+    if (Index == INDEX_NONE) {
+        Chatter = Empty;
+        Chatter.Login = Login;
+        return INDEX_NONE;
+    }
 
-	foreach CommandHandlers(CommandHandler) {
-		if (CommandHandler.CommandAliases.Find(CommandAlias) != INDEX_NONE) {
-            // Only forward the command to the handler if it should be enabled right now
-            if ( (CommandHandler.bEnableInStrategy && `TI_IS_STRAT_GAME)
-              || (CommandHandler.bEnableInTactical && !`TI_IS_STRAT_GAME) ) {
-                `TILOG("Sending alias to command handler " $ CommandHandler.Class.Name);
-    			CommandHandler.Handle(self, Command, Viewer);
-            }
-            else {
-                `TILOG("Handler for alias " $ CommandAlias $ " is not supported in current game layer; is strat = " $ `TI_IS_STRAT_GAME);
-            }
+    Chatter = CurrentChatters[Index];
+    return Index;
+}
 
-            // Regardless of whether the command is enabled, each alias only belongs to one command
-			break;
-		}
-	}
+function LoadPendingEvents() {
+    local HttpGetRequest httpGet;
+
+    httpGet = Spawn(class'HttpGetRequest');
+    httpGet.Call("localhost:5000/api/events/pending", OnPendingEventsReceived, OnPendingEventsReceiveError);
 }
 
 function LoadViewerList() {
-    if (`TI_CFG(TwitchChannel) == "")
-    {
-        `TILOG("ERROR: TwitchChannel config option is not set! Cannot retrieve viewers.");
-        return;
-    }
+    local HttpGetRequest httpGet;
 
-	HttpGet = Spawn(class'HttpGetRequest');
-	HttpGet.Call("tmi.twitch.tv/group/user/" $ Locs(`TI_CFG(TwitchChannel)) $ "/chatters", OnNamesListReceived, OnNamesListReceiveError);
+    `TILOG("Loading viewer list from app connection");
+
+    httpGet = Spawn(class'HttpGetRequest');
+    httpGet.Call("localhost:5000/api/chat/chatters", OnNamesListReceived, OnNamesListReceiveError);
 }
 
 /// <summary>
 /// Selects a viewer who does not currently own any object. Do not call this multiple times without assigning
 /// ownership first, or you may get the same viewer repeatedly.
 /// </summary>
-/// <returns>The index of the viewer in the TwitchChatConn.Viewers array, or INDEX_NONE if no viewers are available.</returns>
+/// <returns>The index of the viewer in the CurrentChatters array, or INDEX_NONE if no viewers are available.</returns>
 function int RaffleViewer(bool bRequireActiveChatter) {
     local bool bExcludeBroadcaster;
     local int AvailableIndex, Index, RaffledIndex;
     local int NumAvailableViewers;
-    local string TwitchChannel;
-    local TwitchViewer Viewer;
 
     bExcludeBroadcaster = `TI_CFG(bExcludeBroadcaster);
-    TwitchChannel = Locs(`TI_CFG(TwitchChannel));
 
-    for (Index = 0; Index < TwitchChatConn.Viewers.Length; Index++) {
-        Viewer = TwitchChatConn.Viewers[Index];
-
-        if (Viewer.OwnedObjectID > 0) {
+    for (Index = 0; Index < CurrentChatters.Length; Index++) {
+        if (CurrentChatters[Index].OwnedObjectID > 0) {
             continue;
         }
 
-        if (bExcludeBroadcaster && Viewer.Login ~= TwitchChannel) {
+        if (bExcludeBroadcaster && CurrentChatters[Index].IsBroadcaster) {
             continue;
         }
 
-        if (bRequireActiveChatter && !Viewer.bHasSentChat) {
-            continue;
-        }
+        // TODO: not currently enforceable; app isn't tracking active chatters
+        // if (bRequireActiveChatter && !CurrentChatters[Index].bHasSentChat) {
+        //     continue;
+        // }
 
         NumAvailableViewers++;
     }
@@ -280,22 +258,21 @@ function int RaffleViewer(bool bRequireActiveChatter) {
     RaffledIndex = `SYNC_RAND(NumAvailableViewers);
     `TILOG("Out of " $ NumAvailableViewers $ " available viewers, rolled for #" $ RaffledIndex);
 
-    for (Index = 0; Index < TwitchChatConn.Viewers.Length; Index++) {
-        Viewer = TwitchChatConn.Viewers[Index];
-
+    for (Index = 0; Index < CurrentChatters.Length; Index++) {
         // We've raffled an index into a virtual array of only available viewers, so now we
         // need to count through it by only incrementing at available viewers
-        if (Viewer.OwnedObjectID > 0) {
+        if (CurrentChatters[Index].OwnedObjectID > 0) {
             continue;
         }
 
-        if (bExcludeBroadcaster && Viewer.Login ~= TwitchChannel) {
+        if (bExcludeBroadcaster && CurrentChatters[Index].IsBroadcaster) {
             continue;
         }
 
-        if (bRequireActiveChatter && !Viewer.bHasSentChat) {
-            continue;
-        }
+        // TODO: not currently enforceable; see above
+        // if (bRequireActiveChatter && !CurrentChatters[Index].bHasSentChat) {
+        //     continue;
+        // }
 
         if (AvailableIndex == RaffledIndex) {
             break;
@@ -312,7 +289,6 @@ function ResolveCurrentPoll() {
     local XComGameState NewGameState;
 	local XComGameStateContext_ChangeContainer Context;
     local XComGameState_TwitchEventPoll PollGameState;
-    local X2PollEventTemplate PollEventTemplate;
 	local PollChoice WinningOption;
 
     PollGameState = class'X2TwitchUtils'.static.GetActivePoll();
@@ -321,29 +297,51 @@ function ResolveCurrentPoll() {
         return;
     }
 
-	WinningOption = class'X2TwitchUtils'.static.GetWinningPollChoice(PollGameState);
+    EndPoll(PollGameState.TwitchPollId);
+
+	WinningOption = class'X2TwitchUtils'.static.GetWinningPollChoice(LatestPollModel);
 
     NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Poll Resolving");
     PollGameState = XComGameState_TwitchEventPoll(NewGameState.ModifyStateObject(class'XComGameState_TwitchEventPoll', PollGameState.ObjectID));
-    PollGameState.RemainingTurns = 0;
+    PollGameState.RemainingTurns = PollGameState.RemainingTurns > 0 ? 0 : -1; // don't erase negative values, which indicate a time-based poll
+    PollGameState.IsActive = false;
 
     Context = XComGameStateContext_ChangeContainer(NewGameState.GetContext());
 	Context.BuildVisualizationFn = BuildVisualization_PollEnding;
 
 	`GAMERULES.SubmitGameState(NewGameState);
-
-    PollEventTemplate = class'X2TwitchUtils'.static.GetPollEventTemplate(WinningOption.PollEventTemplateName);
-    PollEventTemplate.Resolve(PollGameState);
 }
 
-function StartPoll(ePollType PollType, int DurationInTurns, optional XComGameState_Player PlayerState) {
-    local int Index;
-	local array<X2PollEventTemplate> PollEvents;
-	local XComGameState NewGameState;
-	local XComGameState_TwitchEventPoll PollState;
+function ResolveCurrentPoll_Actual() {
+    local XComGameState NewGameState;
+	local XComGameStateContext_ChangeContainer Context;
+    local XComGameState_TwitchEventPoll PollGameState;
+	local PollChoice WinningOption;
+
+	WinningOption = class'X2TwitchUtils'.static.GetWinningPollChoice(LatestPollModel);
+
+    NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Poll Resolving");
+    PollGameState = XComGameState_TwitchEventPoll(NewGameState.ModifyStateObject(class'XComGameState_TwitchEventPoll', PollGameState.ObjectID));
+    PollGameState.RemainingTurns = PollGameState.RemainingTurns > 0 ? 0 : -1; // don't erase negative values, which indicate a time-based poll
+    PollGameState.IsActive = false;
+
+    Context = XComGameStateContext_ChangeContainer(NewGameState.GetContext());
+	Context.BuildVisualizationFn = BuildVisualization_PollEnding;
+
+	`GAMERULES.SubmitGameState(NewGameState);
+}
+
+function StartPoll(X2PollGroupTemplate PollGroupTemplate, optional XComGameState_Player PlayerState) {
+    local int Index, NumChoices;
+    local int ChannelPointsPerVote;
+    local X2PollChoiceTemplateManager TemplateMgr;
+	local array<X2PollChoiceTemplate> PollEvents;
+    local array<string> ChoiceNames;
+    local PollData Data;
 
     // Check if there's already a poll running
     if (class'X2TwitchUtils'.static.GetActivePoll() != none) {
+        `TILOG("Not starting a poll because there's already one running");
         return;
     }
 
@@ -351,27 +349,47 @@ function StartPoll(ePollType PollType, int DurationInTurns, optional XComGameSta
         PlayerState = XComGameState_Player(`XCOMHISTORY.GetGameStateForObjectID(`TACTICALRULES.GetCachedUnitActionPlayerRef().ObjectID));
     }
 
-    VotersInCurrentPoll.Length = 0;
-    PollEvents = SelectEventsForPoll(PollType);
+    NumChoices = PollGroupTemplate.RollForNumberOfChoices();
+    PollEvents = PollGroupTemplate.RollForChoices(NumChoices);
+    NumChoices = PollEvents.Length; // in case we couldn't add as many choices as requested
 
-    // Submit a new game state for the start of the poll
-	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Poll Start");
+    TemplateMgr = class'X2PollChoiceTemplateManager'.static.GetPollChoiceTemplateManager();
 
-	PollState = XComGameState_TwitchEventPoll(NewGameState.CreateNewStateObject(class'XComGameState_TwitchEventPoll'));
-	PollState.PollType = PollType;
-	PollState.DurationInTurns = DurationInTurns;
-	PollState.RemainingTurns = DurationInTurns;
-    PollState.PlayerTurnCountWhenStarted = PlayerState.PlayerTurnCount;
+	Data.PollGroupTemplateName = PollGroupTemplate.DataName;
+	Data.DurationInTurns = PollGroupTemplate.DurationInTurns;
 
-	PollState.Choices.Length = OptionsPerPoll;
-    for (Index = 0; Index < OptionsPerPoll; Index++) {
-	    PollState.Choices[Index].PollEventTemplateName = PollEvents[Index].DataName;
-	    PollState.Choices[Index].NumVotes = 0;
+	Data.PollChoices.Length = NumChoices;
+    ChoiceNames.Length = NumChoices;
+
+    for (Index = 0; Index < NumChoices; Index++) {
+	    Data.PollChoices[Index].Title = PollEvents[Index].FriendlyName;
+	    Data.PollChoices[Index].TemplateName = PollEvents[Index].DataName;
+
+        ChoiceNames[Index] = TemplateMgr.GetPollChoiceTemplate(PollEvents[Index].DataName).FriendlyName;
     }
 
-	`GAMERULES.SubmitGameState(NewGameState);
+    ChannelPointsPerVote = `TI_CFG(bAllowChannelPointVotes) ? `TI_CFG(ChannelPointsPerVote) : 0;
+    Data.DurationInSeconds = PollGroupTemplate.DurationInTurns > 0 ? 1800 : (PollGroupTemplate.DurationInSeconds > 0 ? PollGroupTemplate.DurationInSeconds : 120);
 
-    class'UIPollPanel'.static.UpdateInProgress();
+    CreatePollEventHandler.PendingPollData = Data;
+
+    CreatePoll(PollGroupTemplate.PollTitle, ChoiceNames, Data.DurationInSeconds, ChannelPointsPerVote);
+}
+
+function bool TryGetViewer(string UserLogin, out TwitchChatter chatter) {
+    local int Index;
+
+    // TODO: this probably should be using user ID and not login, because events from the EBS may not have a login due to
+    // anonymous transactions
+    Index = CurrentChatters.Find('Login', UserLogin);
+
+    if (Index == INDEX_NONE)
+    {
+        return false;
+    }
+
+    chatter = CurrentChatters[Index];
+    return true;
 }
 
 // ----------------------------------------------
@@ -391,24 +409,88 @@ private function BuildVisualization_PollEnding(XComGameState VisualizeGameState)
     class'X2Action_ShowPollResults'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext());
 }
 
-private function bool FilterRelevantTemplates(X2DataTemplate Template) {
-	local X2PollEventTemplate PollEventTemplate;
+private function OnCurrentPollReceived(HttpGetRequest Request, HttpResponse Response) {
+    local TwitchPollModel PollModel;
+	local JsonObject ResponseObj;
 
-	PollEventTemplate = X2PollEventTemplate(Template);
-
-	if (PollEventTemplate == none) {
-		return false;
+	if (Response.ResponseCode != 200) {
+		`TILOG("Error occurred when retrieving current poll; response code was " $ Response.ResponseCode);
+        Request.Close();
+        Request.Destroy();
+		return;
 	}
 
-	return true;
+	ResponseObj = class'JsonObject'.static.DecodeJson(Response.Body);
+    ResponseObj.SetStringValue("$type", "updatePoll");
+
+    LatestPollModel = class'TwitchPollModel'.static.FromJson(ResponseObj);
+
+    EventQueue.AddItem(ResponseObj);
+
+    Request.Close();
+    Request.Destroy();
 }
 
-private function OnConnectedToTwitchChat() {
-    `TILOG("Connection to Twitch chat established");
+private function OnCurrentPollReceiveError(HttpGetRequest Request, HttpResponse Response) {
+    `TILOG("Error occurred when retrieving current poll; response code was " $ Response.ResponseCode);
+    `TILOG("Response body: " $ Response.Body);
+
+    Request.Close();
+    Request.Destroy();
+}
+
+private function OnNamesListReceiveError(HttpGetRequest Request, HttpResponse Response) {
+    `TILOG("Error occurred when retrieving viewers; response code was " $ Response.ResponseCode);
+    `TILOG("Response body: " $ Response.Body);
+
+    Request.Close();
+    Request.Destroy();
+}
+
+private function OnNamesListReceived(HttpGetRequest Request, HttpResponse Response) {
+    local int I;
+    local TwitchChatter Chatter;
+    local array<TwitchChatter> Chatters;
+	local JsonObject ResponseObj, UserObj;
+    local XComGameState_TwitchObjectOwnership Ownership;
+
+	if (Response.ResponseCode != 200) {
+		`TILOG("Error occurred when retrieving viewers; response code was " $ Response.ResponseCode);
+        Request.Close();
+        Request.Destroy();
+		return;
+	}
+
+	ResponseObj = class'JsonObject'.static.DecodeJson(Response.Body);
+
+    for (I = 0; I < ResponseObj.ObjectArray.Length; I++)
+    {
+        UserObj = ResponseObj.ObjectArray[I];
+
+        Chatter.Login = UserObj.GetStringValue("user_login");
+        Chatter.UserId = UserObj.GetStringValue("user_id");
+        Chatter.DisplayName = UserObj.GetStringValue("user_name");
+        Chatter.SubTier = UserObj.GetIntValue("sub_tier");
+        Chatter.IsBroadcaster = UserObj.GetBoolValue("is_broadcaster");
+
+        // TODO: doing this for every single chatter on every refresh might get pretty expensive on large streams
+        Ownership = class'XComGameState_TwitchObjectOwnership'.static.FindForUser(Chatter.Login);
+        if (Ownership != none) {
+            Chatter.OwnedObjectID = Ownership.OwnedObjectRef.ObjectID;
+        }
+
+        Chatters.AddItem(Chatter);
+    }
+
+    CurrentChatters = Chatters;
+
+    bIsViewerListPopulated = true;
+    Request.Close();
+    Request.Destroy();
 
     if (!`TI_IS_STRAT_GAME) {
+        // We always create a chat log, and let that component worry about hiding itself based on config
         if (ChatLog == none) {
-            // We always create a chat log, and let that component worry about hiding itself based on config
             ChatLog = Spawn(class'UIChatLog', `SCREENSTACK.GetFirstInstanceOf(class'UITacticalHud')).InitChatLog();
             ChatLog.AnchorTopLeft();
         }
@@ -420,33 +502,68 @@ private function OnConnectedToTwitchChat() {
     }
 }
 
-private function OnNamesListReceiveError(HttpGetRequest Request, HttpResponse Response) {
-    `TILOG("Error occurred when retrieving viewers; response code was " $ Response.ResponseCode);
+private function OnPendingEventsReceiveError(HttpGetRequest Request, HttpResponse Response) {
+    `TILOG("Error occurred when retrieving pending events; response code was " $ Response.ResponseCode);
+    `TILOG("Response body: " $ Response.Body);
 
     Request.Close();
     Request.Destroy();
 }
 
-private function OnNamesListReceived(HttpGetRequest Request, HttpResponse Response) {
-	local JsonObject JsonObj;
+private function OnPendingEventsReceived(HttpGetRequest Request, HttpResponse Response) {
+	local int I;
+    local JsonObject ResponseObj;
 
 	if (Response.ResponseCode != 200) {
-		`TILOG("Error occurred when retrieving viewers; response code was " $ Response.ResponseCode);
+		`TILOG("Error occurred when retrieving pending events; response code was " $ Response.ResponseCode);
+        Request.Close();
+        Request.Destroy();
 		return;
 	}
 
-	JsonObj = class'JsonObject'.static.DecodeJson(Response.Body);
-	JsonObj = JsonObj.GetObject("chatters");
+	ResponseObj = class'JsonObject'.static.DecodeJson(Response.Body);
 
-    PopulateViewers(JsonObj.GetObject("broadcaster").ValueArray);
-    PopulateViewers(JsonObj.GetObject("moderators").ValueArray);
-    PopulateViewers(JsonObj.GetObject("vips").ValueArray);
-    PopulateViewers(JsonObj.GetObject("admins").ValueArray);
-    PopulateViewers(JsonObj.GetObject("global_mods").ValueArray);
-    PopulateViewers(JsonObj.GetObject("staff").ValueArray);
-    PopulateViewers(JsonObj.GetObject("viewers").ValueArray);
+    // We can't process any events right now; our callback isn't on the main game thread, and could be running during the processing
+    // of another game state, in which case handling events may lead to a crash. Push the events into a queue and we'll handle them
+    // on the main thread later.
+    for (I = 0; I < ResponseObj.ObjectArray.Length; I++)
+    {
+        EventQueue.AddItem(ResponseObj.ObjectArray[I]);
+    }
 
-    bIsViewerListPopulated = true;
+    Request.Close();
+    Request.Destroy();
+}
+
+private function OnPollCreated(HttpGetRequest Request, HttpResponse Response) {
+    local JsonObject ResponseObj;
+
+	if (Response.ResponseCode != 200) {
+		`TILOG("Error occurred when creating a poll; response code was " $ Response.ResponseCode);
+        Request.Close();
+        Request.Destroy();
+		return;
+	}
+
+	ResponseObj = class'JsonObject'.static.DecodeJson(Response.Body);
+    ResponseObj.SetStringValue("$type", "createPoll"); // not in the actual response, have to add it for event handling
+
+    LatestPollModel = class'TwitchPollModel'.static.FromJson(ResponseObj);
+
+    EventQueue.AddItem(ResponseObj);
+
+    Request.Close();
+    Request.Destroy();
+
+    // Start getting updates on the poll's status and votes
+    SetTimer(2.0, /* bInLoop */ false, nameof(GetCurrentPollState));
+}
+
+private function OnPollCreateError(HttpGetRequest Request, HttpResponse Response) {
+    `TILOG("Error occurred when creating a poll; response code was " $ Response.ResponseCode);
+    `TILOG("Response body: " $ Response.Body);
+
+    Request.Close();
     Request.Destroy();
 }
 
@@ -457,8 +574,8 @@ private function EventListenerReturn OnPlayerTurnBegun(Object EventData, Object 
 
     PlayerState = XComGameState_Player(EventSource);
 
-	// We only care about the human player's turn, not the AI's
-	if (`TACTICALRULES.GetLocalClientPlayerObjectID() != PlayerState.ObjectID) {
+	// We only care about the XCOM player's turn, not the AI's
+	if (PlayerState.TeamFlag != eTeam_XCom) {
 		return ELR_NoInterrupt;
     }
 
@@ -466,9 +583,14 @@ private function EventListenerReturn OnPlayerTurnBegun(Object EventData, Object 
 
     if (PollGameState == none) {
         if (ShouldStartPoll(PlayerState)) {
-            StartPoll(SelectPollTypeByWeight(), `TI_CFG(PollDurationInTurns), PlayerState);
+            StartPoll(SelectPollGroupTemplateByWeight(), PlayerState);
         }
 
+        return ELR_NoInterrupt;
+    }
+
+    if (PollGameState.RemainingTurns < 0) {
+        // This is a time-based poll, don't modify it
         return ELR_NoInterrupt;
     }
 
@@ -483,179 +605,41 @@ private function EventListenerReturn OnPlayerTurnBegun(Object EventData, Object 
 
 	`GAMERULES.SubmitGameState(NewGameState);
 
-    class'UIPollPanel'.static.UpdateInProgress();
+    class'UIPollPanel'.static.GetPanel().SetTurnsRemaining(PollGameState.RemainingTurns);
 
     return ELR_NoInterrupt;
 }
 
-private function OnTwitchMessageReceived(TwitchMessage Message, TwitchViewer FromViewer) {
-    local XComLWTuple Tuple;
-
-    // Handle deleted messages specially
-    if (Message.MessageType == eTwitchMessageType_ClearMessage) {
-        Tuple = new class'XComLWTuple';
-        Tuple.Id = 'TwitchChatMessageDeleted';
-        Tuple.Data.Add(1);
-        Tuple.Data[0].kind = XComLWTVString;
-        Tuple.Data[0].s = Message.MsgId;
-
-        `XEVENTMGR.TriggerEvent('TwitchChatMessageDeleted', Tuple);
-        return;
-    }
-
-	// Only other messages we're interested in are chat commands
-	if (Message.MessageType != eTwitchMessageType_Chat && Message.MessageType != eTwitchMessageType_Whisper) {
-		return;
-	}
-
-    // Only care about commands starting with "!" at the moment
-    // TODO: maybe do some minimal processing, especially for commands that cost bits since they'll often
-    // start with the bit cheer
-    if (Left(Message.Body, 1) != "!") {
-        return;
-    }
-
-    HandleChatCommand(Message, FromViewer);
-}
-
-private function PopulateViewers(array<string> ViewerLogins) {
-    local string Login;
-    local TwitchViewer Viewer;
-    local int ViewerIndex;
-    local XComGameState_TwitchObjectOwnership Ownership;
-
-    foreach ViewerLogins(Login) {
-        ViewerIndex = TwitchChatConn.GetViewer(Login, Viewer);
-
-        // If viewer is already recorded, just update their TTL
-        if (ViewerIndex != INDEX_NONE) {
-            Viewer.LastSeenTime = class'XComGameState_TimerData'.static.GetUTCTimeInSeconds();
-            TwitchChatConn.Viewers[ViewerIndex] = Viewer;
-            continue;
-        }
-
-        if (default.BlacklistedViewerNames.Find(Locs(Login)) != INDEX_NONE) {
-            continue;
-        }
-
-        Viewer.Login = Login;
-
-        Ownership = class'XComGameState_TwitchObjectOwnership'.static.FindForUser(Login);
-        if (Ownership != none) {
-            Viewer.OwnedObjectID = Ownership.OwnedObjectRef.ObjectID;
-        }
-
-        TwitchChatConn.Viewers.AddItem(Viewer);
-    }
-}
-
-private function array<X2PollEventTemplate> SelectEventsForPoll(ePollType PollType) {
-    local X2PollEventTemplate EventTemplate;
-    local X2PollEventTemplate SelectedEvent;
-	local array<X2PollEventTemplate> FilteredEvents;
-    local array<X2PollEventTemplate> PossibleEvents;
-	local array<X2PollEventTemplate> SelectedEvents;
-
-	switch (PollType) {
-		case ePollType_Harbinger:
-			PossibleEvents = HarbingerEventTemplates;
-			break;
-		case ePollType_Providence:
-			PossibleEvents = ProvidenceEventTemplates;
-			break;
-		case ePollType_Reinforcement:
-			PossibleEvents = ReinforcementEventTemplates;
-			break;
-		case ePollType_Sabotage:
-			PossibleEvents = SabotageEventTemplates;
-			break;
-        case ePollType_Serendipity:
-			PossibleEvents = SerendipityEventTemplates;
-			break;
-	}
-
-    // Let templates check the current game state and be sure they can execute
-    foreach PossibleEvents(EventTemplate) {
-        if (!EventTemplate.IsValid()) {
-            continue;
-        }
-
-        FilteredEvents.AddItem(EventTemplate);
-    }
-
-    // Select N templates from the filtered list, and at each step check the ExclusiveWith property to remove unwanted events
-    while (SelectedEvents.Length < OptionsPerPoll) {
-        SelectedEvent = SelectEventWithWeighting(FilteredEvents);
-        SelectedEvents.AddItem(SelectedEvent);
-        FilteredEvents.RemoveItem(SelectedEvent);
-
-        // Check if any potential events are exclusive with the one we just added
-        foreach FilteredEvents(EventTemplate) {
-            // ExclusiveWith could be in either direction, so just check both
-            if (EventTemplate.ExclusiveWith.Find(SelectedEvent.DataName) != INDEX_NONE || SelectedEvent.ExclusiveWith.Find(EventTemplate.DataName) != INDEX_NONE) {
-                `TILOG("Removing potential event due to ExclusiveWith: " $ EventTemplate.DataName);
-                FilteredEvents.RemoveItem(EventTemplate);
-            }
-        }
-
-        // Make sure we don't run out of events and cause an infinite loop
-        if (FilteredEvents.Length == 0) {
-            break;
-        }
-    }
-
-    return SelectedEvents;
-}
-
-private function X2PollEventTemplate SelectEventWithWeighting(array<X2PollEventTemplate> PossibleEvents) {
+private function X2PollGroupTemplate SelectPollGroupTemplateByWeight() {
+    local array<X2PollGroupTemplate> EligibleTemplates;
+    local X2PollGroupTemplate Template;
     local int RunningTotal;
     local int TotalWeight;
     local int WeightRoll;
-    local X2PollEventTemplate EventTemplate;
 
-    foreach PossibleEvents(EventTemplate) {
-        TotalWeight += EventTemplate.Weight;
+    EligibleTemplates = class'X2PollGroupTemplateManager'.static.GetPollGroupTemplateManager().GetEligiblePollGroupTemplates();
+
+    if (EligibleTemplates.Length == 0) {
+        return none;
+    }
+
+    foreach EligibleTemplates(Template) {
+        TotalWeight += Template.Weight;
     }
 
     WeightRoll = `SYNC_RAND(TotalWeight);
 
-    foreach PossibleEvents(EventTemplate) {
-        if (WeightRoll < RunningTotal + EventTemplate.Weight) {
-            `TILOG("Weighted roll selected event " $ EventTemplate.DataName $ " on roll " $ WeightRoll);
-            return EventTemplate;
+    foreach EligibleTemplates(Template) {
+        if (WeightRoll < RunningTotal + Template.Weight) {
+            `TILOG("Weighted roll selected poll group " $ Template.DataName $ " with roll " $ WeightRoll);
+            return Template;
         }
 
-        RunningTotal += EventTemplate.Weight;
+        RunningTotal += Template.Weight;
     }
 
-    `TILOG("Default selected event " $ PossibleEvents[PossibleEvents.Length - 1].DataName);
-    return PossibleEvents[PossibleEvents.Length - 1];
-}
-
-private function ePollType SelectPollTypeByWeight() {
-    local int RunningTotal;
-    local int TotalWeight;
-    local int WeightRoll;
-    local PollTypeWeighting Weighting;
-
-    foreach PollTypeWeights(Weighting) {
-        TotalWeight += Weighting.Weight;
-    }
-
-    WeightRoll = `SYNC_RAND(TotalWeight);
-
-    foreach PollTypeWeights(Weighting) {
-        if (WeightRoll < RunningTotal + Weighting.Weight) {
-            `TILOG("Weighted roll selected poll type " $ Weighting.PollType $ " with roll " $ WeightRoll);
-            return Weighting.PollType;
-        }
-
-        RunningTotal += Weighting.Weight;
-    }
-
-    // TODO: the last poll type might have a weight of 0, in which case this would be wrong
-    `TILOG("Default selected poll type " $ PollTypeWeights[PollTypeWeights.Length - 1].PollType $ " TotalWeight " $ TotalWeight $ " roll " $ WeightRoll);
-    return PollTypeWeights[PollTypeWeights.Length - 1].PollType;
+    `TILOG("Default selected poll group " $ EligibleTemplates[EligibleTemplates.Length - 1].DataName $ "; TotalWeight=" $ TotalWeight $ ", roll=" $ WeightRoll);
+    return EligibleTemplates[EligibleTemplates.Length - 1];
 }
 
 private function bool ShouldStartPoll(XComGameState_Player PlayerState) {
@@ -678,6 +662,7 @@ private function bool ShouldStartPoll(XComGameState_Player PlayerState) {
     PollState = class'X2TwitchUtils'.static.GetMostRecentPoll();
 
     if (PollState != none) {
+        // TODO: handle time-based polls here
         if (PollState.RemainingTurns > 0) {
             // This poll is still going right now
             `TILOG("There's already an active poll, not starting a new one");
@@ -685,7 +670,7 @@ private function bool ShouldStartPoll(XComGameState_Player PlayerState) {
         }
 
         TurnsSinceLastPollStarted = PlayerState.PlayerTurnCount - PollState.PlayerTurnCountWhenStarted;
-        TurnsSinceLastPollEnded = TurnsSinceLastPollStarted - PollState.DurationInTurns;
+        TurnsSinceLastPollEnded = TurnsSinceLastPollStarted - PollState.Data.DurationInTurns;
 
         if (TurnsSinceLastPollEnded < `TI_CFG(MinTurnsBetweenPolls)) {
             `TILOG("Last poll ended " $ TurnsSinceLastPollEnded $ " turns ago; cannot start another yet");
@@ -699,6 +684,5 @@ private function bool ShouldStartPoll(XComGameState_Player PlayerState) {
 
 defaultproperties
 {
-    bIsViewerListPopulated = false
-    OptionsPerPoll = 3
+    bIsViewerListPopulated=false
 }
