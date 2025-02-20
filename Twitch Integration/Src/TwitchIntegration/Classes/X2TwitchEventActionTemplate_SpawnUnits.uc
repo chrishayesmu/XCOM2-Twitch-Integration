@@ -20,7 +20,7 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
                                                                                /* InDontSpawnInLOSOfXCOM */ ,
                                                                                /* InMustSpawnInLOSOfXCOM */ ,
                                                                                /* InDontSpawnInHazards */ ,
-                                                                                  SpawnForceScamper,
+                                                                               /* InForceScamper */,
                                                                                /* bAlwaysOrientAlongLOP */ ,
                                                                                /* bIgnoreUnitCap */ true);
 	}

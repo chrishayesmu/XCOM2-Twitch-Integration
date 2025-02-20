@@ -85,7 +85,7 @@ strExcludeBroadcasterTooltip="If checked, the broadcaster is not eligible to be 
 
 [TwitchPollGroup_Harbinger X2PollGroupTemplate]
 PollTitle="Harbinger"
-PollSubtitle="Something's coming. Something big."
+PollSubtitle="They're sending reinforcements."
 ResultsTitle="ADVENT reinforcements are en route."
 
 [TwitchPollGroup_Providence X2PollGroupTemplate]
@@ -159,17 +159,240 @@ Explanation="Every soldier's primary weapon is reloaded."
 FriendlyName="Ammo Refill (One XCOM)"
 Explanation="One soldier's primary weapon is reloaded."
 
-[PollChoice_SpawnEnemies_AdventPurifiers_x4 X2PollChoiceTemplate]
-FriendlyName="Spawn 4 Advent Purifiers"
-Explanation="Enemies will spawn in 1 turn."
 
-[PollChoice_SpawnEnemies_LostSwarm X2PollChoiceTemplate]
-FriendlyName="Spawn a Lost Swarm"
-Explanation="Enemies will spawn in 1 turn."
 
-[PollChoice_SpawnEnemies_Sectopod X2PollChoiceTemplate]
-FriendlyName="Spawn Sectopod"
-Explanation="Enemies will spawn in 1 turn."
+[PollChoice_SpawnEnemies_AdventCaptain_1x2 X2PollChoiceTemplate]
+FriendlyName="1 Captain + 2 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_AdventCaptain_1x3 X2PollChoiceTemplate]
+FriendlyName="1 Captain + 3 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_AdventCaptain_1x4 X2PollChoiceTemplate]
+FriendlyName="1 Captain + 4 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_AdventMEC_1x3 X2PollChoiceTemplate]
+FriendlyName="1 MEC + 3 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_AdventMEC_2x0 X2PollChoiceTemplate]
+FriendlyName="2 MECs"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_AdventMEC_3x0 X2PollChoiceTemplate]
+FriendlyName="3 MECs"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_AdventMEC_4x0 X2PollChoiceTemplate]
+FriendlyName="4 MECs"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_AdventPriest_1x3 X2PollChoiceTemplate]
+FriendlyName="1 Priest + 3 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_AdventPriest_3x0 X2PollChoiceTemplate]
+FriendlyName="3 Priests"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_AdventPriest_4x0 X2PollChoiceTemplate]
+FriendlyName="4 Priests"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_AdventPurifier_3x0 X2PollChoiceTemplate]
+FriendlyName="3 Purifiers"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_AdventPurifier_4x0 X2PollChoiceTemplate]
+FriendlyName="4 Purifiers"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_AdventShieldbearer_1x3 X2PollChoiceTemplate]
+FriendlyName="1 Shieldbearer + 3 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_AdventShieldbearer_3x0 X2PollChoiceTemplate]
+FriendlyName="3 Shieldbearers"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_AdventShieldbearer_4x0 X2PollChoiceTemplate]
+FriendlyName="4 Shieldbearers"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_AdventStunLancer_3x0 X2PollChoiceTemplate]
+FriendlyName="3 Stun Lancers"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_AdventStunLancer_4x0 X2PollChoiceTemplate]
+FriendlyName="4 Stun Lancers"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_AdventTrooper_4x0 X2PollChoiceTemplate]
+FriendlyName="4 Troopers"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_AdventTrooper_5x0 X2PollChoiceTemplate]
+FriendlyName="5 Troopers"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_AdventTrooper_6x0 X2PollChoiceTemplate]
+FriendlyName="6 Troopers"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Andromedon_1x3 X2PollChoiceTemplate]
+FriendlyName="1 Andromedon + 3 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Andromedon_2x2 X2PollChoiceTemplate]
+FriendlyName="2 Andromedons + 2 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Andromedon_3x0 X2PollChoiceTemplate]
+FriendlyName="3 Andromedons"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Archon_1x3 X2PollChoiceTemplate]
+FriendlyName="1 Archon + 3 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Archon_2x2 X2PollChoiceTemplate]
+FriendlyName="2 Archons + 2 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Archon_3x0 X2PollChoiceTemplate]
+FriendlyName="3 Archons"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Avatar_1x3 X2PollChoiceTemplate]
+FriendlyName="1 Avatar + 3 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Avatar_2x2 X2PollChoiceTemplate]
+FriendlyName="2 Avatars + 2 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Avatar_3x0 X2PollChoiceTemplate]
+FriendlyName="3 Avatars"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Chryssalid_2x0 X2PollChoiceTemplate]
+FriendlyName="2 Chryssalids"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Chryssalid_3x0 X2PollChoiceTemplate]
+FriendlyName="3 Chryssalids"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Chryssalid_4x0 X2PollChoiceTemplate]
+FriendlyName="4 Chryssalids"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Codex_1x3 X2PollChoiceTemplate]
+FriendlyName="1 Codex + 3 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Codex_2x2 X2PollChoiceTemplate]
+FriendlyName="2 Codices + 2 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Codex_3x0 X2PollChoiceTemplate]
+FriendlyName="3 Codices"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Faceless_1x3 X2PollChoiceTemplate]
+FriendlyName="1 Faceless + 3 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Faceless_2x2 X2PollChoiceTemplate]
+FriendlyName="2 Faceless + 2 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Faceless_3x0 X2PollChoiceTemplate]
+FriendlyName="3 Faceless"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Faceless_3x2 X2PollChoiceTemplate]
+FriendlyName="3 Faceless + 2 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Gatekeeper_1x3 X2PollChoiceTemplate]
+FriendlyName="1 Gatekeeper + 3 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Gatekeeper_2x2 X2PollChoiceTemplate]
+FriendlyName="2 Gatekeepers + 2 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Gatekeeper_3x0 X2PollChoiceTemplate]
+FriendlyName="3 Gatekeepers"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_LostSwarm_1x7 X2PollChoiceTemplate]
+FriendlyName="Lost Swarm"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Muton_1x3 X2PollChoiceTemplate]
+FriendlyName="1 Muton + 3 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Muton_2x2 X2PollChoiceTemplate]
+FriendlyName="2 Mutons + 2 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Muton_3x0 X2PollChoiceTemplate]
+FriendlyName="3 Mutons"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Sectoid_1x3 X2PollChoiceTemplate]
+FriendlyName="1 Sectoid + 3 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Sectoids_2x2 X2PollChoiceTemplate]
+FriendlyName="2 Sectoids + 2 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Sectoids_3x0 X2PollChoiceTemplate]
+FriendlyName="3 Sectoids"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Sectoids_4x0 X2PollChoiceTemplate]
+FriendlyName="4 Sectoids"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Sectopod_1x2 X2PollChoiceTemplate]
+FriendlyName="1 Sectopod + 2 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Sectopod_2x3 X2PollChoiceTemplate]
+FriendlyName="2 Sectopod + 3 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Spectre_1x2 X2PollChoiceTemplate]
+FriendlyName="1 Spectre + 2 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Spectre_1x3 X2PollChoiceTemplate]
+FriendlyName="1 Spectre + 3 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Spectre_1x4 X2PollChoiceTemplate]
+FriendlyName="1 Spectre + 4 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Viper_1x2 X2PollChoiceTemplate]
+FriendlyName="1 Viper + 2 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Viper_2x2 X2PollChoiceTemplate]
+FriendlyName="2 Vipers + 2 Random"
+Explanation="Enemies are en route."
+
+[PollChoice_SpawnEnemies_Viper_3x0 X2PollChoiceTemplate]
+FriendlyName="3 Vipers"
+Explanation="Enemies are en route."
+
 
 [X2TwitchEventActionTemplate_ModifyActionPoints]
 strPointsAddedSingular="Gained 1 Action"

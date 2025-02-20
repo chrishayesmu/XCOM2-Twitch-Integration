@@ -91,7 +91,7 @@ function bool IsSelectable(bool IsStrategyLayer, bool IsTacticalLayer, int Force
             continue;
         }
 
-        if (Choices[I].Template.IsValid(IsStrategyLayer, IsTacticalLayer)) {
+        if (Choices[I].Template.IsSelectable(IsStrategyLayer, IsTacticalLayer, ForceLevel)) {
             NumValidChoices++;
         }
     }
@@ -141,19 +141,20 @@ function array<X2PollChoiceTemplate> RollForChoices(int NumChoices) {
     local array<X2PollChoiceTemplate> SelectedChoices;
     local array<PollEventOption> PossibleChoices;
     local X2PollChoiceTemplate Template;
-    local int I;
-
-    `TILOG(DataName $ ": Rolling for " $ NumChoices $ " choices");
+    local int I, ForceLevel;
 
     CacheChoiceTemplates();
 
     IsStrategyLayer = `TI_IS_STRAT_GAME;
     IsTacticalLayer = `TI_IS_TAC_GAME;
+    ForceLevel = class'X2TwitchUtils'.static.GetForceLevel();
+
+    `TILOG(DataName $ ": Rolling for " $ NumChoices $ " choices. " $ `SHOWVAR(IsStrategyLayer) @ `SHOWVAR(IsTacticalLayer) @ `SHOWVAR(ForceLevel));
 
     PossibleChoices = Choices;
 
     for (I = PossibleChoices.Length - 1; I >= 0; I--) {
-        if (!PossibleChoices[I].Template.IsValid(IsStrategyLayer, IsTacticalLayer))
+        if (!PossibleChoices[I].Template.IsSelectable(IsStrategyLayer, IsTacticalLayer, ForceLevel))
         {
             PossibleChoices.Remove(I, 1);
         }

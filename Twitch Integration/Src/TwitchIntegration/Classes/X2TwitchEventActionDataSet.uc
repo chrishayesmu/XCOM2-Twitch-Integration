@@ -8,8 +8,24 @@ struct ActionSpecifier {
 
 var config array<ActionSpecifier> ActionSpecifiers;
 
+var private array< Class<X2TwitchEventActionTemplate> > TemplateClasses;
+
 static function array<X2DataTemplate> CreateTemplates()
 {
+    local int I, J;
+    local array<X2DataTemplate> AllTemplates, NewTemplates;
+
+    for (I = 0; I < default.TemplateClasses.Length; I++) {
+        NewTemplates = class'TwitchDataSetUtils'.static.CreateTemplatesFromConfig(default.TemplateClasses[I]);
+
+        for (J = 0; J < NewTemplates.Length; J++) {
+            AllTemplates.AddItem(NewTemplates[J]);
+        }
+    }
+
+    return AllTemplates;
+
+/*
     local ActionSpecifier Specifier;
     local class TemplateClass;
 	local array<X2DataTemplate> Templates;
@@ -35,4 +51,15 @@ static function array<X2DataTemplate> CreateTemplates()
 	`TILOG("Created " $ Templates.Length $ " X2TwitchEventActionTemplates from " $ default.ActionSpecifiers.Length $ " specifiers");
 
 	return Templates;
+*/
+}
+
+defaultproperties
+{
+    TemplateClasses.Add(class'X2TwitchEventActionTemplate_ActivateAbility')
+    TemplateClasses.Add(class'X2TwitchEventActionTemplate_CombineActions')
+    TemplateClasses.Add(class'X2TwitchEventActionTemplate_ModifyActionPoints')
+    TemplateClasses.Add(class'X2TwitchEventActionTemplate_ModifyAmmo')
+    TemplateClasses.Add(class'X2TwitchEventActionTemplate_RollTheDice')
+    TemplateClasses.Add(class'X2TwitchEventActionTemplate_SpawnUnits')
 }

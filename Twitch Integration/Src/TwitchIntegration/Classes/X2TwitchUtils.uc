@@ -64,6 +64,19 @@ static function XComGameState_Unit FindUnitOwnedByViewer(string ViewerLogin) {
     return XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID));
 }
 
+static function int GetForceLevel() {
+	local XComGameState_HeadquartersAlien AlienHQ;
+
+    AlienHQ = XComGameState_HeadquartersAlien(`XCOMHISTORY.GetSingleGameStateObjectForClass(class'XComGameState_HeadquartersAlien'));
+
+    if (AlienHQ == none) {
+        `TILOG("WARNING: couldn't find an AlienHQ object in X2PollGroupTemplateManager!");
+        return -100;
+    }
+
+    return AlienHQ.GetForceLevel();
+}
+
 static function XComGameState_Unit GetViewerUnitOnMission(string TwitchLogin) {
 	local XComGameState_Unit Unit;
     local XGUnit UnitActor;
