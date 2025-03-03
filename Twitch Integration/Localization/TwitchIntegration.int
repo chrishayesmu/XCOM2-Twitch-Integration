@@ -16,6 +16,10 @@ strDialogTitle="Poll Ended"
 strTotalVotesPlural="total votes"
 strTotalVotesSingular="total vote"
 
+[UIRollTheDiceScreen]
+strCloseButton="Close"
+strDialogTitle="Roll The Dice"
+
 [UIScreenListener_TwitchUsernameInjector]
 strButtonLabel="SET TWITCH USERNAME"
 strDescription="Set this soldier's Twitch username. That Twitch user will be able to use chat commands for this soldier."

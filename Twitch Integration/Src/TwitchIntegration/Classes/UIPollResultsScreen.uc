@@ -72,7 +72,7 @@ simulated function InitScreen(XComPlayerController InitController, UIMovie InitM
 	m_TitleHeader.SetColor(PollColor);
 
     m_PollTypeFlavorText = Spawn(class'UIText', self);
-    m_PollTypeFlavorText.InitText('', WinningEventTemplate.Explanation, , RealizeUI);
+    m_PollTypeFlavorText.InitText('', WinningEventTemplate.Explanation, /* InitTitleFont */ false, RealizeUI);
     m_PollTypeFlavorText.SetColor(PollColor);
 
     TotalVotes = GetTotalVotes();

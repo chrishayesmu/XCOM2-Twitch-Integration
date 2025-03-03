@@ -220,25 +220,3 @@ static function string SecondsToTimeString(int TotalSeconds) {
 
     return Text;
 }
-
-static function ETeam WhoseTurnIsIt()
-{
-    local XComGameStateHistory History;
-    local XComGameStateContext_TacticalGameRule Context;
-    local XComGameState_Player PlayerState;
-
-    History = `XCOMHISTORY;
-
-    // Iterate history looking for a turn begin
-    foreach History.IterateContextsByClassType(class'XComGameStateContext_TacticalGameRule', Context, /* DesiredReturnType */, /* IterateIntoThePast */ true)
-    {
-        if (Context.GameRuleType == eGameRule_PlayerTurnBegin)
-        {
-            PlayerState = XComGameState_Player(History.GetGameStateForObjectID(Context.PlayerRef.ObjectID));
-            return PlayerState.TeamFlag;
-        }
-    }
-
-    // For completeness
-    return eTeam_None;
-}

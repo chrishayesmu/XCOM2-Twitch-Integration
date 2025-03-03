@@ -48,10 +48,7 @@ function Handle(TwitchStateManager StateMgr, JsonObject Data) {
         MessageId = Data.GetStringValue("message_id");
         UserLogin = Data.GetStringValue("user_login");
 
-        if (!StateMgr.TryGetViewer(UserLogin, Viewer)) {
-            `TILOG("WARNING: Couldn't find a connected chatter with the login " $ UserLogin $ ". Need to implement upserting for chat commands!");
-            return;
-        }
+        StateMgr.UpsertViewer(UserLogin, Viewer);
 
         `TILOG("Handling command with " $ CommandHandler);
         CommandHandler.Invoke(Command, Body, MessageId, Viewer);

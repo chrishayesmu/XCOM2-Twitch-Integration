@@ -123,8 +123,6 @@ function Invoke(string CommandAlias, string Body, string MessageId, TwitchChatte
 	local XComGameState_TwitchXSay XSayGameState;
 	local XComGameState_Unit Unit;
 
-    `TILOG("in xsay");
-
     if (!CanViewerXSay(Viewer.Login, Unit, ViewerOverride)) {
         `TILOG("Viewer is not able to xsay right now; skipping");
         return;
@@ -608,7 +606,7 @@ private function AkBaseSoundObject GetCivilianSound(XComGameState_Unit Unit) {
         return None;
     }
 
-    CueName = PossibleSounds[`SYNC_RAND(PossibleSounds.Length)];
+    CueName = PossibleSounds[Rand(PossibleSounds.Length)];
     //`TILOG("Using SoundCue " $ CueName $ " for civilian out of a possible " $ PossibleSounds.Length);
 
     return SoundCue(DynamicLoadObject(string(CueName), class'SoundCue'));
@@ -678,7 +676,7 @@ private function AkBaseSoundObject GetUnitSound(TNarrativeQueueItem NarrativeIte
         return none;
     }
 
-    SelectedSoundPath = SoundPaths[`SYNC_RAND(SoundPaths.Length)];
+    SelectedSoundPath = SoundPaths[Rand(SoundPaths.Length)];
     return AkBaseSoundObject(DynamicLoadObject(SelectedSoundPath, class'AkBaseSoundObject'));
 }
 
@@ -755,7 +753,7 @@ private function OverrideCommLinkFields() {
 
     // Now that we know our dialogue's on the UI, play the associated sound
     if (bHasViewerOverride && ViewerOverride.Sounds.Length > 0) {
-        Sound = SoundCue(DynamicLoadObject(ViewerOverride.Sounds[`SYNC_RAND(ViewerOverride.Sounds.Length)], class'SoundCue'));
+        Sound = SoundCue(DynamicLoadObject(ViewerOverride.Sounds[Rand(ViewerOverride.Sounds.Length)], class'SoundCue'));
     }
     else {
         Sound = GetUnitSound(NarrativeItem, Unit);
@@ -769,8 +767,6 @@ private function OverrideCommLinkFields() {
             class'WorldInfo'.static.GetWorldInfo().PlaySoundBase(Sound, true);
         }
     }
-
-
 }
 
 function XComNarrativeMoment PickNarrativeMoment(string Message) {

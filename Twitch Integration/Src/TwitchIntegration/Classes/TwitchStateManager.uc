@@ -8,7 +8,6 @@ class TwitchStateManager extends Actor
 struct TwitchChatter {
     var string Login;        // The login of the viewer (should be same as Name but all lowercase)
 	var string DisplayName;  // The name the viewer uses in chat
-    var string UserId;       // Unique user ID assigned by Twitch
     var int SubTier;         // Subscription tier (0, 1, 2, or 3), where 0 means not subbed. Prime subs are tier 1.
     var bool IsBroadcaster;  // Whether this viewer is the broadcaster.
     var int OwnedObjectID;   // If > 0, the ID of an object this viewer has raffled as owner of
@@ -255,7 +254,7 @@ function int RaffleViewer(bool bRequireActiveChatter) {
         return INDEX_NONE;
     }
 
-    RaffledIndex = `SYNC_RAND(NumAvailableViewers);
+    RaffledIndex = Rand(NumAvailableViewers);
     `TILOG("Out of " $ NumAvailableViewers $ " available viewers, rolled for #" $ RaffledIndex);
 
     for (Index = 0; Index < CurrentChatters.Length; Index++) {
@@ -376,6 +375,18 @@ function StartPoll(X2PollGroupTemplate PollGroupTemplate, optional XComGameState
     CreatePoll(PollGroupTemplate.PollTitle, ChoiceNames, Data.DurationInSeconds, ChannelPointsPerVote);
 }
 
+function TimeoutViewer(string ViewerLogin, int DurationInSeconds) {
+    local HttpGetRequest httpGet;
+    local string Url;
+
+    `TILOG("TimeoutViewer called with ViewerLogin = " $ ViewerLogin $ ", DurationInSeconds = " $ DurationInSeconds);
+
+    Url = "localhost:5000/api/moderation/timeout?viewerLogin=" $ ViewerLogin $ "&durationInSeconds=" $ DurationInSeconds;
+
+    httpGet = Spawn(class'HttpGetRequest');
+    httpGet.Call(Url); // fire and forget
+}
+
 function bool TryGetViewer(string UserLogin, out TwitchChatter chatter) {
     local int Index;
 
@@ -390,6 +401,24 @@ function bool TryGetViewer(string UserLogin, out TwitchChatter chatter) {
 
     chatter = CurrentChatters[Index];
     return true;
+}
+
+function UpsertViewer(string UserLogin, out TwitchChatter Viewer) {
+    local XComGameState_Unit Unit;
+
+    if (TryGetViewer(UserLogin, Viewer)) {
+        return;
+    }
+
+    Viewer.Login = UserLogin;
+    Viewer.DisplayName = UserLogin;
+    Viewer.SubTier = 0;
+    Viewer.IsBroadcaster = false;
+
+    Unit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(UserLogin);
+    Viewer.OwnedObjectID = Unit.ObjectID;
+
+    CurrentChatters.AddItem(Viewer);
 }
 
 // ----------------------------------------------
@@ -468,7 +497,6 @@ private function OnNamesListReceived(HttpGetRequest Request, HttpResponse Respon
         UserObj = ResponseObj.ObjectArray[I];
 
         Chatter.Login = UserObj.GetStringValue("user_login");
-        Chatter.UserId = UserObj.GetStringValue("user_id");
         Chatter.DisplayName = UserObj.GetStringValue("user_name");
         Chatter.SubTier = UserObj.GetIntValue("sub_tier");
         Chatter.IsBroadcaster = UserObj.GetBoolValue("is_broadcaster");
@@ -627,7 +655,7 @@ private function X2PollGroupTemplate SelectPollGroupTemplateByWeight() {
         TotalWeight += Template.Weight;
     }
 
-    WeightRoll = `SYNC_RAND(TotalWeight);
+    WeightRoll = Rand(TotalWeight);
 
     foreach EligibleTemplates(Template) {
         if (WeightRoll < RunningTotal + Template.Weight) {
@@ -679,7 +707,7 @@ private function bool ShouldStartPoll(XComGameState_Player PlayerState) {
     }
 
     // Roll it
-    return `SYNC_RAND(100) < `TI_CFG(ChanceToStartPoll);
+    return Rand(100) < `TI_CFG(ChanceToStartPoll);
 }
 
 defaultproperties

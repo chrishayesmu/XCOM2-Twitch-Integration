@@ -6,19 +6,6 @@ event bool BlocksAbilityActivation() {
 
 simulated state Executing
 {
-    function DestroyPollPanel() {
-        local UIPollPanel PollPanel;
-
-        foreach `XCOMGAME.AllActors(class'UIPollPanel', PollPanel) {
-            break;
-        }
-
-        if (PollPanel != none) {
-            PollPanel.Remove();
-            PollPanel.Destroy();
-        }
-    }
-
     function OpenScreen() {
         local XComGameState_TwitchEventPoll PollGameState;
         local UIPollResultsScreen Screen;

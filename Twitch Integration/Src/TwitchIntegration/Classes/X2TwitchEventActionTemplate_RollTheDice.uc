@@ -56,7 +56,7 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
         return;
     }
 
-    TargetWeight = `SYNC_RAND(TotalWeight);
+    TargetWeight = Rand(TotalWeight);
 
     foreach ValidActions(Action) {
         if (CurWeight <= TargetWeight && TargetWeight < CurWeight + Action.Weight) {
