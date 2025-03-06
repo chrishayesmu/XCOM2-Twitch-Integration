@@ -132,11 +132,7 @@ function Invoke(string CommandAlias, string Body, string MessageId, TwitchChatte
     bShowInCommLink = true; // TODO: hook up to config
 	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("XSay From " $ Viewer.Login);
 
-	XSayGameState = XComGameState_TwitchXSay(NewGameState.CreateNewStateObject(class'XComGameState_TwitchXSay'));
-	XSayGameState.MessageBody = Body;
-	XSayGameState.Sender = Viewer.Login;
-    XSayGameState.SendingUnitObjectID = Unit != none ? Unit.GetReference().ObjectID : 0;
-    XSayGameState.TwitchMessageId = MessageId;
+	XSayGameState = XComGameState_TwitchXSay(CreateChatCommandGameState(class'XComGameState_TwitchXSay', NewGameState, Body, MessageId, Viewer));
 
     // Need to include a new game state for the unit or else the visualizer may think it's still
     // visualizing an old ability and fail to do the flyover
@@ -152,7 +148,7 @@ function Invoke(string CommandAlias, string Body, string MessageId, TwitchChatte
     `GAMERULES.SubmitGameState(NewGameState);
 
     // Submit to chat log immediately to avoid delays from waiting on visualization
-    class'X2TwitchUtils'.static.AddMessageToChatLog(XSayGameState.Sender, XSayGameState.MessageBody, Unit, XSayGameState.TwitchMessageId);
+    class'X2TwitchUtils'.static.AddMessageToChatLog(XSayGameState.SenderLogin, XSayGameState.MessageBody, Unit, XSayGameState.TwitchMessageId);
 
     // TODO: turn off comm link if not in LOS, or make it not show unit type, to avoid spoilers
     if (bShowInCommLink) {
@@ -190,7 +186,7 @@ protected function BuildVisualization_TacLayer(XComGameState VisualizeGameState)
         return;
     }
 
-    `TISTATEMGR.GetViewer(XSayGameState.Sender, Chatter);
+    `TISTATEMGR.GetViewer(XSayGameState.SenderLogin, Chatter);
     ViewerName = `TIVIEWERNAME(Chatter);
     Unit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(Chatter.Login);
     bUnitIsVisibleToSquad = Unit != none && class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(Unit.ObjectID);
@@ -719,7 +715,7 @@ private function OverrideCommLinkFields() {
 
     // Swap in our XSay data. We aren't using CurrentOutput ourselves, but if the comm link UI refreshes for some reason,
     // we want to be sure our data is there. (Opening and closing the menu is one way this can happen.)
-    kNarrativeMgr.CurrentOutput.strTitle = NarrativeItem.GameState.Sender;
+    kNarrativeMgr.CurrentOutput.strTitle = NarrativeItem.GameState.SenderLogin;
     kNarrativeMgr.CurrentOutput.strText = GetMessageBody(NarrativeItem);
     kNarrativeMgr.CurrentOutput.strImage = "img:///TwitchIntegration_UI.Icon_Twitch_3D";
 
@@ -729,7 +725,7 @@ private function OverrideCommLinkFields() {
     CommLink.AS_ShowSubtitles(); // since we have no audio, we need the text shown regardless of global subtitle settings
 
     // Figure out what picture to actually use for the comm link UI
-    bHasViewerOverride = FindViewerOverride(NarrativeItem.GameState.Sender, ViewerOverride);
+    bHasViewerOverride = FindViewerOverride(NarrativeItem.GameState.SenderLogin, ViewerOverride);
 
     if (bHasViewerOverride && ViewerOverride.CommLinkImageOverride != "") {
         // If viewer has an override with a picture set, use that always

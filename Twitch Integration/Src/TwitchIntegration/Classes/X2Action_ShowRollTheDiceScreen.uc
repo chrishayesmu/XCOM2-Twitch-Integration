@@ -16,7 +16,7 @@ simulated state Executing
 
         Screen = Spawn(class'UIRollTheDiceScreen', `PRES);
         Screen.Options = RtdGameState.PossibleActions;
-        Screen.ViewerLogin = RtdGameState.ViewerLogin;
+        Screen.ViewerLogin = RtdGameState.SenderLogin;
         Screen.WinningOptionIndex = RtdGameState.SelectedActionIndex;
         Screen.WinningOptionTemplateName = RtdGameState.SelectedActionTemplateName;
 

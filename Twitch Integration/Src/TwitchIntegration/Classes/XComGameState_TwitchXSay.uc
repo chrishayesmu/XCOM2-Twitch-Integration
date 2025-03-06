@@ -1,9 +1,5 @@
-class XComGameState_TwitchXSay extends XComGameState_BaseObject;
+class XComGameState_TwitchXSay extends XComGameState_ChatCommandBase;
 
-var string MessageBody;
-var string Sender;
-var int SendingUnitObjectID;
-var string TwitchMessageId;
 var bool bMessageDeleted;
 
 defaultproperties

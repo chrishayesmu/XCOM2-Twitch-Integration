@@ -81,9 +81,8 @@ function Invoke(string CommandAlias, string Body, string MessageId, TwitchChatte
 
 	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Roll The Dice from " $ Viewer.Login);
 
-	RtdGameState = XComGameState_TwitchRollTheDice(NewGameState.CreateNewStateObject(class'XComGameState_TwitchRollTheDice'));
+	RtdGameState = XComGameState_TwitchRollTheDice(CreateChatCommandGameState(class'XComGameState_TwitchRollTheDice', NewGameState, Body, MessageId, Viewer));
     RtdGameState.PossibleActions = OptionFriendlyNames;
-    RtdGameState.ViewerLogin = Viewer.Login;
     RtdGameState.SelectedActionIndex = SelectWeightedChoice(AllOptions);
     RtdGameState.SelectedActionTemplateName = AllOptions[RtdGameState.SelectedActionIndex].ActionName;
 

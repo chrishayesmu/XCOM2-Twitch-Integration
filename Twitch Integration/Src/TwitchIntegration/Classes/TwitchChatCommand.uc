@@ -19,3 +19,18 @@ function Initialize(TwitchStateManager StateMgr) {
 }
 
 function Invoke(string CommandAlias, string Body, string MessageId, TwitchChatter Viewer);
+
+protected function XComGameState_ChatCommandBase CreateChatCommandGameState(class<XComGameState_ChatCommandBase> GameStateClass, XComGameState NewGameState, string Body, string MessageId, TwitchChatter Viewer) {
+    local XComGameState_ChatCommandBase ChatCommandGameState;
+    local XComGameState_Unit Unit;
+
+    Unit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(Viewer.Login);
+
+	ChatCommandGameState = XComGameState_ChatCommandBase(NewGameState.CreateNewStateObject(GameStateClass));
+    ChatCommandGameState.MessageBody = Body;
+	ChatCommandGameState.SenderLogin = Viewer.Login;
+    ChatCommandGameState.SendingUnitObjectID = Unit != none ? Unit.GetReference().ObjectID : 0;
+    ChatCommandGameState.TwitchMessageId = MessageId;
+
+    return ChatCommandGameState;
+}
