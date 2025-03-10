@@ -31,7 +31,7 @@ function Initialize(TwitchStateManager StateMgr) {
     CommandAliases = Aliases;
 }
 
-function Invoke(string CommandAlias, string Body, string MessageId, TwitchChatter Viewer) {
+function bool Invoke(string CommandAlias, string Body, string MessageId, TwitchChatter Viewer) {
     local string Alias;
     local TCH_ActionTuple Tuple;
     local X2TwitchEventActionTemplate Action;
@@ -48,14 +48,14 @@ function Invoke(string CommandAlias, string Body, string MessageId, TwitchChatte
 
         if (Tuple.bMustBeSub && Viewer.SubTier == 0) {
             `TILOG("Viewer is not a sub and cannot use this command");
-            return;
+            return false;
         }
 
         Action = class'X2TwitchUtils'.static.GetTwitchEventActionTemplate(Tuple.ActionName);
 
         if (Action == none) {
             `TILOG("Didn't find an action called " $ Tuple.ActionName $ ". This command may be misconfigured.");
-            return;
+            return false;
         }
 
         break;
@@ -63,16 +63,18 @@ function Invoke(string CommandAlias, string Body, string MessageId, TwitchChatte
 
     if (Action == none) {
         `TILOG("Never found an alias matching " $ Alias $ ", which should be impossible");
-        return;
+        return false;
     }
 
     ViewerOwnedUnit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(Viewer.Login);
 
     if (!Action.IsValid(ViewerOwnedUnit)) {
         `TILOG("Action '" $ Tuple.ActionName $ "' is not presently valid. Not executing. Action class is " $ Action.Class);
-        return;
+        return false;
     }
 
     `TILOG("Executing action '" $ Tuple.ActionName $ "'");
     Action.Apply(ViewerOwnedUnit);
+
+    return true;
 }

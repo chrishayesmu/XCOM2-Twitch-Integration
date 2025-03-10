@@ -14,7 +14,7 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
                                                                                /* OverrideTargetLocation */ ,
                                                                                /* TargetLocationOverride */ ,
                                                                                   SpawnDistanceFromSquad,
-                                                                               /* IncomingGameState */,
+                                                                               /* NewGameState */,
                                                                                /* InKismetInitiatedReinforcements */ false,
                                                                                /* InSpawnVisualizationType */ 'ATT', // prefers dropship for situations where they can be used
                                                                                /* InDontSpawnInLOSOfXCOM */ ,

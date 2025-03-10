@@ -15,7 +15,8 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
         TargetLocations.Length = 0;
         TargetLocations.AddItem(Unit.GetVisualizer().Location);
 
-        class'X2TwitchUtils'.static.GiveAbilityToUnit(AbilityName, Unit, /* NewGameState */, /* TurnsUntilAbilityExpires */ 1);
+        class'X2TwitchUtils'.static.GiveAbilityToUnit(AbilityName, Unit, /* NewGameState */ none, /* TurnsUntilAbilityExpires */ 1);
+
         class'XComGameStateContext_Ability'.static.ActivateAbilityByTemplateName(Unit.GetReference(), AbilityName, Unit.GetReference(), TargetLocations);
     }
 }

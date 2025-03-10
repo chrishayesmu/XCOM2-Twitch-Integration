@@ -92,10 +92,6 @@ event Tick(float DeltaTime) {
 
     DeltaY = CalculateTextSpeed() * DeltaTime;
 
-    if (DeltaY != 0.0) {
-        // `TILOG(`SHOWVAR(DeltaY));
-    }
-
     m_OptionsText.SetY(m_OptionsText.Y - DeltaY);
 
     m_DistanceUntilNextTickSound -= Abs(DeltaY);
@@ -106,8 +102,8 @@ event Tick(float DeltaTime) {
         PlaySound(TickCue);
     }
 
+    // Snap back to the top of the text
     if (m_TextStartY - m_OptionsText.Y > m_OptionsText.Height / 2) {
-        // `TILOG("Snapping back to text start");
         m_OptionsText.SetY(m_TextStartY);
     }
 }
@@ -275,7 +271,7 @@ state Decelerating {
     }
 
     protected function float CalculateTextSpeed() {
-        local float DistanceElapsedPercentage, DistanceToTarget, TimeRemaining, Result;
+        local float DistanceElapsedPercentage, DistanceToTarget, Result;
 
         DistanceToTarget = CalculateDistanceToTarget();
         DistanceElapsedPercentage = (m_OriginalDistanceToTargetY - DistanceToTarget) / m_OriginalDistanceToTargetY;
@@ -287,7 +283,6 @@ state Decelerating {
             Result = FInterpEaseInOut(TextSpeed / 3, TextSpeed / 5, DistanceElapsedPercentage, /* Exp */ 2.5);
         }
 
-        `TILOG(`SHOWVAR(Result));
         return Result;
     }
 }
@@ -302,7 +297,6 @@ state Stopped {
     }
 
     event Tick(float DeltaTime) {
-        local string CuePath;
         local SoundCue CompletionCue;
 
         super.Tick(DeltaTime);

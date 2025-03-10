@@ -31,11 +31,23 @@ function Initialize(TwitchStateManager StateMgr) {
 }
 
 function Handle(TwitchStateManager StateMgr, JsonObject Data) {
+    local XComGameState NewGameState;
+    local XComGameState_TwitchChatCommandTracking CommandTrackingState;
     local TwitchChatCommand CommandHandler;
     local TwitchChatter Viewer;
     local string Command, Body, MessageId, UserLogin;
 
+    CommandTrackingState = class'X2TwitchUtils'.static.GetChatCommandTracking();
+
+    if (CommandTrackingState == none) {
+        `TILOG("No XComGameState_TwitchChatCommandTracking was found. Unable to handle chat commands currently.");
+        return;
+    }
+
     Command = Locs(Data.GetStringValue("command"));
+    Body = Data.GetStringValue("body");
+    MessageId = Data.GetStringValue("message_id");
+    UserLogin = Data.GetStringValue("user_login");
 
     `TILOG("Attempting to handle chat command " $ Command);
 
@@ -44,39 +56,27 @@ function Handle(TwitchStateManager StateMgr, JsonObject Data) {
             continue;
         }
 
-        Body = Data.GetStringValue("body");
-        MessageId = Data.GetStringValue("message_id");
-        UserLogin = Data.GetStringValue("user_login");
+        if (CommandTrackingState.IsChatCommandOnCooldown(CommandHandler, UserLogin)) {
+            `TILOG("Command is on cooldown");
+            return;
+        }
 
         StateMgr.UpsertViewer(UserLogin, Viewer);
 
         `TILOG("Handling command with " $ CommandHandler);
-        CommandHandler.Invoke(Command, Body, MessageId, Viewer);
+        if (CommandHandler.Invoke(Command, Body, MessageId, Viewer) && CommandHandler.ShouldTrackUsage()) {
+            // Record the command usage
+            NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Tracking Chat Command " $ Command);
+            CommandTrackingState = XComGameState_TwitchChatCommandTracking(NewGameState.ModifyStateObject(class'XComGameState_TwitchChatCommandTracking', CommandTrackingState.ObjectID));
+            CommandTrackingState.RecordCommandUsage(CommandHandler, Viewer.Login);
+
+		    `GAMERULES.SubmitGameState(NewGameState);
+        }
+
         return;
     }
 
     `TILOG("Did not find any applicable command handler");
-}
-
-/// <summary>
-/// Gets the body of the command following the alias, e.g. "!xsay hi" would map to "hi".
-/// </summary>
-protected function string GetCommandBody(JsonObject Data) {
-    return Data.GetStringValue("body");
-}
-
-/// <summary>
-/// Gets the Twitch message ID of the chat message that triggered this command.
-/// </summary>
-protected function string GetMessageId(JsonObject Data) {
-    return Data.GetStringValue("message_id");
-}
-
-/// <summary>
-/// Gets the Twitch login of the user who triggered this command.
-/// </summary>
-protected function string GetUserLogin(JsonObject Data) {
-    return Data.GetStringValue("user_login");
 }
 
 defaultproperties

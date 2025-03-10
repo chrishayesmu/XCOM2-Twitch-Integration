@@ -37,6 +37,8 @@ var privatewrite UIRaffleWinnersPanel RaffleWinnersPanel;
 var private array<TwitchEventHandler> EventHandlers;
 var private TwitchEventHandler_CreatePoll CreatePollEventHandler; // also present in EventHandlers array
 
+var private bool bPendingCreateOfChatCommandHistory; // if true, we still need to create an XComGameState_TwitchChatCommandTracking singleton
+
 // ----------------------------------------------
 // Static functions
 
@@ -60,6 +62,11 @@ function Initialize() {
     local X2EventManager EventManager;
 
 	`TILOG("Initializing state manager");
+
+    // Check if command tracking already exists, e.g. because we're loading a mid-mission save
+    if (`XCOMHISTORY.GetSingleGameStateObjectForClass(class'XComGameState_TwitchChatCommandTracking', /* AllowNULL */ true) == none) {
+        bPendingCreateOfChatCommandHistory = true;
+    }
 
     // Set up event handlers
     CreatePollEventHandler = new class'TwitchEventHandler_CreatePoll';
@@ -105,6 +112,7 @@ function Initialize() {
 }
 
 event Tick(float DeltaTime) {
+    local XComGameState NewGameState;
     local TwitchEventHandler EventHandler;
     local array<JsonObject> Events;
     local string EventType;
@@ -112,6 +120,16 @@ event Tick(float DeltaTime) {
     local bool bEventHandled;
 
     super.Tick(DeltaTime);
+
+    if (bPendingCreateOfChatCommandHistory) {
+        bPendingCreateOfChatCommandHistory = false;
+
+        `TILOG("Creating initial XComGameState_TwitchChatCommandTracking singleton");
+
+	    NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Initial Twitch chat tracking singleton");
+        NewGameState.CreateNewStateObject(class'XComGameState_TwitchChatCommandTracking');
+        `GAMERULES.SubmitGameState(NewGameState);
+    }
 
     `TILOG("EventQueue contains " $ EventQueue.Length $ " items", EventQueue.Length > 0);
 
@@ -288,7 +306,6 @@ function ResolveCurrentPoll() {
     local XComGameState NewGameState;
 	local XComGameStateContext_ChangeContainer Context;
     local XComGameState_TwitchEventPoll PollGameState;
-	local PollChoice WinningOption;
 
     PollGameState = class'X2TwitchUtils'.static.GetActivePoll();
 
@@ -297,8 +314,6 @@ function ResolveCurrentPoll() {
     }
 
     EndPoll(PollGameState.TwitchPollId);
-
-	WinningOption = class'X2TwitchUtils'.static.GetWinningPollChoice(LatestPollModel);
 
     NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Poll Resolving");
     PollGameState = XComGameState_TwitchEventPoll(NewGameState.ModifyStateObject(class'XComGameState_TwitchEventPoll', PollGameState.ObjectID));
@@ -315,9 +330,6 @@ function ResolveCurrentPoll_Actual() {
     local XComGameState NewGameState;
 	local XComGameStateContext_ChangeContainer Context;
     local XComGameState_TwitchEventPoll PollGameState;
-	local PollChoice WinningOption;
-
-	WinningOption = class'X2TwitchUtils'.static.GetWinningPollChoice(LatestPollModel);
 
     NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Poll Resolving");
     PollGameState = XComGameState_TwitchEventPoll(NewGameState.ModifyStateObject(class'XComGameState_TwitchEventPoll', PollGameState.ObjectID));
@@ -439,7 +451,6 @@ private function BuildVisualization_PollEnding(XComGameState VisualizeGameState)
 }
 
 private function OnCurrentPollReceived(HttpGetRequest Request, HttpResponse Response) {
-    local TwitchPollModel PollModel;
 	local JsonObject ResponseObj;
 
 	if (Response.ResponseCode != 200) {

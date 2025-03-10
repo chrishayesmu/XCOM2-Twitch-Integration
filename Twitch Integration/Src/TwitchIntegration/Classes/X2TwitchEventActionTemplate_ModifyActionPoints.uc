@@ -9,9 +9,9 @@ var config int PointsToGive;
 
 function Apply(optional XComGameState_Unit InvokingUnit) {
     local int TargetNumActionPoints;
-    local XComGameState NewGameState;
 	local XComGameStateContext_ChangeContainer NewContext;
     local array<XComGameState_Unit> Targets;
+    local XComGameState NewGameState;
     local XComGameState_Unit Unit;
 
     Targets = FindTargets(InvokingUnit);
@@ -20,8 +20,7 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
         return;
     }
 
-	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Give Actions");
-
+    NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Action: ModifyActionPoints");
 	NewContext = XComGameStateContext_ChangeContainer(NewGameState.GetContext());
 	NewContext.BuildVisualizationFn = BuildDefaultVisualization;
 
@@ -47,10 +46,10 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
     }
 
     if (NewGameState.GetNumGameStateObjects() > 0) {
-		`GAMERULES.SubmitGameState(NewGameState);
-	}
+        `GAMERULES.SubmitGameState(NewGameState);
+    }
     else {
-		`XCOMHISTORY.CleanupPendingGameState(NewGameState);
+        `XCOMHISTORY.CleanupPendingGameState(NewGameState);
     }
 }
 

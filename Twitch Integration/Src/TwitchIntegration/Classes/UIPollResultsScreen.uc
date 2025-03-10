@@ -32,7 +32,6 @@ var private array<UIPollChoice> m_PollChoices;
 simulated function InitScreen(XComPlayerController InitController, UIMovie InitMovie, optional name InitName) {
     local int Index;
     local int TotalVotes;
-    local PollChoice WinningPollChoice;
     local X2PollGroupTemplate GroupTemplate;
     local X2PollChoiceTemplate WinningEventTemplate;
     local int WinningPollChoiceIndex;
@@ -48,7 +47,7 @@ simulated function InitScreen(XComPlayerController InitController, UIMovie InitM
         return;
     }
 
-    WinningPollChoice = class'X2TwitchUtils'.static.GetWinningPollChoice(PollModel, WinningPollChoiceIndex);
+    class'X2TwitchUtils'.static.GetWinningPollChoice(PollModel, WinningPollChoiceIndex);
     GroupTemplate = class'X2PollGroupTemplateManager'.static.GetPollGroupTemplateManager().GetPollGroupTemplate(PollGameState.Data.PollGroupTemplateName);
 
     // Make sure to get the template name from the game state. The TwitchPollModel is specifically based on data from Twitch and may not
@@ -100,12 +99,11 @@ private function int GetTotalVotes() {
 
 private function OnCloseResultsButtonPress(UIButton Button) {
     local int WinningPollChoiceIndex;
-	local PollChoice WinningOption;
     local X2PollChoiceTemplate PollEventTemplate;
 
     `SCREENSTACK.Pop(self);
 
-	WinningOption = class'X2TwitchUtils'.static.GetWinningPollChoice(PollModel, WinningPollChoiceIndex);
+	class'X2TwitchUtils'.static.GetWinningPollChoice(PollModel, WinningPollChoiceIndex);
 
     PollEventTemplate = class'X2TwitchUtils'.static.GetPollChoiceTemplate(PollGameState.Data.PollChoices[WinningPollChoiceIndex].TemplateName);
     `TILOG("Resolving poll choice template " $ PollEventTemplate.DataName);

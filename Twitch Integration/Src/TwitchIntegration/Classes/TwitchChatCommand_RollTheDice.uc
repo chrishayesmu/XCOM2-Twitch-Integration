@@ -19,7 +19,7 @@ var config bool BalanceOptions;
 var config array<RtdOption> PositiveOptions;
 var config array<RtdOption> NegativeOptions;
 
-function Invoke(string CommandAlias, string Body, string MessageId, TwitchChatter Viewer) {
+function bool Invoke(string CommandAlias, string Body, string MessageId, TwitchChatter Viewer) {
     local XComGameState NewGameState;
     local XComGameState_TwitchRollTheDice RtdGameState;
     local XComGameState_Unit UnitState;
@@ -43,7 +43,7 @@ function Invoke(string CommandAlias, string Body, string MessageId, TwitchChatte
 
         if (TargetWeight == 0) {
             `TILOG("Unable to balance RTD options because total target weight is 0. Total positive weight: " $ TotalPositiveWeight $ "; total negative weight: " $ TotalNegativeWeight);
-            return;
+            return false;
         }
 
         `TILOG("Attempting to balance options to a target weight of " $ TargetWeight);
@@ -66,7 +66,7 @@ function Invoke(string CommandAlias, string Body, string MessageId, TwitchChatte
 
     if (ValidPositiveOptions.Length + ValidNegativeOptions.Length < MIN_OPTIONS_TO_ROLL) {
         `TILOG("Not enough options available to roll the dice; need at least " $ MIN_OPTIONS_TO_ROLL $ " in the pool");
-        return;
+        return false;
     }
 
     for (I = 0; I < ValidPositiveOptions.Length; I++) {
@@ -79,9 +79,8 @@ function Invoke(string CommandAlias, string Body, string MessageId, TwitchChatte
         OptionFriendlyNames.AddItem(ValidNegativeOptions[I].FriendlyName);
     }
 
-	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Roll The Dice from " $ Viewer.Login);
-
-	RtdGameState = XComGameState_TwitchRollTheDice(CreateChatCommandGameState(class'XComGameState_TwitchRollTheDice', NewGameState, Body, MessageId, Viewer));
+    NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Roll the Dice");
+	RtdGameState = XComGameState_TwitchRollTheDice(CreateChatCommandGameState(NewGameState, Body, MessageId, Viewer));
     RtdGameState.PossibleActions = OptionFriendlyNames;
     RtdGameState.SelectedActionIndex = SelectWeightedChoice(AllOptions);
     RtdGameState.SelectedActionTemplateName = AllOptions[RtdGameState.SelectedActionIndex].ActionName;
@@ -90,8 +89,8 @@ function Invoke(string CommandAlias, string Body, string MessageId, TwitchChatte
     NewContext.BuildVisualizationFn = BuildVisualization;
 
     `TILOG("Submitting game state with winning action " $ RtdGameState.SelectedActionTemplateName);
-
     `GAMERULES.SubmitGameState(NewGameState);
+    return true;
 }
 
 protected function BuildVisualization(XComGameState VisualizeGameState) {
@@ -168,4 +167,9 @@ protected static function int SelectWeightedChoice(array<RtdOption> FromChoices)
     }
 
     return FromChoices.Length - 1;
+}
+
+defaultproperties
+{
+    GameStateClass=class'XComGameState_TwitchRollTheDice'
 }

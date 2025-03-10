@@ -114,25 +114,25 @@ function Initialize(TwitchStateManager StateMgr) {
     `XWORLDINFO.MyWatchVariableMgr.RegisterWatchVariable(`PRESBASE.m_kNarrativeUIMgr, 'm_arrConversations', self, EnqueueXSayToCommLinkIfPossible);
 }
 
-function Invoke(string CommandAlias, string Body, string MessageId, TwitchChatter Viewer) {
+function bool Invoke(string CommandAlias, string Body, string MessageId, TwitchChatter Viewer) {
     local bool bIsTacticalGame, bShowInCommLink;
     local TNarrativeQueueItem NarrativeItem;
     local TViewerXSayOverride ViewerOverride;
-    local XComGameState NewGameState;
 	local XComGameStateContext_ChangeContainer NewContext;
+	local XComGameState NewGameState;
 	local XComGameState_TwitchXSay XSayGameState;
 	local XComGameState_Unit Unit;
 
     if (!CanViewerXSay(Viewer.Login, Unit, ViewerOverride)) {
         `TILOG("Viewer is not able to xsay right now; skipping");
-        return;
+        return false;
     }
 
     bIsTacticalGame = `TI_IS_TAC_GAME;
     bShowInCommLink = true; // TODO: hook up to config
-	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("XSay From " $ Viewer.Login);
 
-	XSayGameState = XComGameState_TwitchXSay(CreateChatCommandGameState(class'XComGameState_TwitchXSay', NewGameState, Body, MessageId, Viewer));
+    NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch XSay");
+	XSayGameState = XComGameState_TwitchXSay(CreateChatCommandGameState(NewGameState, Body, MessageId, Viewer));
 
     // Need to include a new game state for the unit or else the visualizer may think it's still
     // visualizing an old ability and fail to do the flyover
@@ -159,6 +159,8 @@ function Invoke(string CommandAlias, string Body, string MessageId, TwitchChatte
 
         EnqueueCommLink(NarrativeItem);
     }
+
+    return true;
 }
 
 protected function BuildVisualization_TacLayer(XComGameState VisualizeGameState) {
@@ -821,6 +823,8 @@ simulated function OnHeadshotReady(StateObjectReference UnitRef) {
 
 defaultproperties
 {
+    GameStateClass=class'XComGameState_TwitchXSay'
+
     CivilianSoundCues_English_Female[0]=""
     CivilianSoundCues_English_Male.Add("MaleVoice1_English_Data.SM01AlienSighting08_Cue")
     CivilianSoundCues_English_Male.Add("MaleVoice1_English_Data.SM01AlienSighting15_Cue")

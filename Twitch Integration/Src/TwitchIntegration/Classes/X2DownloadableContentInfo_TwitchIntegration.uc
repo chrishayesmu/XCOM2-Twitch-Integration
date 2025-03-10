@@ -184,7 +184,6 @@ exec function TwitchExecuteAction(name ActionName) {
         class'Helpers'.static.OutputMsg("Did not find an Action template called " $ ActionName);
         return;
     }
-
     Action.Apply();
 }
 

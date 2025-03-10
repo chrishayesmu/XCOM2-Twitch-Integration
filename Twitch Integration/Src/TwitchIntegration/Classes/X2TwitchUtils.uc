@@ -15,6 +15,46 @@ static function AddMessageToChatLog(string Sender, string Body, optional XComGam
     ChatLog.AddMessage(Sender, Body, FromUnit, MsgId);
 }
 
+/// <summary>
+/// Calculates the "natural" turn number, or in other words, the number of complete iterations of the player turn order.
+/// For example, if the XCOM team has had 2 turns, and the alien team has only had 1, then only 1 turn is complete. This
+/// is counted based on the number of turn start events for each team, rather than turn end.
+/// </summary>
+/// <remarks>The value returned from this function is 0-based, i.e. the first turn is turn 0.</remarks>
+static function int CalculateCurrentNaturalTurnNumber()
+{
+    local int Index, NumPlayers, NumTurnStarts;
+    local XComGameStateHistory History;
+    local XComGameStateContext_TacticalGameRule Context;
+    local XComGameState_Player PlayerState;
+    local XComGameState_BattleData BattleData;
+
+    // We can't assume XCOM is the first team to act because mods can change that,
+    // so just look at the total number of players and turns
+    History = `XCOMHISTORY;
+    BattleData = XComGameState_BattleData(History.GetSingleGameStateObjectForClass(class'XComGameState_BattleData'));
+
+    for (Index = 0; Index < BattleData.PlayerTurnOrder.Length; Index++)
+    {
+        PlayerState = XComGameState_Player(History.GetGameStateForObjectID(BattleData.PlayerTurnOrder[Index].ObjectID));
+
+        if (PlayerState != None)
+        {
+            NumPlayers++;
+        }
+    }
+
+    foreach History.IterateContextsByClassType(class'XComGameStateContext_TacticalGameRule', Context)
+    {
+        if (Context.GameRuleType == eGameRule_PlayerTurnBegin)
+        {
+            NumTurnStarts++;
+        }
+    }
+
+    return NumTurnStarts / NumPlayers;
+}
+
 static function X2TwitchEventActionTemplate GetTwitchEventActionTemplate(Name TemplateName) {
     local X2TwitchEventActionTemplateManager TemplateMgr;
 
@@ -64,6 +104,10 @@ static function XComGameState_Unit FindUnitOwnedByViewer(string ViewerLogin) {
     return XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID));
 }
 
+static function XComGameState_TwitchChatCommandTracking GetChatCommandTracking() {
+	return XComGameState_TwitchChatCommandTracking(`XCOMHISTORY.GetSingleGameStateObjectForClass(class'XComGameState_TwitchChatCommandTracking', /* AllowNULL */ true));
+}
+
 static function int GetForceLevel() {
 	local XComGameState_HeadquartersAlien AlienHQ;
 
@@ -101,7 +145,7 @@ static function XComGameState_Unit GetViewerUnitOnMission(string TwitchLogin) {
     return none;
 }
 
-static function GiveAbilityToUnit(Name AbilityName, XComGameState_Unit Unit, optional XComGameState NewGameState, optional int TurnsUntilAbilityExpires) {
+static function GiveAbilityToUnit(Name AbilityName, out XComGameState_Unit Unit, optional XComGameState NewGameState, optional int TurnsUntilAbilityExpires) {
 	local XComGameStateHistory History;
 	local X2TacticalGameRuleset TacticalRules;
     local StateObjectReference AbilityRef;
