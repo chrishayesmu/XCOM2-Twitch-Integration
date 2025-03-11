@@ -6,6 +6,7 @@ const NUM_OPTIONS_VISIBLE = 5; // Needs to be odd so the winning option is cente
 
 var localized string strCloseButton;
 var localized string strDialogTitle;
+var localized string strHeaderText;
 
 var array<string> Options;
 var string ViewerLogin;
@@ -38,7 +39,7 @@ var private SoundCue TickCue; // sound that plays while the carousel is spinning
 // TODO this may need a mouse guard? check when doing it through vis system
 // TODO make right mouse close the screen
 simulated function InitScreen(XComPlayerController InitController, UIMovie InitMovie, optional name InitName) {
-    local string OptionsText;
+    local string HeaderText, OptionsText;
     local int I, MaxOptionLength, TextWidth;
 
     super.InitScreen(InitController, InitMovie, InitName);
@@ -48,8 +49,9 @@ simulated function InitScreen(XComPlayerController InitController, UIMovie InitM
     m_bgBox = Spawn(class'UIBGBox', self);
     m_bgBox.InitBG('', 0, 0, 700, 160 + NUM_OPTIONS_VISIBLE * LINE_HEIGHT_PX, eUIState_Normal);
 
+    HeaderText = Repl(strHeaderText, "<ViewerName/>", ViewerLogin);
 	m_TitleHeader = Spawn(class'UIX2PanelHeader', self);
-	m_TitleHeader.InitPanelHeader('', strDialogTitle, ViewerLogin $ " is rolling the dice"); // TODO better localization
+	m_TitleHeader.InitPanelHeader('', strDialogTitle, HeaderText);
 
     // Put together the options center-aligned
     for (I = 0; I < Options.Length; I++) {

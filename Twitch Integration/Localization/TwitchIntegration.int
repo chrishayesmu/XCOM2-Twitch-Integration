@@ -19,6 +19,7 @@ strTotalVotesSingular="total vote"
 [UIRollTheDiceScreen]
 strCloseButton="Close"
 strDialogTitle="Roll The Dice"
+strHeaderText="<ViewerName/> is rolling the dice"
 
 [UIScreenListener_TwitchUsernameInjector]
 strButtonLabel="SET TWITCH USERNAME"
