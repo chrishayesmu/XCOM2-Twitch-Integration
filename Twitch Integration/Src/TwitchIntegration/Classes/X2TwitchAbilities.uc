@@ -2,19 +2,133 @@
  * This class defines abilities which are used throughout Twitch Integration. Most of them are self-targeting
  * buffs or debuffs that are triggered by polls or chat commands.
  */
-class X2TwitchAbilities extends X2Ability;
+class X2TwitchAbilities extends X2Ability
+    config(TwitchAbilities);
+
+const AIM_BUFF_ICON = "img:///UILibrary_PerkIcons.UIPerk_advent_marktarget";
+const CRIT_CHANCE_BUFF_ICON = "img:///UILibrary_PerkIcons.UIPerk_advent_marktarget";
+const DEFENSE_BUFF_ICON = "img:///UILibrary_PerkIcons.UIPerk_advent_marktarget";
+const DODGE_BUFF_ICON = "img:///UILibrary_PerkIcons.UIPerk_advent_marktarget";
+const MOBILITY_BUFF_ICON = "img:///UILibrary_PerkIcons.UIPerk_advent_marktarget";
+const SHIELD_HP_BUFF_ICON = "img:///UILibrary_PerkIcons.UIPerk_advent_marktarget";
+const WILL_BUFF_ICON = "img:///UILibrary_PerkIcons.UIPerk_advent_marktarget";
+
+var config int AimBuffSmallBonus;
+var config int AimBuffSmallNumTurns;
+var config int AimBuffMediumBonus;
+var config int AimBuffMediumNumTurns;
+var config int AimBuffLargeBonus;
+var config int AimBuffLargeNumTurns;
+var config int CritChanceBuffSmallBonus;
+var config int CritChanceBuffSmallNumTurns;
+var config int CritChanceBuffMediumBonus;
+var config int CritChanceBuffMediumNumTurns;
+var config int CritChanceBuffLargeBonus;
+var config int CritChanceBuffLargeNumTurns;
+var config int DefenseBuffSmallBonus;
+var config int DefenseBuffSmallNumTurns;
+var config int DefenseBuffMediumBonus;
+var config int DefenseBuffMediumNumTurns;
+var config int DefenseBuffLargeBonus;
+var config int DefenseBuffLargeNumTurns;
+var config int DodgeBuffSmallBonus;
+var config int DodgeBuffSmallNumTurns;
+var config int DodgeBuffMediumBonus;
+var config int DodgeBuffMediumNumTurns;
+var config int DodgeBuffLargeBonus;
+var config int DodgeBuffLargeNumTurns;
+var config int MobilityBuffSmallBonus;
+var config int MobilityBuffSmallNumTurns;
+var config int MobilityBuffMediumBonus;
+var config int MobilityBuffMediumNumTurns;
+var config int MobilityBuffLargeBonus;
+var config int MobilityBuffLargeNumTurns;
+var config int ShieldHpBuffSmallBonus;
+var config int ShieldHpBuffSmallNumTurns;
+var config int ShieldHpBuffMediumBonus;
+var config int ShieldHpBuffMediumNumTurns;
+var config int ShieldHpBuffLargeBonus;
+var config int ShieldHpBuffLargeNumTurns;
+var config int WillBuffSmallBonus;
+var config int WillBuffSmallNumTurns;
+var config int WillBuffMediumBonus;
+var config int WillBuffMediumNumTurns;
+var config int WillBuffLargeBonus;
+var config int WillBuffLargeNumTurns;
+
+var config int BurningDamage;
+var config int BurningNumTurns;
+var config int DetonateSelfSmallEnvironmentDamage;
+var config int DetonateSelfSmallTileRadius;
+var config int DetonateSelfSmallUnitDamage;
+var config int DetonateSelfMediumEnvironmentDamage;
+var config int DetonateSelfMediumTileRadius;
+var config int DetonateSelfMediumUnitDamage;
+var config int DetonateSelfLargeEnvironmentDamage;
+var config int DetonateSelfLargeTileRadius;
+var config int DetonateSelfLargeUnitDamage;
+var config int DetonateSelfGiganticEnvironmentDamage;
+var config int DetonateSelfGiganticTileRadius;
+var config int DetonateSelfGiganticUnitDamage;
+var config int PanicNumTurns;
+var config float ScaleSelfLargeSizeChange;
+var config float ScaleSelfSmallSizeChange;
+
+var const localized string strAimBuffEffectDescription;
+var const localized string strAimBuffEffectFlyoverText;
+var const localized string strAimBuffEffectTitle;
+var const localized string strCritChanceBuffEffectDescription;
+var const localized string strCritChanceBuffEffectFlyoverText;
+var const localized string strCritChanceBuffEffectTitle;
+var const localized string strDefenseBuffEffectDescription;
+var const localized string strDefenseBuffEffectFlyoverText;
+var const localized string strDefenseBuffEffectTitle;
+var const localized string strDodgeBuffEffectDescription;
+var const localized string strDodgeBuffEffectFlyoverText;
+var const localized string strDodgeBuffEffectTitle;
+var const localized string strMobilityBuffEffectDescription;
+var const localized string strMobilityBuffEffectFlyoverText;
+var const localized string strMobilityBuffEffectTitle;
+var const localized string strShieldHpBuffEffectDescription;
+var const localized string strShieldHpBuffEffectFlyoverText;
+var const localized string strShieldHpBuffEffectTitle;
+var const localized string strWillBuffEffectDescription;
+var const localized string strWillBuffEffectFlyoverText;
+var const localized string strWillBuffEffectTitle;
 
 static function array<X2DataTemplate> CreateTemplates()
 {
 	local array<X2DataTemplate> Templates;
 
     Templates.AddItem(CreateAimBuffSmallSelfAbility());
+    Templates.AddItem(CreateAimBuffMediumSelfAbility());
+    Templates.AddItem(CreateAimBuffLargeSelfAbility());
+    Templates.AddItem(CreateCritChanceBuffSmallSelfAbility());
+    Templates.AddItem(CreateCritChanceBuffMediumSelfAbility());
+    Templates.AddItem(CreateCritChanceBuffLargeSelfAbility());
+    Templates.AddItem(CreateDefenseBuffSmallSelfAbility());
+    Templates.AddItem(CreateDefenseBuffMediumSelfAbility());
+    Templates.AddItem(CreateDefenseBuffLargeSelfAbility());
+    Templates.AddItem(CreateDodgeBuffSmallSelfAbility());
+    Templates.AddItem(CreateDodgeBuffMediumSelfAbility());
+    Templates.AddItem(CreateDodgeBuffLargeSelfAbility());
+    Templates.AddItem(CreateMobilityBuffSmallSelfAbility());
+    Templates.AddItem(CreateMobilityBuffMediumSelfAbility());
+    Templates.AddItem(CreateMobilityBuffLargeSelfAbility());
+    Templates.AddItem(CreateShieldHpBuffSmallSelfAbility());
+    Templates.AddItem(CreateShieldHpBuffMediumSelfAbility());
+    Templates.AddItem(CreateShieldHpBuffLargeSelfAbility());
+    Templates.AddItem(CreateWillBuffSmallSelfAbility());
+    Templates.AddItem(CreateWillBuffMediumSelfAbility());
+    Templates.AddItem(CreateWillBuffLargeSelfAbility());
+
     Templates.AddItem(CreateBurnSelfAbility());
-    Templates.AddItem(CreateDetonateSelfAbility('Twitch_DetonateSelf_Small', 1, 2, 50));
-    Templates.AddItem(CreateDetonateSelfAbility('Twitch_DetonateSelf_Medium', 2, 4, 100));
-    Templates.AddItem(CreateDetonateSelfAbility('Twitch_DetonateSelf_Large', 3, 7, 250));
-    Templates.AddItem(CreateDetonateSelfAbility('Twitch_DetonateSelf_Gigantic', 7, 10000, 10000));
+    Templates.AddItem(CreateDetonateSelfAbility('Twitch_DetonateSelf_Small', default.DetonateSelfSmallTileRadius, default.DetonateSelfSmallUnitDamage, default.DetonateSelfSmallEnvironmentDamage));
+    Templates.AddItem(CreateDetonateSelfAbility('Twitch_DetonateSelf_Medium', default.DetonateSelfMediumTileRadius, default.DetonateSelfMediumUnitDamage, default.DetonateSelfMediumEnvironmentDamage));
+    Templates.AddItem(CreateDetonateSelfAbility('Twitch_DetonateSelf_Large', default.DetonateSelfLargeTileRadius, default.DetonateSelfLargeUnitDamage, default.DetonateSelfLargeEnvironmentDamage));
+    Templates.AddItem(CreateDetonateSelfAbility('Twitch_DetonateSelf_Gigantic', default.DetonateSelfGiganticTileRadius, default.DetonateSelfGiganticUnitDamage, default.DetonateSelfGiganticEnvironmentDamage));
     Templates.AddItem(CreateDisorientSelfAbility());
+    Templates.AddItem(CreateFullHealSelfAbility());
     Templates.AddItem(CreateKnockSelfUnconsciousAbility());
     Templates.AddItem(CreateInvincibleAbility());
     Templates.AddItem(CreatePanicSelfAbility());
@@ -25,6 +139,50 @@ static function array<X2DataTemplate> CreateTemplates()
     return Templates;
 }
 
+static function X2DataTemplate CreateAimBuffLargeSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
+
+    Template = CreateSelfTargetingAbility('Twitch_AimBuffLarge');
+    Template.FrameAbilityCameraType = eCameraFraming_Always;
+
+    PersistentStatChangeEffect = CreateStatChangeStatusEffect('Twitch_AimBuffEffect',
+                                                              eStat_Offense,
+                                                              default.AimBuffLargeBonus,
+                                                              default.AimBuffLargeNumTurns,
+                                                              default.strAimBuffEffectTitle,
+                                                              default.strAimBuffEffectDescription,
+                                                              default.strAimBuffEffectFlyoverText,
+                                                              AIM_BUFF_ICON);
+    PersistentStatChangeEffect.EffectRank = 3;
+
+    Template.AddTargetEffect(PersistentStatChangeEffect);
+
+    return Template;
+}
+
+static function X2DataTemplate CreateAimBuffMediumSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
+
+    Template = CreateSelfTargetingAbility('Twitch_AimBuffMedium');
+    Template.FrameAbilityCameraType = eCameraFraming_Always;
+
+    PersistentStatChangeEffect = CreateStatChangeStatusEffect('Twitch_AimBuffEffect',
+                                                              eStat_Offense,
+                                                              default.AimBuffMediumBonus,
+                                                              default.AimBuffMediumNumTurns,
+                                                              default.strAimBuffEffectTitle,
+                                                              default.strAimBuffEffectDescription,
+                                                              default.strAimBuffEffectFlyoverText,
+                                                              AIM_BUFF_ICON);
+    PersistentStatChangeEffect.EffectRank = 2;
+
+    Template.AddTargetEffect(PersistentStatChangeEffect);
+
+    return Template;
+}
+
 static function X2DataTemplate CreateAimBuffSmallSelfAbility() {
     local X2AbilityTemplate Template;
 	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
@@ -32,8 +190,411 @@ static function X2DataTemplate CreateAimBuffSmallSelfAbility() {
     Template = CreateSelfTargetingAbility('Twitch_AimBuffSmall');
     Template.FrameAbilityCameraType = eCameraFraming_Always;
 
-    PersistentStatChangeEffect = CreateAimBuffStatusEffect(10, 2);
-    PersistentStatChangeEffect.VisualizationFn = AimBuffVisualization;
+    PersistentStatChangeEffect = CreateStatChangeStatusEffect('Twitch_AimBuffEffect',
+                                                              eStat_Offense,
+                                                              default.AimBuffSmallBonus,
+                                                              default.AimBuffSmallNumTurns,
+                                                              default.strAimBuffEffectTitle,
+                                                              default.strAimBuffEffectDescription,
+                                                              default.strAimBuffEffectFlyoverText,
+                                                              AIM_BUFF_ICON);
+    PersistentStatChangeEffect.EffectRank = 1;
+
+    Template.AddTargetEffect(PersistentStatChangeEffect);
+
+    return Template;
+}
+
+static function X2DataTemplate CreateCritChanceBuffLargeSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
+
+    Template = CreateSelfTargetingAbility('Twitch_CritChanceBuffLarge');
+    Template.FrameAbilityCameraType = eCameraFraming_Always;
+
+    PersistentStatChangeEffect = CreateStatChangeStatusEffect('Twitch_CritChanceBuffEffect',
+                                                              eStat_CritChance,
+                                                              default.CritChanceBuffLargeBonus,
+                                                              default.CritChanceBuffLargeNumTurns,
+                                                              default.strCritChanceBuffEffectTitle,
+                                                              default.strCritChanceBuffEffectDescription,
+                                                              default.strCritChanceBuffEffectFlyoverText,
+                                                              CRIT_CHANCE_BUFF_ICON);
+    PersistentStatChangeEffect.EffectRank = 3;
+
+    Template.AddTargetEffect(PersistentStatChangeEffect);
+
+    return Template;
+}
+
+static function X2DataTemplate CreateCritChanceBuffMediumSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
+
+    Template = CreateSelfTargetingAbility('Twitch_CritChanceBuffMedium');
+    Template.FrameAbilityCameraType = eCameraFraming_Always;
+
+    PersistentStatChangeEffect = CreateStatChangeStatusEffect('Twitch_CritChanceBuffEffect',
+                                                              eStat_CritChance,
+                                                              default.CritChanceBuffMediumBonus,
+                                                              default.CritChanceBuffMediumNumTurns,
+                                                              default.strCritChanceBuffEffectTitle,
+                                                              default.strCritChanceBuffEffectDescription,
+                                                              default.strCritChanceBuffEffectFlyoverText,
+                                                              CRIT_CHANCE_BUFF_ICON);
+    PersistentStatChangeEffect.EffectRank = 2;
+
+    Template.AddTargetEffect(PersistentStatChangeEffect);
+
+    return Template;
+}
+
+static function X2DataTemplate CreateCritChanceBuffSmallSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
+
+    Template = CreateSelfTargetingAbility('Twitch_CritChanceBuffSmall');
+    Template.FrameAbilityCameraType = eCameraFraming_Always;
+
+    PersistentStatChangeEffect = CreateStatChangeStatusEffect('Twitch_CritChanceBuffEffect',
+                                                              eStat_CritChance,
+                                                              default.CritChanceBuffSmallBonus,
+                                                              default.CritChanceBuffSmallNumTurns,
+                                                              default.strCritChanceBuffEffectTitle,
+                                                              default.strCritChanceBuffEffectDescription,
+                                                              default.strCritChanceBuffEffectFlyoverText,
+                                                              CRIT_CHANCE_BUFF_ICON);
+    PersistentStatChangeEffect.EffectRank = 1;
+
+    Template.AddTargetEffect(PersistentStatChangeEffect);
+
+    return Template;
+}
+
+static function X2DataTemplate CreateDefenseBuffLargeSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
+
+    Template = CreateSelfTargetingAbility('Twitch_DefenseBuffLarge');
+    Template.FrameAbilityCameraType = eCameraFraming_Always;
+
+    PersistentStatChangeEffect = CreateStatChangeStatusEffect('Twitch_DefenseBuffEffect',
+                                                              eStat_Defense,
+                                                              default.DefenseBuffLargeBonus,
+                                                              default.DefenseBuffLargeNumTurns,
+                                                              default.strDefenseBuffEffectTitle,
+                                                              default.strDefenseBuffEffectDescription,
+                                                              default.strDefenseBuffEffectFlyoverText,
+                                                              DEFENSE_BUFF_ICON);
+    PersistentStatChangeEffect.EffectRank = 3;
+
+    Template.AddTargetEffect(PersistentStatChangeEffect);
+
+    return Template;
+}
+
+static function X2DataTemplate CreateDefenseBuffMediumSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
+
+    Template = CreateSelfTargetingAbility('Twitch_DefenseBuffMedium');
+    Template.FrameAbilityCameraType = eCameraFraming_Always;
+
+    PersistentStatChangeEffect = CreateStatChangeStatusEffect('Twitch_DefenseBuffEffect',
+                                                              eStat_Defense,
+                                                              default.DefenseBuffMediumBonus,
+                                                              default.DefenseBuffMediumNumTurns,
+                                                              default.strDefenseBuffEffectTitle,
+                                                              default.strDefenseBuffEffectDescription,
+                                                              default.strDefenseBuffEffectFlyoverText,
+                                                              DEFENSE_BUFF_ICON);
+    PersistentStatChangeEffect.EffectRank = 2;
+
+    Template.AddTargetEffect(PersistentStatChangeEffect);
+
+    return Template;
+}
+
+static function X2DataTemplate CreateDefenseBuffSmallSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
+
+    Template = CreateSelfTargetingAbility('Twitch_DefenseBuffSmall');
+    Template.FrameAbilityCameraType = eCameraFraming_Always;
+
+    PersistentStatChangeEffect = CreateStatChangeStatusEffect('Twitch_DefenseBuffEffect',
+                                                              eStat_Defense,
+                                                              default.DefenseBuffSmallBonus,
+                                                              default.DefenseBuffSmallNumTurns,
+                                                              default.strDefenseBuffEffectTitle,
+                                                              default.strDefenseBuffEffectDescription,
+                                                              default.strDefenseBuffEffectFlyoverText,
+                                                              DEFENSE_BUFF_ICON);
+    PersistentStatChangeEffect.EffectRank = 1;
+
+    Template.AddTargetEffect(PersistentStatChangeEffect);
+
+    return Template;
+}
+
+static function X2DataTemplate CreateDodgeBuffLargeSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
+
+    Template = CreateSelfTargetingAbility('Twitch_DodgeBuffLarge');
+    Template.FrameAbilityCameraType = eCameraFraming_Always;
+
+    PersistentStatChangeEffect = CreateStatChangeStatusEffect('Twitch_DodgeBuffEffect',
+                                                              eStat_Dodge,
+                                                              default.DodgeBuffLargeBonus,
+                                                              default.DodgeBuffLargeNumTurns,
+                                                              default.strDodgeBuffEffectTitle,
+                                                              default.strDodgeBuffEffectDescription,
+                                                              default.strDodgeBuffEffectFlyoverText,
+                                                              DODGE_BUFF_ICON);
+    PersistentStatChangeEffect.EffectRank = 3;
+
+    Template.AddTargetEffect(PersistentStatChangeEffect);
+
+    return Template;
+}
+
+static function X2DataTemplate CreateDodgeBuffMediumSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
+
+    Template = CreateSelfTargetingAbility('Twitch_DodgeBuffMedium');
+    Template.FrameAbilityCameraType = eCameraFraming_Always;
+
+    PersistentStatChangeEffect = CreateStatChangeStatusEffect('Twitch_DodgeBuffEffect',
+                                                              eStat_Dodge,
+                                                              default.DodgeBuffMediumBonus,
+                                                              default.DodgeBuffMediumNumTurns,
+                                                              default.strDodgeBuffEffectTitle,
+                                                              default.strDodgeBuffEffectDescription,
+                                                              default.strDodgeBuffEffectFlyoverText,
+                                                              DODGE_BUFF_ICON);
+    PersistentStatChangeEffect.EffectRank = 2;
+
+    Template.AddTargetEffect(PersistentStatChangeEffect);
+
+    return Template;
+}
+
+static function X2DataTemplate CreateDodgeBuffSmallSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
+
+    Template = CreateSelfTargetingAbility('Twitch_DodgeBuffSmall');
+    Template.FrameAbilityCameraType = eCameraFraming_Always;
+
+    PersistentStatChangeEffect = CreateStatChangeStatusEffect('Twitch_DodgeBuffEffect',
+                                                              eStat_Dodge,
+                                                              default.DodgeBuffSmallBonus,
+                                                              default.DodgeBuffSmallNumTurns,
+                                                              default.strDodgeBuffEffectTitle,
+                                                              default.strDodgeBuffEffectDescription,
+                                                              default.strDodgeBuffEffectFlyoverText,
+                                                              DODGE_BUFF_ICON);
+    PersistentStatChangeEffect.EffectRank = 1;
+
+    Template.AddTargetEffect(PersistentStatChangeEffect);
+
+    return Template;
+}
+
+static function X2DataTemplate CreateMobilityBuffLargeSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
+
+    Template = CreateSelfTargetingAbility('Twitch_MobilityBuffLarge');
+    Template.FrameAbilityCameraType = eCameraFraming_Always;
+
+    PersistentStatChangeEffect = CreateStatChangeStatusEffect('Twitch_MobilityBuffEffect',
+                                                              eStat_Mobility,
+                                                              default.MobilityBuffLargeBonus,
+                                                              default.MobilityBuffLargeNumTurns,
+                                                              default.strMobilityBuffEffectTitle,
+                                                              default.strMobilityBuffEffectDescription,
+                                                              default.strMobilityBuffEffectFlyoverText,
+                                                              MOBILITY_BUFF_ICON);
+    PersistentStatChangeEffect.EffectRank = 3;
+
+    Template.AddTargetEffect(PersistentStatChangeEffect);
+
+    return Template;
+}
+
+static function X2DataTemplate CreateMobilityBuffMediumSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
+
+    Template = CreateSelfTargetingAbility('Twitch_MobilityBuffMedium');
+    Template.FrameAbilityCameraType = eCameraFraming_Always;
+
+    PersistentStatChangeEffect = CreateStatChangeStatusEffect('Twitch_MobilityBuffEffect',
+                                                              eStat_Mobility,
+                                                              default.MobilityBuffMediumBonus,
+                                                              default.MobilityBuffMediumNumTurns,
+                                                              default.strMobilityBuffEffectTitle,
+                                                              default.strMobilityBuffEffectDescription,
+                                                              default.strMobilityBuffEffectFlyoverText,
+                                                              MOBILITY_BUFF_ICON);
+    PersistentStatChangeEffect.EffectRank = 2;
+
+    Template.AddTargetEffect(PersistentStatChangeEffect);
+
+    return Template;
+}
+
+static function X2DataTemplate CreateMobilityBuffSmallSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
+
+    Template = CreateSelfTargetingAbility('Twitch_MobilityBuffSmall');
+    Template.FrameAbilityCameraType = eCameraFraming_Always;
+
+    PersistentStatChangeEffect = CreateStatChangeStatusEffect('Twitch_MobilityBuffEffect',
+                                                              eStat_Mobility,
+                                                              default.MobilityBuffSmallBonus,
+                                                              default.MobilityBuffSmallNumTurns,
+                                                              default.strMobilityBuffEffectTitle,
+                                                              default.strMobilityBuffEffectDescription,
+                                                              default.strMobilityBuffEffectFlyoverText,
+                                                              MOBILITY_BUFF_ICON);
+    PersistentStatChangeEffect.EffectRank = 1;
+
+    Template.AddTargetEffect(PersistentStatChangeEffect);
+
+    return Template;
+}
+
+static function X2DataTemplate CreateShieldHpBuffLargeSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
+
+    Template = CreateSelfTargetingAbility('Twitch_ShieldHpBuffLarge');
+    Template.FrameAbilityCameraType = eCameraFraming_Always;
+
+    PersistentStatChangeEffect = CreateStatChangeStatusEffect('Twitch_ShieldHpBuffEffect',
+                                                              eStat_ShieldHp,
+                                                              default.ShieldHpBuffLargeBonus,
+                                                              default.ShieldHpBuffLargeNumTurns,
+                                                              default.strShieldHpBuffEffectTitle,
+                                                              default.strShieldHpBuffEffectDescription,
+                                                              default.strShieldHpBuffEffectFlyoverText,
+                                                              SHIELD_HP_BUFF_ICON);
+    PersistentStatChangeEffect.EffectRank = 3;
+
+    Template.AddTargetEffect(PersistentStatChangeEffect);
+
+    return Template;
+}
+
+static function X2DataTemplate CreateShieldHpBuffMediumSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
+
+    Template = CreateSelfTargetingAbility('Twitch_ShieldHpBuffMedium');
+    Template.FrameAbilityCameraType = eCameraFraming_Always;
+
+    PersistentStatChangeEffect = CreateStatChangeStatusEffect('Twitch_ShieldHpBuffEffect',
+                                                              eStat_ShieldHp,
+                                                              default.ShieldHpBuffMediumBonus,
+                                                              default.ShieldHpBuffMediumNumTurns,
+                                                              default.strShieldHpBuffEffectTitle,
+                                                              default.strShieldHpBuffEffectDescription,
+                                                              default.strShieldHpBuffEffectFlyoverText,
+                                                              SHIELD_HP_BUFF_ICON);
+    PersistentStatChangeEffect.EffectRank = 2;
+
+    Template.AddTargetEffect(PersistentStatChangeEffect);
+
+    return Template;
+}
+
+static function X2DataTemplate CreateShieldHpBuffSmallSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
+
+    Template = CreateSelfTargetingAbility('Twitch_ShieldHpBuffSmall');
+    Template.FrameAbilityCameraType = eCameraFraming_Always;
+
+    PersistentStatChangeEffect = CreateStatChangeStatusEffect('Twitch_ShieldHpBuffEffect',
+                                                              eStat_ShieldHp,
+                                                              default.ShieldHpBuffSmallBonus,
+                                                              default.ShieldHpBuffSmallNumTurns,
+                                                              default.strShieldHpBuffEffectTitle,
+                                                              default.strShieldHpBuffEffectDescription,
+                                                              default.strShieldHpBuffEffectFlyoverText,
+                                                              SHIELD_HP_BUFF_ICON);
+    PersistentStatChangeEffect.EffectRank = 1;
+
+    Template.AddTargetEffect(PersistentStatChangeEffect);
+
+    return Template;
+}
+
+static function X2DataTemplate CreateWillBuffLargeSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
+
+    Template = CreateSelfTargetingAbility('Twitch_WillBuffLarge');
+    Template.FrameAbilityCameraType = eCameraFraming_Always;
+
+    PersistentStatChangeEffect = CreateStatChangeStatusEffect('Twitch_WillBuffEffect',
+                                                              eStat_Will,
+                                                              default.WillBuffLargeBonus,
+                                                              default.WillBuffLargeNumTurns,
+                                                              default.strWillBuffEffectTitle,
+                                                              default.strWillBuffEffectDescription,
+                                                              default.strWillBuffEffectFlyoverText,
+                                                              WILL_BUFF_ICON);
+    PersistentStatChangeEffect.EffectRank = 3;
+
+    Template.AddTargetEffect(PersistentStatChangeEffect);
+
+    return Template;
+}
+
+static function X2DataTemplate CreateWillBuffMediumSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
+
+    Template = CreateSelfTargetingAbility('Twitch_WillBuffMedium');
+    Template.FrameAbilityCameraType = eCameraFraming_Always;
+
+    PersistentStatChangeEffect = CreateStatChangeStatusEffect('Twitch_WillBuffEffect',
+                                                              eStat_Will,
+                                                              default.WillBuffMediumBonus,
+                                                              default.WillBuffMediumNumTurns,
+                                                              default.strWillBuffEffectTitle,
+                                                              default.strWillBuffEffectDescription,
+                                                              default.strWillBuffEffectFlyoverText,
+                                                              WILL_BUFF_ICON);
+    PersistentStatChangeEffect.EffectRank = 2;
+
+    Template.AddTargetEffect(PersistentStatChangeEffect);
+
+    return Template;
+}
+
+static function X2DataTemplate CreateWillBuffSmallSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
+
+    Template = CreateSelfTargetingAbility('Twitch_WillBuffSmall');
+    Template.FrameAbilityCameraType = eCameraFraming_Always;
+
+    PersistentStatChangeEffect = CreateStatChangeStatusEffect('Twitch_WillBuffEffect',
+                                                              eStat_Will,
+                                                              default.WillBuffSmallBonus,
+                                                              default.WillBuffSmallNumTurns,
+                                                              default.strWillBuffEffectTitle,
+                                                              default.strWillBuffEffectDescription,
+                                                              default.strWillBuffEffectFlyoverText,
+                                                              WILL_BUFF_ICON);
+    PersistentStatChangeEffect.EffectRank = 1;
 
     Template.AddTargetEffect(PersistentStatChangeEffect);
 
@@ -46,7 +607,9 @@ static function X2DataTemplate CreateBurnSelfAbility() {
 
     Template = CreateSelfTargetingAbility('Twitch_BurnSelf');
 
-    BurningEffect = class'X2StatusEffects'.static.CreateBurningStatusEffect(1, 0); // TODO: use config values
+    `TILOG(`SHOWVAR(default.BurningNumTurns));
+    BurningEffect = class'X2StatusEffects'.static.CreateBurningStatusEffect(default.BurningDamage, 0);
+    BurningEffect.iNumTurns = default.BurningNumTurns;
 	BurningEffect.VisualizationFn = BurningVisualization;
 
     Template.AddTargetEffect(BurningEffect);
@@ -62,6 +625,19 @@ static function X2DataTemplate CreateDisorientSelfAbility() {
 
     DisorientedEffect = class'X2StatusEffects'.static.CreateDisorientedStatusEffect(false, , false);
     Template.AddTargetEffect(DisorientedEffect);
+
+    return Template;
+}
+
+static function X2DataTemplate CreateFullHealSelfAbility() {
+    local X2AbilityTemplate Template;
+	local X2Effect_Twitch_Heal HealEffect;
+
+    Template = CreateSelfTargetingAbility('Twitch_FullHealSelf');
+
+    HealEffect = new class'X2Effect_Twitch_Heal';
+    HealEffect.HealAmount = 100000;
+    Template.AddTargetEffect(HealEffect);
 
     return Template;
 }
@@ -85,6 +661,7 @@ static function X2DataTemplate CreatePanicSelfAbility() {
     Template = CreateSelfTargetingAbility('Twitch_PanicSelf');
 
     PanickedEffect = class'X2StatusEffects'.static.CreatePanickedStatusEffect();
+    PanickedEffect.iNumTurns = default.PanicNumTurns;
     Template.AddTargetEffect(PanickedEffect);
 
     return Template;
@@ -96,7 +673,7 @@ static function X2DataTemplate CreateScaleSelfLargeAbility() {
 
     Template = CreateSelfTargetingAbility('Twitch_ScaleSelfLarge');
 
-    ScaleEffect = class'X2Effect_Twitch_ScaleUnit'.static.CreateScaleUnitEffect(0.5);
+    ScaleEffect = class'X2Effect_Twitch_ScaleUnit'.static.CreateScaleUnitEffect(default.ScaleSelfLargeSizeChange);
     Template.AddTargetEffect(ScaleEffect);
 
     return Template;
@@ -108,7 +685,7 @@ static function X2DataTemplate CreateScaleSelfSmallAbility() {
 
     Template = CreateSelfTargetingAbility('Twitch_ScaleSelfSmall');
 
-    ScaleEffect = class'X2Effect_Twitch_ScaleUnit'.static.CreateScaleUnitEffect(-0.5);
+    ScaleEffect = class'X2Effect_Twitch_ScaleUnit'.static.CreateScaleUnitEffect(default.ScaleSelfSmallSizeChange);
     Template.AddTargetEffect(ScaleEffect);
 
     return Template;
@@ -173,7 +750,7 @@ protected static function X2DataTemplate CreateDetonateSelfAbility(name Template
 	Template.FrameAbilityCameraType = eCameraFraming_Always;
 
 	Template.SuperConcealmentLoss = 100;
-	Template.LostSpawnIncreasePerUse = 250; // huge
+	Template.LostSpawnIncreasePerUse = 100;
 
 	Template.BuildVisualizationFn = DetonateSelf_BuildVisualization;
 
@@ -207,22 +784,33 @@ protected static function X2AbilityTemplate CreateSelfTargetingAbility(Name Abil
 	return Template;
 }
 
-static function X2Effect_PersistentStatChange CreateAimBuffStatusEffect(int AimBonus, int NumTurns)
+static function X2Effect_PersistentStatChange CreateStatChangeStatusEffect(name EffectName, ECharStatType StatType, int StatChange, int NumTurns, string EffectTitle, string EffectDesc, string EffectFlyoverText, string IconPath)
 {
+    local EPerkBuffCategory PerkBuffCategory;
+    local X2TwitchAbilities_StatChangeEffectVisClosure VisClosure;
 	local X2Effect_PersistentStatChange PersistentStatChangeEffect;
+    local string Desc;
+
+    PerkBuffCategory = StatChange > 0 ? ePerkBuff_Bonus : ePerkBuff_Penalty;
+    Desc = Repl(EffectDesc, "<Amount/>", StatChange);
+
+    VisClosure = new class'X2TwitchAbilities_StatChangeEffectVisClosure';
+    VisClosure.StatChangeAmount = StatChange;
+    VisClosure.FlyoverText = EffectFlyoverText;
 
 	PersistentStatChangeEffect = new class'X2Effect_PersistentStatChange';
-    PersistentStatChangeEffect.EffectName = 'Twitch_AimBuffEffect';
+    PersistentStatChangeEffect.EffectName = EffectName;
 	PersistentStatChangeEffect.DuplicateResponse = eDupe_Refresh;
     PersistentStatChangeEffect.BuildPersistentEffect(NumTurns, /* _bInfiniteDuration */ false, /* _bRemoveWhenSourceDies */ false, , eGameRule_PlayerTurnBegin);
-	PersistentStatChangeEffect.SetDisplayInfo(ePerkBuff_Bonus, "Aim Boost", "Aim Boost Description", "img:///UILibrary_PerkIcons.UIPerk_advent_marktarget");
-	PersistentStatChangeEffect.AddPersistentStatChange(eStat_Offense, AimBonus);
+	PersistentStatChangeEffect.SetDisplayInfo(PerkBuffCategory, EffectTitle, Desc, IconPath);
+	PersistentStatChangeEffect.AddPersistentStatChange(StatType, StatChange);
 	PersistentStatChangeEffect.bRemoveWhenTargetDies = true;
+    PersistentStatChangeEffect.VisualizationFn = VisClosure.StatChangeEffectVisualization;
 
 	return PersistentStatChangeEffect;
 }
 
-static function AimBuffVisualization(XComGameState VisualizeGameState, out VisualizationActionMetadata ActionMetadata, const name EffectApplyResult)
+static function StatChangeEffectVisualization(XComGameState VisualizeGameState, out VisualizationActionMetadata ActionMetadata, const name EffectApplyResult)
 {
 	local XComGameState_Unit UnitState;
 
@@ -235,14 +823,8 @@ static function AimBuffVisualization(XComGameState VisualizeGameState, out Visua
 
 	if (UnitState != none)
 	{
-		class'X2StatusEffects'.static.AddEffectSoundAndFlyOverToTrack(ActionMetadata, VisualizeGameState.GetContext(), "Aim Buff", '', eColor_Good, class'UIUtilities_Image'.const.UnitStatus_Marked);
-		class'X2StatusEffects'.static.AddEffectMessageToTrack(
-			ActionMetadata,
-			"Twitch Buff Acquired",
-			VisualizeGameState.GetContext(),
-			"Twitch Buff",
-			class'UIUtilities_Image'.const.UnitStatus_Marked,
-			eUIState_Good);
+        // TODO figure out what stat changed based on the effect state
+		class'X2StatusEffects'.static.AddEffectSoundAndFlyOverToTrack(ActionMetadata, VisualizeGameState.GetContext(), "Aim Bonus", '', eColor_Good, class'UIUtilities_Image'.const.UnitStatus_Marked);
 	}
 }
 

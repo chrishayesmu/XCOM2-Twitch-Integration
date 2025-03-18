@@ -2,16 +2,16 @@ class X2TwitchEventActionTemplate_TargetsUnits extends X2TwitchEventActionTempla
     abstract;
 
 enum eTwitch_UnitSelectionCriteria {
-    //eTwitchUSC_ClosestToObjective,
-    //eTwitchUSC_FurthestFromObjective,
+    eTwitchUSC_Random,
 
     eTwitchUSC_HighestHP,
     eTwitchUSC_LowestHP,
 
     eTwitchUSC_LeastHPMissing,
-    eTwitchUSC_MostHPMissing,
+    eTwitchUSC_MostHPMissing
 
-    eTwitchUSC_Random
+    //eTwitchUSC_ClosestToObjective,
+    //eTwitchUSC_FurthestFromObjective,
 };
 
 struct TwitchActionFlyoverParams {
@@ -23,10 +23,7 @@ struct TwitchActionFlyoverParams {
 
     structdefaultproperties
     {
-        Icon=""
-        Text=""
         Duration=1.0
-        Sound=none
         Color=eColor_XCom
     }
 };
@@ -38,6 +35,7 @@ var config bool IncludeConcealed;
 var config bool IncludeDead;
 var config bool IncludeLiving;
 var config array<name> RequireNotImmuneToDamageTypes;
+var config bool RequireTwitchOwner;
 var config int NumTargets;
 
 var protectedwrite bool bHasPerUnitFlyover; // Set to true in subclasses to have flyovers automatically created
@@ -108,6 +106,7 @@ protected function array<XComGameState_Unit> FindTargets(XComGameState_Unit Invo
     }
 
     // Prioritize targets
+    // TODO: when multiple prioritized targets are tied, it would be good to randomly select them
     if (SelectBasedOn == eTwitchUSC_Random) {
         while (Targets.Length < NumTargets && ValidTargets.Length > 0) {
             I = Rand(ValidTargets.Length);
@@ -150,6 +149,7 @@ protected function bool GiveAndActivateAbility(Name AbilityName, XComGameState_U
 
 // Override this function in child classes for custom targeting logic
 protected function bool IsValidTarget(XComGameState_Unit Unit) {
+    local XComGameState_TwitchObjectOwnership Ownership;
     local int I;
 
     if (Unit.GetMyTemplate().bIsCosmetic) {
@@ -185,6 +185,15 @@ protected function bool IsValidTarget(XComGameState_Unit Unit) {
     for (I = 0; I < RequireNotImmuneToDamageTypes.Length; I++) {
         if (Unit.IsImmuneToDamage(RequireNotImmuneToDamageTypes[I])) {
             `TILOG("Unit is immune to " $ RequireNotImmuneToDamageTypes[I] $ " damage");
+            return false;
+        }
+    }
+
+    if (RequireTwitchOwner) {
+        Ownership = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Unit.ObjectID);
+
+        if (Ownership == none) {
+            `TILOG("Unit does not have a Twitch owner");
             return false;
         }
     }

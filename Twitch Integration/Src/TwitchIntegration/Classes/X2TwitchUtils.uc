@@ -145,7 +145,7 @@ static function XComGameState_Unit GetViewerUnitOnMission(string TwitchLogin) {
     return none;
 }
 
-static function GiveAbilityToUnit(Name AbilityName, out XComGameState_Unit Unit, optional XComGameState NewGameState, optional int TurnsUntilAbilityExpires) {
+static function GiveAbilityToUnit(Name AbilityName, out XComGameState_Unit Unit, optional XComGameState NewGameState, optional int TurnsUntilAbilityExpires = 10000) {
 	local XComGameStateHistory History;
 	local X2TacticalGameRuleset TacticalRules;
     local StateObjectReference AbilityRef;
@@ -174,12 +174,12 @@ static function GiveAbilityToUnit(Name AbilityName, out XComGameState_Unit Unit,
 		UnitAlreadyHasAbility = (Unit.FindAbility(AbilityName).ObjectID > 0);
 
 		if (!UnitAlreadyHasAbility) {
-            `TILOG("Giving unit '" $ Unit.GetFullName() $ "' ability " $ AbilityName);
+            `TILOG("Giving unit '" $ Unit.GetFullName() $ "' ability " $ AbilityName $ " for " $ TurnsUntilAbilityExpires $ " turns");
 			AbilityRef = TacticalRules.InitAbilityForUnit(AbilityTemplate, Unit, NewGameState);
 
             if (AbilityRef.ObjectID != 0) {
                 AbilityState = XComGameState_Ability(NewGameState.ModifyStateObject(class'XComGameState_Ability', AbilityRef.ObjectID));
-                AbilityState.TurnsUntilAbilityExpires = TurnsUntilAbilityExpires > 0 ? TurnsUntilAbilityExpires : 100000;
+                AbilityState.TurnsUntilAbilityExpires = TurnsUntilAbilityExpires;
             }
 
             if (CreatedGameState) {

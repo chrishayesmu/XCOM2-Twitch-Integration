@@ -1,6 +1,7 @@
 class X2TwitchEventActionTemplate_ActivateAbility extends X2TwitchEventActionTemplate_TargetsUnits;
 
 var config Name AbilityName;
+var config int TurnsUntilAbilityExpires;
 
 function Apply(optional XComGameState_Unit InvokingUnit) {
     local array<XComGameState_Unit> Targets;
@@ -15,7 +16,7 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
         TargetLocations.Length = 0;
         TargetLocations.AddItem(Unit.GetVisualizer().Location);
 
-        class'X2TwitchUtils'.static.GiveAbilityToUnit(AbilityName, Unit, /* NewGameState */ none, /* TurnsUntilAbilityExpires */ 1);
+        class'X2TwitchUtils'.static.GiveAbilityToUnit(AbilityName, Unit, /* NewGameState */ none, TurnsUntilAbilityExpires);
 
         class'XComGameStateContext_Ability'.static.ActivateAbilityByTemplateName(Unit.GetReference(), AbilityName, Unit.GetReference(), TargetLocations);
     }

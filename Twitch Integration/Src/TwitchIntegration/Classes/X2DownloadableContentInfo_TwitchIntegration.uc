@@ -11,6 +11,12 @@
 class X2DownloadableContentInfo_TwitchIntegration extends X2DownloadableContentInfo
 	dependson(XComGameState_TwitchEventPoll);
 
+static function bool AbilityTagExpandHandler_CH(string InString, out string OutString, Object ParseObj, Object StrategyParseOb, XComGameState GameState)
+{
+    `TILOG("AbilityTagExpandHandler_CH:" @ `SHOWVAR(InString) @ `SHOWVAR(ParseObj) @ `SHOWVAR(StrategyParseOb) @ `SHOWVAR(GameState));
+	return false;
+}
+
 /// <summary>
 /// This method is run when the player loads a saved game directly into Strategy while this DLC is installed
 /// </summary>

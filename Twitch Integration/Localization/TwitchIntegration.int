@@ -26,6 +26,28 @@ strButtonLabel="SET TWITCH USERNAME"
 strDescription="Set this soldier's Twitch username. That Twitch user will be able to use chat commands for this soldier."
 strDialogTitle="Twitch Username"
 
+[X2TwitchAbilities]
+strAimBuffEffectDescription="+<Amount/> Aim for <Ability:TurnsRemaining/> turns."
+strAimBuffEffectFlyoverText="Twitch: +<Amount/> Aim"
+strAimBuffEffectTitle="Twitch Aim Boost"
+strCritChanceBuffEffectDescription="+<Amount/> Critical Chance for <Ability:TurnsRemaining/> turns."
+strCritChanceBuffEffectFlyoverText="Twitch: +<Amount/> Critical Chance"
+strCritChanceBuffEffectTitle="Twitch Critical Chance Boost"
+strDefenseBuffEffectDescription="+<Amount/> Defense for <Ability:TurnsRemaining/> turns."
+strDefenseBuffEffectFlyoverText="Twitch: +<Amount/> Defense"
+strDefenseBuffEffectTitle="Twitch Defense Boost"
+strDodgeBuffEffectDescription="+<Amount/> Dodge for <Ability:TurnsRemaining/> turns."
+strDodgeBuffEffectFlyoverText="Twitch: +<Amount/> Dodge"
+strDodgeBuffEffectTitle="Twitch Dodge Boost"
+strMobilityBuffEffectDescription="+<Amount/> Mobility for <Ability:TurnsRemaining/> turns."
+strMobilityBuffEffectFlyoverText="Twitch: +<Amount/> Mobility"
+strMobilityBuffEffectTitle="Twitch Mobility Boost"
+strShieldHpBuffEffectDescription="+<Amount/> Shield HP for <Ability:TurnsRemaining/> turns."
+strShieldHpBuffEffectFlyoverText="Twitch: +<Amount/> Shield HP"
+strShieldHpBuffEffectTitle="Twitch Shield HP Boost"
+strWillBuffEffectDescription="+<Amount/> Will for <Ability:TurnsRemaining/> turns."
+strWillBuffEffectFlyoverText="Twitch: +<Amount/> Will"
+strWillBuffEffectTitle="Twitch Will Boost"
 
 [TwitchIntegrationConfig]
 strChangeButtonLabel="Change.."
@@ -87,6 +109,10 @@ strRequireActiveChatterForChosenTooltip="If checked, only viewers who have chatt
 strExcludeBroadcasterLabel="Exclude Broadcaster"
 strExcludeBroadcasterTooltip="If checked, the broadcaster is not eligible to be raffled as a unit. They can still be manually given a unit."
 
+[TwitchPollGroup_EnemyRising X2PollGroupTemplate]
+PollTitle="Enemy Rising"
+PollSubtitle="These guys are stronger than we thought."
+ResultsTitle="We'll have to step up to the challenge."
 
 [TwitchPollGroup_Harbinger X2PollGroupTemplate]
 PollTitle="Harbinger"
@@ -103,10 +129,10 @@ PollTitle="Sabotage"
 PollSubtitle="ADVENT is forcing our hand."
 ResultsTitle="ADVENT's done some damage."
 
-[TwitchPollGroup_Serendipity X2PollGroupTemplate]
-PollTitle="Serendipity"
-PollSubtitle="ADVENT's misfortune is our advantage."
-ResultsTitle="ADVENT seems to be having some sort of.. malfunction."
+[TwitchPollGroup_Schadenfreude X2PollGroupTemplate]
+PollTitle="Schadenfreude"
+PollSubtitle="Their misfortune is our advantage."
+ResultsTitle="They seem to be having some sort of.. malfunction."
 
 [PollChoice_ImpairEnemies_CatchFire X2PollChoiceTemplate]
 FriendlyName="Ignite 1 Enemy"
@@ -148,23 +174,37 @@ Explanation="1 soldier will panic immediately."
 FriendlyName="Stun 1 XCOM Soldier"
 Explanation="1 soldier will be stunned for 2 turns."
 
-[PollChoice_GiveActionPoints_AllXCOM X2PollChoiceTemplate]
+[PollChoice_GiveActionPoints_AllAllies X2PollChoiceTemplate]
 FriendlyName="+1 Action (All XCOM)"
 Explanation="Every soldier receives 1 additional action point this turn."
 
-[PollChoice_GiveActionPoints_SomeXCOM X2PollChoiceTemplate]
+[PollChoice_GiveActionPoints_AllEnemies X2PollChoiceTemplate]
+FriendlyName="+1 Action (All Enemies)"
+Explanation="Every enemy receives 1 additional action point this turn."
+
+[PollChoice_GiveActionPoints_OneAlly X2PollChoiceTemplate]
 FriendlyName="+1 Action (One XCOM)"
 Explanation="One soldier receives 1 additional action point this turn."
 
-[PollChoice_GiveAmmo_AllXCOM X2PollChoiceTemplate]
+[PollChoice_GiveActionPoints_OneEnemy X2PollChoiceTemplate]
+FriendlyName="+1 Action (One Enemy)"
+Explanation="One enemy receives 1 additional action point this turn."
+
+[PollChoice_GiveAmmo_AllAllies X2PollChoiceTemplate]
 FriendlyName="Ammo Refill (All XCOM)"
 Explanation="Every soldier's primary weapon is reloaded."
 
-[PollChoice_GiveAmmo_SomeXCOM X2PollChoiceTemplate]
+[PollChoice_GiveAmmo_AllEnemies X2PollChoiceTemplate]
+FriendlyName="Ammo Refill (All Enemies)"
+Explanation="Every enemy's primary weapon is reloaded."
+
+[PollChoice_GiveAmmo_OneAlly X2PollChoiceTemplate]
 FriendlyName="Ammo Refill (One XCOM)"
 Explanation="One soldier's primary weapon is reloaded."
 
-
+[PollChoice_GiveAmmo_OneEnemy X2PollChoiceTemplate]
+FriendlyName="Ammo Refill (One Enemy)"
+Explanation="One enemy's primary weapon is reloaded."
 
 [PollChoice_SpawnEnemies_AdventCaptain_1x2 X2PollChoiceTemplate]
 FriendlyName="1 Captain + 2 Random"
