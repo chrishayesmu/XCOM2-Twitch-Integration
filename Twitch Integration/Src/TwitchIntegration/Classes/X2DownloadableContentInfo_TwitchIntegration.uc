@@ -71,30 +71,6 @@ static function CopyStateObjectsToNewState(XComGameState NewGameState) {
 
 // #region Console commands
 
-exec function TwitchDebugRTD() {
-    local array<string> Options;
-    local UIRollTheDiceScreen Screen;
-
-    Options.AddItem("Gain 1 Action");
-    Options.AddItem("Lose 1 Action");
-    Options.AddItem("Ubercharge");
-    Options.AddItem("Explode");
-    Options.AddItem("Catch Fire");
-    Options.AddItem("Panic");
-    Options.AddItem("Shrink");
-    Options.AddItem("Grow");
-    Options.AddItem("Reload Weapon");
-    Options.AddItem("Unload Weapon");
-
-    Screen = `XCOMGAME.Spawn(class'UIRollTheDiceScreen', `PRES);
-    Screen.Options = Options;
-    Screen.ViewerLogin = "swfDelicious";
-    Screen.WinningOptionIndex = 3;
-    Screen.WinningOptionTemplateName = 'TwitchAction_Fake';
-
-    `SCREENSTACK.Push(Screen);
-}
-
 /// <summary>
 /// Executes a Twitch command as though it were coming from the specified viewer.
 /// </summary>

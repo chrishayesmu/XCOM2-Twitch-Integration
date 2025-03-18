@@ -44,6 +44,10 @@ simulated function InitScreen(XComPlayerController InitController, UIMovie InitM
 
     super.InitScreen(InitController, InitMovie, InitName);
 
+    `TILOG("Before shuffle:" @ `SHOWVAR(WinningOptionIndex) @ `SHOWVAR(Options[WinningOptionIndex]));
+    ShuffleOptions();
+    `TILOG("After shuffle:" @ `SHOWVAR(WinningOptionIndex) @ `SHOWVAR(Options[WinningOptionIndex]));
+
     TickCue = SoundCue(DynamicLoadObject("SoundUI.MenuScrollCue", class'SoundCue'));
 
     m_bgBox = Spawn(class'UIBGBox', self);
@@ -145,6 +149,27 @@ protected function PositionTextElements() {
     m_OptionHighlight.AnchorCenter();
     m_OptionHighlight.SetPosition(TextX, m_TextStartY + (m_Mask.Height - m_OptionHighlight.Height) / 2);
     m_OptionHighlight.SetSize(m_Mask.Width, 42);
+}
+
+protected function ShuffleOptions() {
+    local int I, J;
+    local string Temp;
+
+    // Basic Fisher-Yates shuffle
+    for (I = Options.Length - 1; I >= 1; I--) {
+        J = Rand(I + 1);
+
+        Temp = Options[I];
+        Options[I] = Options[J];
+        Options[J] = Temp;
+
+        if (I == WinningOptionIndex) {
+            WinningOptionIndex = J;
+        }
+        else if (J == WinningOptionIndex) {
+            WinningOptionIndex = I;
+        }
+    }
 }
 
 private function RealizeUI() {

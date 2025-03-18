@@ -2,6 +2,8 @@ class TwitchUnitFlagManager extends Actor
     config(TwitchUI)
     dependson(UIScreenListener_TwitchUsernameInjector);
 
+const VERBOSE_LOGS = false;
+
 struct TwitchFlag {
     var int AttachedObjectID;
     var UIBGBox BGBox;
@@ -56,7 +58,7 @@ event Tick(float DeltaTime) {
         fTimeSinceLastFlagCheck = 0.0f;
 
         for (Index = UnitIDsPendingFlagUpdate.Length - 1; Index >= 0; Index--) {
-            `TILOG("Index = " $ Index $ "; UnitIDsPendingFlagUpdate.Length = " $ UnitIDsPendingFlagUpdate.Length);
+            `TILOG("Index = " $ Index $ "; UnitIDsPendingFlagUpdate.Length = " $ UnitIDsPendingFlagUpdate.Length, VERBOSE_LOGS);
 
             UnitState = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(UnitIDsPendingFlagUpdate[Index]));
 
@@ -73,7 +75,7 @@ function bool AddOrUpdateFlag(XComGameState_Unit Unit, optional XComGameState_Tw
     local UIUnitFlag UnitFlag;
     local XComPresentationLayer Pres;
 
-    `TILOG("AddOrUpdateFlag for Unit = " $ Unit $ ", Ownership = " $ Ownership);
+    `TILOG("AddOrUpdateFlag for Unit = " $ Unit $ ", Ownership = " $ Ownership, VERBOSE_LOGS);
     `XWORLDINFO.ConsoleCommand("flushlogs");
 
     if (Unit == none) {
@@ -86,18 +88,18 @@ function bool AddOrUpdateFlag(XComGameState_Unit Unit, optional XComGameState_Tw
     UnitFlag = Pres.m_kUnitFlagManager.GetFlagForObjectID(UnitObjID);
 
     if (Ownership == none) {
-        `TILOG("Ownership is none; retrieving it");
+        `TILOG("Ownership is none; retrieving it", VERBOSE_LOGS);
         Ownership = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Unit.ObjectID);
     }
 
     if (Unit.GetMyTemplate().bIsCosmetic || Unit.IsCivilian() || Unit.bRemovedFromPlay) {
-        `TILOG("This unit will never have a flag; skipping it");
+        `TILOG("This unit will never have a flag; skipping it", VERBOSE_LOGS);
         SetUnitName(Unit, Ownership);
         return true; // act like we added a flag, because retrying is a waste
     }
 
     if (UnitFlag == none) {
-        `TILOG("Unit has no flag; adding to list of units to sync later");
+        `TILOG("Unit has no flag; adding to list of units to sync later", VERBOSE_LOGS);
 
         if (UnitIDsPendingFlagUpdate.Find(UnitObjID) == INDEX_NONE) {
             UnitIDsPendingFlagUpdate.AddItem(UnitObjID);
@@ -109,7 +111,7 @@ function bool AddOrUpdateFlag(XComGameState_Unit Unit, optional XComGameState_Tw
     `XWORLDINFO.ConsoleCommand("flushlogs");
 
     if (GetFlagForObject(UnitObjID, TFlag)) {
-        `TILOG("Already found internal Twitch flag for obj ID " $ UnitObjID);
+        `TILOG("Already found internal Twitch flag for obj ID " $ UnitObjID, VERBOSE_LOGS);
         `XWORLDINFO.ConsoleCommand("flushlogs");
 
         if (Ownership != none) {
@@ -125,7 +127,7 @@ function bool AddOrUpdateFlag(XComGameState_Unit Unit, optional XComGameState_Tw
         }
     }
     else if (Ownership != none) {
-        `TILOG("Creating new Twitch flag");
+        `TILOG("Creating new Twitch flag", VERBOSE_LOGS);
         `XWORLDINFO.ConsoleCommand("flushlogs");
 
         TFlag = CreateTwitchFlag(UnitFlag, Unit, Ownership);
@@ -206,7 +208,6 @@ private function TwitchFlag CreateTwitchFlag(UIUnitFlag UnitFlag, XComGameState_
 }
 
 private function SetUnitName(XComGameState_Unit Unit, XComGameState_TwitchObjectOwnership Ownership) {
-
     local XComGameState NewGameState;
     local XComGameState_Unit OriginalUnit;
     local TwitchChatter Viewer;
@@ -239,7 +240,7 @@ private function SetUnitName(XComGameState_Unit Unit, XComGameState_TwitchObject
         LastName = "(" $ OriginalUnit.GetName(eNameType_Full) $ ")";
     }
 
-    `TILOG("Setting unit name");
+    `TILOG("Setting unit name", VERBOSE_LOGS);
     `XWORLDINFO.ConsoleCommand("flushlogs");
     Unit.SetUnitName(FirstName, LastName, "");
 

@@ -607,7 +607,6 @@ static function X2DataTemplate CreateBurnSelfAbility() {
 
     Template = CreateSelfTargetingAbility('Twitch_BurnSelf');
 
-    `TILOG(`SHOWVAR(default.BurningNumTurns));
     BurningEffect = class'X2StatusEffects'.static.CreateBurningStatusEffect(default.BurningDamage, 0);
     BurningEffect.iNumTurns = default.BurningNumTurns;
 	BurningEffect.VisualizationFn = BurningVisualization;

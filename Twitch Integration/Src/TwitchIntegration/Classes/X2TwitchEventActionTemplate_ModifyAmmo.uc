@@ -53,13 +53,9 @@ protected function GetFlyoverParams(XComGameState VisualizeGameState, XComGameSt
     local int ChangeInAmmo;
     local string FlyoverText;
 
-    // TODO: may need to pass actual game states here?
     CurrentWeaponState = CurrentUnitState.GetItemInSlot(eInvSlot_PrimaryWeapon);
     PreviousWeaponState = XComGameState_Item(`XCOMHISTORY.GetGameStateForObjectID(CurrentWeaponState.ObjectID, eReturnType_Reference, VisualizeGameState.HistoryIndex - 1));
     ChangeInAmmo = CurrentWeaponState.Ammo - PreviousWeaponState.Ammo;
-
-    `TILOG("GetFlyoverParams for unit " $ CurrentUnitState.GetFullName() $ ". ChangeInAmmo = " $ ChangeInAmmo);
-    `TILOG("Comparing " $ `SHOWVAR(CurrentWeaponState) $ " to " $ `SHOWVAR(PreviousWeaponState));
 
     if (ChangeInAmmo == 0) {
         `TILOG("WARNING: ChangeInAmmo was 0, but such a game state should not reach visualization", , 'TwitchIntegration');
@@ -84,8 +80,6 @@ protected function GetFlyoverParams(XComGameState VisualizeGameState, XComGameSt
         FlyoverText = strAmmoRemovedPlural;
     }
 
-    `TILOG("Text: '" $ FlyoverText $ "'. Color: " $ FlyoverParams.Color);
-
     FlyoverParams.Text = Repl(FlyoverText, "<Ammo/>", int(Abs(ChangeInAmmo)));
 }
 
@@ -97,8 +91,6 @@ protected function bool IsValidTarget(XComGameState_Unit Unit) {
     }
 
     Weapon = Unit.GetItemInSlot(eInvSlot_PrimaryWeapon);
-
-    `TILOG("Unit " $ Unit.GetFullName() $ "'s weapon " $ Weapon.Name $ " currently has ammo: " $ Weapon.Ammo $ " for clip size: " $ Weapon.GetItemClipSize());
 
     if (AmmoToGive > 0 && Weapon.Ammo >= Weapon.GetItemClipSize()) {
         return false; // no ammo missing to refill
