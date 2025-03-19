@@ -134,6 +134,118 @@ PollTitle="Schadenfreude"
 PollSubtitle="Their misfortune is our advantage."
 ResultsTitle="They seem to be having some sort of.. malfunction."
 
+[PollChoice_AimBuffMedium_AllAllies X2PollChoiceTemplate]
+FriendlyName="+Aim (All XCOM)"
+Explanation="All of XCOM gain a temporary Aim bonus."
+
+[PollChoice_AimBuffLarge_AllAllies X2PollChoiceTemplate]
+FriendlyName="++Aim (All XCOM)"
+Explanation="All of XCOM gain a temporary Aim bonus."
+
+[PollChoice_AimBuffMedium_AllEnemies X2PollChoiceTemplate]
+FriendlyName="+Aim (All Enemies)"
+Explanation="All enemies gain a temporary Aim bonus."
+
+[PollChoice_AimBuffLarge_AllEnemies X2PollChoiceTemplate]
+FriendlyName="++Aim (All Enemies)"
+Explanation="All enemies gain a temporary Aim bonus."
+
+[PollChoice_CritChanceBuffMedium_AllAllies X2PollChoiceTemplate]
+FriendlyName="+Crit (All XCOM)"
+Explanation="All of XCOM gain a temporary Critical Chance bonus."
+
+[PollChoice_CritChanceBuffLarge_AllAllies X2PollChoiceTemplate]
+FriendlyName="++Crit (All XCOM)"
+Explanation="All of XCOM gain a temporary Critical Chance bonus."
+
+[PollChoice_CritChanceBuffMedium_AllEnemies X2PollChoiceTemplate]
+FriendlyName="+Crit (All Enemies)"
+Explanation="All enemies gain a temporary Critical Chance bonus."
+
+[PollChoice_CritChanceBuffLarge_AllEnemies X2PollChoiceTemplate]
+FriendlyName="++Crit (All Enemies)"
+Explanation="All enemies gain a temporary Critical Chance bonus."
+
+[PollChoice_DefenseBuffMedium_AllAllies X2PollChoiceTemplate]
+FriendlyName="+Defense (All XCOM)"
+Explanation="All of XCOM gain a temporary Defense bonus."
+
+[PollChoice_DefenseBuffLarge_AllAllies X2PollChoiceTemplate]
+FriendlyName="++Defense (All XCOM)"
+Explanation="All of XCOM gain a temporary Defense bonus."
+
+[PollChoice_DefenseBuffMedium_AllEnemies X2PollChoiceTemplate]
+FriendlyName="+Defense (All Enemies)"
+Explanation="All enemies gain a temporary Defense bonus."
+
+[PollChoice_DefenseBuffLarge_AllEnemies X2PollChoiceTemplate]
+FriendlyName="++Defense (All Enemies)"
+Explanation="All enemies gain a temporary Defense bonus."
+
+[PollChoice_DodgeBuffMedium_AllAllies X2PollChoiceTemplate]
+FriendlyName="+Dodge (All XCOM)"
+Explanation="All of XCOM gain a temporary Dodge bonus."
+
+[PollChoice_DodgeBuffLarge_AllAllies X2PollChoiceTemplate]
+FriendlyName="++Dodge (All XCOM)"
+Explanation="All of XCOM gain a temporary Dodge bonus."
+
+[PollChoice_DodgeBuffMedium_AllEnemies X2PollChoiceTemplate]
+FriendlyName="+Dodge (All Enemies)"
+Explanation="All enemies gain a temporary Dodge bonus."
+
+[PollChoice_DodgeBuffLarge_AllEnemies X2PollChoiceTemplate]
+FriendlyName="++Dodge (All Enemies)"
+Explanation="All enemies gain a temporary Dodge bonus."
+
+[PollChoice_MobilityBuffMedium_AllAllies X2PollChoiceTemplate]
+FriendlyName="+Mobility (All XCOM)"
+Explanation="All of XCOM gain a temporary Mobility bonus."
+
+[PollChoice_MobilityBuffLarge_AllAllies X2PollChoiceTemplate]
+FriendlyName="++Mobility (All XCOM)"
+Explanation="All of XCOM gain a temporary Mobility bonus."
+
+[PollChoice_MobilityBuffMedium_AllEnemies X2PollChoiceTemplate]
+FriendlyName="+Mobility (All Enemies)"
+Explanation="All enemies gain a temporary Mobility bonus."
+
+[PollChoice_MobilityBuffLarge_AllEnemies X2PollChoiceTemplate]
+FriendlyName="++Mobility (All Enemies)"
+Explanation="All enemies gain a temporary Mobility bonus."
+
+[PollChoice_ShieldHpBuffMedium_AllAllies X2PollChoiceTemplate]
+FriendlyName="+Shield HP (All XCOM)"
+Explanation="All of XCOM gain temporary Shield HP."
+
+[PollChoice_ShieldHpBuffLarge_AllAllies X2PollChoiceTemplate]
+FriendlyName="++Shield HP (All XCOM)"
+Explanation="All of XCOM gain temporary Shield HP."
+
+[PollChoice_ShieldHpBuffMedium_AllEnemies X2PollChoiceTemplate]
+FriendlyName="+Shield HP (All Enemies)"
+Explanation="All enemies gain temporary Shield HP."
+
+[PollChoice_ShieldHpBuffLarge_AllEnemies X2PollChoiceTemplate]
+FriendlyName="++Shield HP (All Enemies)"
+Explanation="All enemies gain temporary Shield HP."
+
+[PollChoice_WillBuffMedium_AllAllies X2PollChoiceTemplate]
+FriendlyName="+Will (All XCOM)"
+Explanation="All of XCOM gain a temporary Will bonus."
+
+[PollChoice_WillBuffLarge_AllAllies X2PollChoiceTemplate]
+FriendlyName="++Will (All XCOM)"
+Explanation="All of XCOM gain a temporary Will bonus."
+
+[PollChoice_WillBuffMedium_AllEnemies X2PollChoiceTemplate]
+FriendlyName="+Will (All Enemies)"
+Explanation="All enemies gain a temporary Will bonus."
+
+[PollChoice_WillBuffLarge_AllEnemies X2PollChoiceTemplate]
+FriendlyName="++Will (All Enemies)"
+Explanation="All enemies gain a temporary Will bonus."
+
 [PollChoice_ImpairEnemies_CatchFire X2PollChoiceTemplate]
 FriendlyName="Ignite 1 Enemy"
 Explanation="1 enemy will catch fire for 2 turns."

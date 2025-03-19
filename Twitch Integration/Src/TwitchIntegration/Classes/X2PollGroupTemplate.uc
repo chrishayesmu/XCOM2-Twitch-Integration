@@ -216,15 +216,14 @@ private static function int SelectWeightedChoice(array<PollEventOption> FromChoi
     }
 
     RolledWeight = Rand(TotalWeight);
-
     TotalWeight = 0;
 
     for (I = 0; I < FromChoices.Length; I++) {
-        if (TotalWeight <= RolledWeight) {
+        TotalWeight += FromChoices[I].Weight;
+
+        if (RolledWeight <= TotalWeight) {
             return I;
         }
-
-        TotalWeight += FromChoices[I].Weight;
     }
 
     return FromChoices.Length - 1;

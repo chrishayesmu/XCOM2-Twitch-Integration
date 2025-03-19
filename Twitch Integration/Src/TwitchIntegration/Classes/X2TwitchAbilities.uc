@@ -5,13 +5,13 @@
 class X2TwitchAbilities extends X2Ability
     config(TwitchAbilities);
 
-const AIM_BUFF_ICON = "img:///UILibrary_PerkIcons.UIPerk_advent_marktarget";
-const CRIT_CHANCE_BUFF_ICON = "img:///UILibrary_PerkIcons.UIPerk_advent_marktarget";
-const DEFENSE_BUFF_ICON = "img:///UILibrary_PerkIcons.UIPerk_advent_marktarget";
-const DODGE_BUFF_ICON = "img:///UILibrary_PerkIcons.UIPerk_advent_marktarget";
-const MOBILITY_BUFF_ICON = "img:///UILibrary_PerkIcons.UIPerk_advent_marktarget";
-const SHIELD_HP_BUFF_ICON = "img:///UILibrary_PerkIcons.UIPerk_advent_marktarget";
-const WILL_BUFF_ICON = "img:///UILibrary_PerkIcons.UIPerk_advent_marktarget";
+const AIM_BUFF_ICON = "img:///UILibrary_Common.status_default";
+const CRIT_CHANCE_BUFF_ICON = "img:///UILibrary_Common.status_default";
+const DEFENSE_BUFF_ICON = "img:///UILibrary_Common.status_default";
+const DODGE_BUFF_ICON = "img:///UILibrary_Common.status_default";
+const MOBILITY_BUFF_ICON = "img:///UILibrary_Common.status_default";
+const SHIELD_HP_BUFF_ICON = "img:///UILibrary_Common.status_default";
+const WILL_BUFF_ICON = "img:///UILibrary_Common.status_default";
 
 var config int AimBuffSmallBonus;
 var config int AimBuffSmallNumTurns;

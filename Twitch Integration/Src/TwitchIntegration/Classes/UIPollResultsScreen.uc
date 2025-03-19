@@ -8,10 +8,6 @@ var localized string strDialogTitle;
 var localized string strTotalVotesPlural;
 var localized string strTotalVotesSingular;
 
-var localized string strSubtitle_Harbinger;
-var localized string strSubtitle_Providence;
-var localized string strSubtitle_Sabotage;
-
 // ----------------------------
 // Externally accessible state
 
@@ -23,7 +19,7 @@ var TwitchPollModel PollModel; // most recent data from Twitch
 // Private state
 var private UIBGBox m_bgBox;
 var private UIButton m_CloseButton;
-var private UIText m_PollTypeFlavorText;
+var private UIText m_WinningChoiceExplanationText;
 var private UIText m_TotalVotesText;
 var private UIX2PanelHeader	m_TitleHeader;
 
@@ -60,7 +56,7 @@ simulated function InitScreen(XComPlayerController InitController, UIMovie InitM
     SetAnchor(class'UIUtilities'.const.ANCHOR_MIDDLE_CENTER);
 
     m_bgBox = Spawn(class'UIBGBox', self);
-    m_bgBox.InitBG('', 0, 0, 700, 300, ColorState);
+    m_bgBox.InitBG('', 0, 0, 700, 200 + 32 * PollModel.Choices.Length, ColorState);
 
     m_CloseButton = Spawn(class'UIButton', self);
     m_CloseButton.InitButton('ClosePollResultsButton', strCloseButton, OnCloseResultsButtonPress);
@@ -70,9 +66,9 @@ simulated function InitScreen(XComPlayerController InitController, UIMovie InitM
 	m_TitleHeader.InitPanelHeader('', strDialogTitle, GroupTemplate.ResultsTitle);
 	m_TitleHeader.SetColor(PollColor);
 
-    m_PollTypeFlavorText = Spawn(class'UIText', self);
-    m_PollTypeFlavorText.InitText('', WinningEventTemplate.Explanation, /* InitTitleFont */ false, RealizeUI);
-    m_PollTypeFlavorText.SetColor(PollColor);
+    m_WinningChoiceExplanationText = Spawn(class'UIText', self);
+    m_WinningChoiceExplanationText.InitText('', WinningEventTemplate.Explanation, /* InitTitleFont */ false, RealizeUI);
+    m_WinningChoiceExplanationText.SetColor(PollColor);
 
     TotalVotes = GetTotalVotes();
 
@@ -102,6 +98,7 @@ private function OnCloseResultsButtonPress(UIButton Button) {
     local X2PollChoiceTemplate PollEventTemplate;
 
     `SCREENSTACK.Pop(self);
+    Movie.Pres.PlayUISound(eSUISound_MenuClose);
 
 	class'X2TwitchUtils'.static.GetWinningPollChoice(PollModel, WinningPollChoiceIndex);
 
@@ -129,15 +126,15 @@ private function RealizeUI() {
     m_TitleHeader.SetWidth(m_bgBox.Width - 20);
     m_TitleHeader.SetPosition(-m_TitleHeader.width / 2, BgTop + 10);
 
-    m_PollTypeFlavorText.AnchorCenter();
-    m_PollTypeFlavorText.SetPosition(-m_PollTypeFlavorText.Width / 2, m_TitleHeader.Y + 70);
+    m_WinningChoiceExplanationText.AnchorCenter();
+    m_WinningChoiceExplanationText.SetPosition(-m_WinningChoiceExplanationText.Width / 2, m_CloseButton.Y - 40);
 
     for (Index = 0; Index < m_PollChoices.Length; Index++) {
         m_PollChoices[Index].AnchorCenter();
         m_PollChoices[Index].SetChoiceWidth(m_bgBox.Width - 40);
 
         if (Index == 0) {
-            m_PollChoices[Index].SetPosition(-m_PollChoices[Index].width / 2, m_PollTypeFlavorText.Y + 35);
+            m_PollChoices[Index].SetPosition(-m_PollChoices[Index].width / 2, m_TitleHeader.Y + 80);
         }
         else {
             m_PollChoices[Index].SetPosition(-m_PollChoices[Index].width / 2, m_PollChoices[Index - 1].Y + 35);

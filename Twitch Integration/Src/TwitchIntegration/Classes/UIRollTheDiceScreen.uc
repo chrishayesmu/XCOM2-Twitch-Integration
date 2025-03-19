@@ -44,9 +44,7 @@ simulated function InitScreen(XComPlayerController InitController, UIMovie InitM
 
     super.InitScreen(InitController, InitMovie, InitName);
 
-    `TILOG("Before shuffle:" @ `SHOWVAR(WinningOptionIndex) @ `SHOWVAR(Options[WinningOptionIndex]));
     ShuffleOptions();
-    `TILOG("After shuffle:" @ `SHOWVAR(WinningOptionIndex) @ `SHOWVAR(Options[WinningOptionIndex]));
 
     TickCue = SoundCue(DynamicLoadObject("SoundUI.MenuScrollCue", class'SoundCue'));
 
@@ -103,8 +101,8 @@ event Tick(float DeltaTime) {
     m_DistanceUntilNextTickSound -= Abs(DeltaY);
     m_DistanceTraveledInCurrentState += DeltaY;
 
-    if (m_DistanceUntilNextTickSound < 0) {
-        m_DistanceUntilNextTickSound = LINE_HEIGHT_PX;
+    if (m_DistanceUntilNextTickSound <= 0) {
+        m_DistanceUntilNextTickSound = LINE_HEIGHT_PX + m_DistanceUntilNextTickSound;
         PlaySound(TickCue);
     }
 
@@ -125,6 +123,7 @@ private function OnCloseButtonPress(UIButton Button) {
     local X2TwitchEventActionTemplate ActionTemplate;
 
     `SCREENSTACK.Pop(self);
+    Movie.Pres.PlayUISound(eSUISound_MenuClose);
 
     UnitState = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(ViewerLogin);
     ActionTemplate = class'X2TwitchUtils'.static.GetTwitchEventActionTemplate(WinningOptionTemplateName);
