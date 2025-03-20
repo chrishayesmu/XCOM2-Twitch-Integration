@@ -30,6 +30,8 @@ var array<TwitchChatter> CurrentChatters;
 var array<JsonObject> EventQueue;
 var TwitchPollModel LatestPollModel;
 
+var array<string> RiggedRaffles; // list of logins which are guaranteed upcoming raffle positions
+
 var privatewrite TwitchUnitFlagManager TwitchFlagMgr;
 var privatewrite UIChatLog ChatLog;
 var privatewrite UIRaffleWinnersPanel RaffleWinnersPanel;
@@ -248,8 +250,22 @@ function int RaffleViewer(bool bRequireActiveChatter) {
     local bool bExcludeBroadcaster;
     local int AvailableIndex, Index, RaffledIndex;
     local int NumAvailableViewers;
+    local TwitchChatter Viewer;
 
     bExcludeBroadcaster = `TI_CFG(bExcludeBroadcaster);
+
+    for (Index = 0; Index < RiggedRaffles.Length; Index++) {
+        UpsertViewer(RiggedRaffles[Index], Viewer);
+        RiggedRaffles.Remove(Index, 1);
+
+        if (Viewer.OwnedObjectID > 0) {
+            // This viewer can't rig a raffle because they already own something
+            Index--;
+            continue;
+        }
+
+        return CurrentChatters.Find('Login', RiggedRaffles[Index]);
+    }
 
     for (Index = 0; Index < CurrentChatters.Length; Index++) {
         if (CurrentChatters[Index].OwnedObjectID > 0) {

@@ -148,6 +148,13 @@ exec function TwitchCleanStates(optional bool bForce = false) {
 }
 
 /// <summary>
+/// Clears all rigged raffle entries.
+/// </summary>
+exec function TwitchClearRiggedRaffles() {
+    `TISTATEMGR.RiggedRaffles.Length = 0;
+}
+
+/// <summary>
 /// Ends the currently running poll, if any.
 /// </summary>
 exec function TwitchEndPoll() {
@@ -279,6 +286,13 @@ exec function TwitchReassignUnitUnderMouse(optional string ViewerLogin) {
         class'X2EventListener_TwitchNames'.static.AssignOwnership(ViewerLogin, Unit.GetReference().ObjectID, , /* OverridePreviousOwnership */ true);
         class'Helpers'.static.OutputMsg("Reassigned owner of '" $ Unit.GetFullName() $ "' to viewer '" $ ViewerLogin $ "'");
     }
+}
+
+/// <summary>
+/// Rigs an upcoming raffle to guarantee the given viewer wins it.
+/// </summary>
+exec function TwitchRigRaffle(string ViewerLogin) {
+    `TISTATEMGR.RiggedRaffles.AddItem(ViewerLogin);
 }
 
 exec function TwitchUnassignViewer(string ViewerLogin)
