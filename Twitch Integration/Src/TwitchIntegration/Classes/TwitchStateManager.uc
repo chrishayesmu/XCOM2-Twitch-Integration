@@ -264,7 +264,7 @@ function int RaffleViewer(bool bRequireActiveChatter) {
             continue;
         }
 
-        return CurrentChatters.Find('Login', RiggedRaffles[Index]);
+        return CurrentChatters.Find('Login', Viewer.Login);
     }
 
     for (Index = 0; Index < CurrentChatters.Length; Index++) {
