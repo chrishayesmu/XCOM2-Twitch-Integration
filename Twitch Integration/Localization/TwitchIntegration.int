@@ -262,28 +262,36 @@ Explanation="1 enemy will be knocked unconscious."
 FriendlyName="Panic 1 Enemy"
 Explanation="1 enemy will panic immediately."
 
+[PollChoice_ImpairEnemies_SmallExplosion X2PollChoiceTemplate]
+FriendlyName="Explode 1 Enemy"
+Explanation="1 enemy will suffer a small explosion."
+
 [PollChoice_ImpairEnemies_Stun X2PollChoiceTemplate]
 FriendlyName="Stun 1 Enemy"
 Explanation="1 enemy will be stunned for 2 turns."
 
 [PollChoice_ImpairXCOM_CatchFire X2PollChoiceTemplate]
-FriendlyName="Ignite 1 XCOM Soldier"
+FriendlyName="Ignite 1 Ally"
 Explanation="1 soldier will catch fire for 2 turns."
 
 [PollChoice_ImpairXCOM_Disorient X2PollChoiceTemplate]
-FriendlyName="Disorient 1 XCOM Soldier"
+FriendlyName="Disorient 1 Ally"
 Explanation="1 soldier will be disoriented for 2 turns."
 
 [PollChoice_ImpairXCOM_KnockUnconscious X2PollChoiceTemplate]
-FriendlyName="Knock 1 XCOM Soldier Out"
+FriendlyName="Knock 1 Ally Out"
 Explanation="1 soldier will be knocked unconscious."
 
 [PollChoice_ImpairXCOM_Panic X2PollChoiceTemplate]
-FriendlyName="Panic 1 XCOM Soldier"
+FriendlyName="Panic 1 Ally"
 Explanation="1 soldier will panic immediately."
 
+[PollChoice_ImpairXCOM_SmallExplosion X2PollChoiceTemplate]
+FriendlyName="Explode 1 Ally"
+Explanation="1 ally will suffer a small explosion."
+
 [PollChoice_ImpairXCOM_Stun X2PollChoiceTemplate]
-FriendlyName="Stun 1 XCOM Soldier"
+FriendlyName="Stun 1 Ally"
 Explanation="1 soldier will be stunned for 2 turns."
 
 [PollChoice_GiveActionPoints_AllAllies X2PollChoiceTemplate]
