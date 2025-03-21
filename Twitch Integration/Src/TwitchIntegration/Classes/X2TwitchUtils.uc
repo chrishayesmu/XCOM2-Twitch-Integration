@@ -1,6 +1,6 @@
 class X2TwitchUtils extends Object;
 
-static function AddMessageToChatLog(string Sender, string Body, optional XComGameState_Unit FromUnit, optional string MsgId) {
+static function AddMessageToChatLog(string Sender, string Body, array<EmoteData> Emotes, optional XComGameState_Unit FromUnit, optional string MsgId) {
     local UIChatLog ChatLog;
 
     foreach `XCOMGAME.AllActors(class'UIChatLog', ChatLog) {
@@ -12,7 +12,7 @@ static function AddMessageToChatLog(string Sender, string Body, optional XComGam
         return;
     }
 
-    ChatLog.AddMessage(Sender, Body, FromUnit, MsgId);
+    ChatLog.AddMessage(Sender, Body, Emotes, FromUnit, MsgId);
 }
 
 /// <summary>

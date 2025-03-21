@@ -2,8 +2,6 @@ class UIUtilities_Twitch extends Object;
 
 const TwitchIcon_3D = "img:///TwitchIntegration_UI.Icon_Twitch";
 
-var protected array<string> arrTwitchEmotes;
-
 static function string RPad(coerce string S, string Padding, int Length) {
     while (Len(S) < Length) {
         S $= Padding;
@@ -20,19 +18,6 @@ static function string FormatDeadMessage(string S) {
     return "..." @ Locs(S) @ "...";
 }
 
-static function string GetEmoteImagePath(string Emote) {
-    local int Index;
-
-    Index = default.arrTwitchEmotes.Find(Emote);
-
-    // Need to check the strings match manually because apparently array.Find uses case-insensitive matches for strings
-    if (Index == INDEX_NONE || default.arrTwitchEmotes[Index] != Emote) {
-        return "";
-    }
-
-    return "img:///TwitchIntegration_UI.Emotes." $ default.arrTwitchEmotes[Index];
-}
-
 static function HideTwitchName(int ObjectID, optional UIWorldMessageMgr MessageMgr) {
     if (MessageMgr == none) {
         MessageMgr = `PRES.m_kWorldMessageManager;
@@ -43,24 +28,28 @@ static function HideTwitchName(int ObjectID, optional UIWorldMessageMgr MessageM
     MessageMgr.RemoveMessage(GetMsgID(ObjectID, true));
 }
 
-static function string InsertEmotes(string InString) {
-    local int TokenIndex;
+static function string InsertEmotes(string InString, array<EmoteData> Emotes) {
+    local int EmoteIndex;
     local string EmoteImagePath, OutString;
-    local array<String> arrTokens;
+    local string StartString, EndString;
 
-    arrTokens = SplitString(InString, " ", /* bCullEmpty */ false);
+    OutString = InString;
 
-    for (TokenIndex = 0; TokenIndex < arrTokens.Length; TokenIndex++) {
-        EmoteImagePath = GetEmoteImagePath(arrTokens[TokenIndex]);
+    // Iterate backwards so we replace starting from the end of the message,
+    // to avoid invalidating emote indices
+    for (EmoteIndex = Emotes.Length - 1; EmoteIndex >= 0; EmoteIndex--) {
+        EmoteImagePath = class'TwitchEmoteManager'.static.GetEmotePath(Emotes[EmoteIndex].EmoteCode);
 
+        // If we can't load the emote for some reason, keep its text
         if (EmoteImagePath == "") {
             continue;
         }
 
-        arrTokens[TokenIndex] = "<img src='" $ EmoteImagePath $ "' align='baseline' vspace='-5' width='22' height='22'>";
-    }
+        StartString = Left(OutString, Emotes[EmoteIndex].StartIndex);
+        EndString = Right(OutString, Len(OutString) - Emotes[EmoteIndex].EndIndex - 1);
 
-    JoinArray(arrTokens, OutString, " ");
+        OutString = StartString $ "<img src='" $ EmoteImagePath $ "' align='baseline' vspace='-5' width='22' height='22'>" $ EndString;
+    }
 
     return OutString;
 }
@@ -109,66 +98,4 @@ private static function string GetMsgId(int ObjectID, bool bPermanent) {
     }
 
     return MsgId;
-}
-
-defaultproperties
-{
-    arrTwitchEmotes.Add("anamiyWTF")        // From SilverMillsy
-    arrTwitchEmotes.Add("banzer2F")         // From Banzerschreck
-    arrTwitchEmotes.Add("banzer2Freeze")    // From Banzerschreck
-    arrTwitchEmotes.Add("banzer2Nino")      // From Banzerschreck
-    arrTwitchEmotes.Add("banzer2Wtf")       // From Banzerschreck
-    arrTwitchEmotes.Add("BnuuyKILL")        // From SerSnufflesTheStalwart (for StarbrightLass)
-    arrTwitchEmotes.Add("britar1Evil")      // From Britarnya
-    arrTwitchEmotes.Add("cprPickle")        // From MrCoppertop101
-    arrTwitchEmotes.Add("cptscr3Grem")      // From CptScrapples
-    arrTwitchEmotes.Add("eizackAngy")       // From Eizack
-    arrTwitchEmotes.Add("eizackHaha")       // From Eizack
-    arrTwitchEmotes.Add("eizackHeart")      // From Eizack
-    arrTwitchEmotes.Add("finoTB")           // For (not from) Incrodon
-    arrTwitchEmotes.Add("GSohno")           // From GravitasShortfall
-    arrTwitchEmotes.Add("GSohyes")          // From GravitasShortfall
-    arrTwitchEmotes.Add("TransgenderPride") // From Herensica
-
-    // Easter eggs
-    arrTwitchEmotes.Add("mjbBABY")
-
-    // Global emotes
-    arrTwitchEmotes.Add("LUL")
-
-    // MJB emotes
-    arrTwitchEmotes.Add("mjbAyy")
-    arrTwitchEmotes.Add("mjbBONK")
-    arrTwitchEmotes.Add("mjbBRAD")
-    arrTwitchEmotes.Add("mjbCHAMP")
-    arrTwitchEmotes.Add("mjbCRY")
-    arrTwitchEmotes.Add("mjbDank")
-    arrTwitchEmotes.Add("mjbEags")
-    arrTwitchEmotes.Add("mjbEZ")
-    arrTwitchEmotes.Add("mjbF")
-    arrTwitchEmotes.Add("mjbGASM")
-    arrTwitchEmotes.Add("mjbGOOD")
-    arrTwitchEmotes.Add("mjbHmm")
-    arrTwitchEmotes.Add("mjbHYPERJAKE")
-    arrTwitchEmotes.Add("mjbHYPERMARK")
-    arrTwitchEmotes.Add("mjbHYPERNYA")
-    arrTwitchEmotes.Add("mjbHYPERPUP")
-    arrTwitchEmotes.Add("mjbJAKE")
-    arrTwitchEmotes.Add("mjbJBONK")
-    arrTwitchEmotes.Add("mjbJEFF")
-    arrTwitchEmotes.Add("mjbKARL")
-    arrTwitchEmotes.Add("mjbLOVE")
-    arrTwitchEmotes.Add("mjbMARK")
-    arrTwitchEmotes.Add("mjbNice")
-    arrTwitchEmotes.Add("mjbNya")
-    arrTwitchEmotes.Add("mjbOak")
-    arrTwitchEmotes.Add("mjbPOWER")
-    arrTwitchEmotes.Add("mjbPUP")
-    arrTwitchEmotes.Add("mjbRANGER")
-    arrTwitchEmotes.Add("mjbRIG")
-    arrTwitchEmotes.Add("mjbS")
-    arrTwitchEmotes.Add("mjbSMILE")
-    arrTwitchEmotes.Add("mjbSTAB")
-    arrTwitchEmotes.Add("mjbYARE")
-    arrTwitchEmotes.Add("mjbYell")
 }

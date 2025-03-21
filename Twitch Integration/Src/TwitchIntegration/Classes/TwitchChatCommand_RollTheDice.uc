@@ -19,7 +19,7 @@ var config bool BalanceOptions;
 var config array<RtdOption> PositiveOptions;
 var config array<RtdOption> NegativeOptions;
 
-function bool Invoke(string CommandAlias, string Body, string MessageId, TwitchChatter Viewer) {
+function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, string MessageId, TwitchChatter Viewer) {
     local XComGameState NewGameState;
     local XComGameState_TwitchRollTheDice RtdGameState;
     local XComGameState_Unit UnitState;
@@ -80,7 +80,7 @@ function bool Invoke(string CommandAlias, string Body, string MessageId, TwitchC
     }
 
     NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Roll the Dice");
-	RtdGameState = XComGameState_TwitchRollTheDice(CreateChatCommandGameState(NewGameState, Body, MessageId, Viewer));
+	RtdGameState = XComGameState_TwitchRollTheDice(CreateChatCommandGameState(NewGameState, Body, Emotes, MessageId, Viewer));
     RtdGameState.PossibleActions = OptionFriendlyNames;
     RtdGameState.SelectedActionIndex = SelectWeightedChoice(AllOptions);
     RtdGameState.SelectedActionTemplateName = AllOptions[RtdGameState.SelectedActionIndex].ActionName;

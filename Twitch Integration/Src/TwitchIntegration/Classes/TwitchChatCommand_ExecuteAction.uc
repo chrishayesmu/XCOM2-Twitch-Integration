@@ -31,7 +31,7 @@ function Initialize(TwitchStateManager StateMgr) {
     CommandAliases = Aliases;
 }
 
-function bool Invoke(string CommandAlias, string Body, string MessageId, TwitchChatter Viewer) {
+function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, string MessageId, TwitchChatter Viewer) {
     local string Alias;
     local TCH_ActionTuple Tuple;
     local X2TwitchEventActionTemplate Action;

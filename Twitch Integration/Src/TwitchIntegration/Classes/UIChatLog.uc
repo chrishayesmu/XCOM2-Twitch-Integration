@@ -14,6 +14,7 @@ var config(TwitchUI) float Opacity;
 struct ChatMessage {
     var string Sender;
     var string Body;
+    var array<EmoteData> Emotes;
     var string MsgId;
     var XComGameState_Unit Unit;
 
@@ -66,11 +67,12 @@ function UIChatLog InitChatLog() {
     return self;
 }
 
-function AddMessage(string Sender, string Body, optional XComGameState_Unit Unit, optional string MsgId) {
+function AddMessage(string Sender, string Body, array<EmoteData> Emotes, optional XComGameState_Unit Unit, optional string MsgId) {
     local ChatMessage Message;
 
     // Do formatting on display, not storage, in case user config changes at runtime
     Message.Body = Body;
+    Message.Emotes = Emotes;
     Message.Sender = Sender;
     Message.Unit = Unit;
     Message.MsgId = MsgId;
@@ -137,7 +139,7 @@ private function string FormatMessageBody(ChatMessage Message) {
     local string Body;
 
     Body = class'TextUtilities_Twitch'.static.SanitizeText(Message.Body);
-    Body = class'UIUtilities_Twitch'.static.InsertEmotes(Body);
+    Body = class'UIUtilities_Twitch'.static.InsertEmotes(Body, Message.Emotes);
 
     if (Message.Unit == none) {
         return Body;

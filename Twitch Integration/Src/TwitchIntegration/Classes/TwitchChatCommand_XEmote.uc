@@ -1,19 +1,21 @@
 class TwitchChatCommand_XEmote extends TwitchChatCommand
     dependson(TwitchStateManager);
 
-function bool Invoke(string CommandAlias, string Body, string MessageId, TwitchChatter Viewer) {
+function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, string MessageId, TwitchChatter Viewer) {
     local string EmoteImagePath;
     local XComGameState_Unit UnitState;
 
+    RegisterEmotes(Emotes);
+
     // Ignore any command that isn't just an emote or an empty string (to clear emotes)
-    if (InStr(Body, " ") != INDEX_NONE) {
+    if (InStr(Body, " ") != INDEX_NONE || Emotes.Length > 1) {
         return false;
     }
 
-    EmoteImagePath = class'UIUtilities_Twitch'.static.GetEmoteImagePath(Body);
+    EmoteImagePath = Emotes.Length == 0 ? "" : class'TwitchEmoteManager'.static.GetEmotePath(Emotes[0].EmoteCode);
 
-    // Allow an empty command body to hide the emote
-    if (EmoteImagePath == "" && Body != "") {
+    // If path not found and there was an attempt to set emote, abort
+    if (EmoteImagePath == "" && Emotes.Length > 0) {
         return false;
     }
 

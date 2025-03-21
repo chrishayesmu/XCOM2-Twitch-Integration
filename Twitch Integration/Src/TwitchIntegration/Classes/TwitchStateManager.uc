@@ -65,6 +65,8 @@ function Initialize() {
 
 	`TILOG("Initializing state manager");
 
+    class'TwitchEmoteManager'.static.Initialize();
+
     // Check if command tracking already exists, e.g. because we're loading a mid-mission save
     if (`XCOMHISTORY.GetSingleGameStateObjectForClass(class'XComGameState_TwitchChatCommandTracking', /* AllowNULL */ true) == none) {
         bPendingCreateOfChatCommandHistory = true;

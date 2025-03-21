@@ -4,6 +4,7 @@ class TwitchChatCommand_XSay extends TwitchChatCommand
 struct TNarrativeQueueItem {
     var XComGameState_TwitchXSay GameState;
     var XComNarrativeMoment NarrativeMoment;
+    var array<EmoteData> Emotes;
     var bool bUnitWasDead;
 };
 
@@ -114,7 +115,7 @@ function Initialize(TwitchStateManager StateMgr) {
     `XWORLDINFO.MyWatchVariableMgr.RegisterWatchVariable(`PRESBASE.m_kNarrativeUIMgr, 'm_arrConversations', self, EnqueueXSayToCommLinkIfPossible);
 }
 
-function bool Invoke(string CommandAlias, string Body, string MessageId, TwitchChatter Viewer) {
+function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, string MessageId, TwitchChatter Viewer) {
     local bool bIsTacticalGame, bShowInCommLink;
     local TNarrativeQueueItem NarrativeItem;
     local TViewerXSayOverride ViewerOverride;
@@ -122,6 +123,8 @@ function bool Invoke(string CommandAlias, string Body, string MessageId, TwitchC
 	local XComGameState NewGameState;
 	local XComGameState_TwitchXSay XSayGameState;
 	local XComGameState_Unit Unit;
+
+    RegisterEmotes(Emotes);
 
     if (!CanViewerXSay(Viewer.Login, Unit, ViewerOverride)) {
         `TILOG("Viewer is not able to xsay right now; skipping");
@@ -132,7 +135,7 @@ function bool Invoke(string CommandAlias, string Body, string MessageId, TwitchC
     bShowInCommLink = true; // TODO: hook up to config
 
     NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch XSay");
-	XSayGameState = XComGameState_TwitchXSay(CreateChatCommandGameState(NewGameState, Body, MessageId, Viewer));
+	XSayGameState = XComGameState_TwitchXSay(CreateChatCommandGameState(NewGameState, Body, Emotes, MessageId, Viewer));
 
     // Need to include a new game state for the unit or else the visualizer may think it's still
     // visualizing an old ability and fail to do the flyover
@@ -148,7 +151,7 @@ function bool Invoke(string CommandAlias, string Body, string MessageId, TwitchC
     `GAMERULES.SubmitGameState(NewGameState);
 
     // Submit to chat log immediately to avoid delays from waiting on visualization
-    class'X2TwitchUtils'.static.AddMessageToChatLog(XSayGameState.SenderLogin, XSayGameState.MessageBody, Unit, XSayGameState.TwitchMessageId);
+    class'X2TwitchUtils'.static.AddMessageToChatLog(XSayGameState.SenderLogin, XSayGameState.MessageBody, XSayGameState.Emotes, Unit, XSayGameState.TwitchMessageId);
 
     // TODO: turn off comm link if not in LOS, or make it not show unit type, to avoid spoilers
     if (bShowInCommLink) {
@@ -407,7 +410,7 @@ private function string GetMessageBody(TNarrativeQueueItem NarrativeItem) {
     local string Body;
 
     Body = class'TextUtilities_Twitch'.static.SanitizeText(NarrativeItem.GameState.MessageBody);
-    Body = class'UIUtilities_Twitch'.static.InsertEmotes(Body);
+    Body = class'UIUtilities_Twitch'.static.InsertEmotes(Body, NarrativeItem.GameState.Emotes);
 
     if (NarrativeItem.bUnitWasDead && `TI_CFG(bFormatDeadMessages)) {
         Body = class'UIUtilities_Twitch'.static.FormatDeadMessage(Body);

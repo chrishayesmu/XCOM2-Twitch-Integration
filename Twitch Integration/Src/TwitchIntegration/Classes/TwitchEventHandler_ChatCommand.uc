@@ -3,7 +3,7 @@
 /// to instances of the TwitchChatCommand class.
 /// </summary>
 class TwitchEventHandler_ChatCommand extends TwitchEventHandler
-    dependson(TwitchStateManager)
+    dependson(TwitchChatCommand, TwitchStateManager)
     config(TwitchChatCommands);
 
 var config array<string> EnabledCommands;
@@ -31,6 +31,7 @@ function Initialize(TwitchStateManager StateMgr) {
 }
 
 function Handle(TwitchStateManager StateMgr, JsonObject Data) {
+    local array<EmoteData> Emotes;
     local XComGameState NewGameState;
     local XComGameState_TwitchChatCommandTracking CommandTrackingState;
     local TwitchChatCommand CommandHandler;
@@ -48,6 +49,7 @@ function Handle(TwitchStateManager StateMgr, JsonObject Data) {
     Body = Data.GetStringValue("body");
     MessageId = Data.GetStringValue("message_id");
     UserLogin = Data.GetStringValue("user_login");
+    Emotes = ParseEmoteData(Data);
 
     `TILOG("Attempting to handle chat command " $ Command);
 
@@ -64,7 +66,7 @@ function Handle(TwitchStateManager StateMgr, JsonObject Data) {
         StateMgr.UpsertViewer(UserLogin, Viewer);
 
         `TILOG("Handling command with " $ CommandHandler);
-        if (CommandHandler.Invoke(Command, Body, MessageId, Viewer) && CommandHandler.ShouldTrackUsage()) {
+        if (CommandHandler.Invoke(Command, Body, Emotes, MessageId, Viewer) && CommandHandler.ShouldTrackUsage()) {
             // Record the command usage
             NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Tracking Chat Command " $ Command);
             CommandTrackingState = XComGameState_TwitchChatCommandTracking(NewGameState.ModifyStateObject(class'XComGameState_TwitchChatCommandTracking', CommandTrackingState.ObjectID));
@@ -77,6 +79,25 @@ function Handle(TwitchStateManager StateMgr, JsonObject Data) {
     }
 
     `TILOG("Did not find any applicable command handler");
+}
+
+private function array<EmoteData> ParseEmoteData(JsonObject Data) {
+    local array<EmoteData> Emotes;
+    local EmoteData Emote;
+    local JsonObject EmoteObj;
+    local int Index;
+
+    EmoteObj = Data.GetObject("emote_data");
+
+    for (Index = 0; Index < EmoteObj.ObjectArray.Length; Index++) {
+        Emote.EmoteCode = EmoteObj.ObjectArray[Index].GetStringValue("emote_code");
+        Emote.StartIndex = EmoteObj.ObjectArray[Index].GetIntValue("start_index");
+        Emote.EndIndex = EmoteObj.ObjectArray[Index].GetIntValue("end_index");
+
+        Emotes.AddItem(Emote);
+    }
+
+    return Emotes;
 }
 
 defaultproperties
