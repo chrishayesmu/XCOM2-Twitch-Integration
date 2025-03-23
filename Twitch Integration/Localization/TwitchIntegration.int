@@ -104,8 +104,6 @@ strAssignUnitNamesLabel="Raffle Non-Soldier Units As Viewers"
 strAssignUnitNamesTooltip="If checked, non-soldiers on missions (enemies, civilians, VIPs, etc) will automatically be raffled as viewers from your chat."
 strAssignChosenNamesLabel="Raffle the Chosen Assassin/Hunter/Warlock"
 strAssignChosenNamesTooltip="If checked, the Chosen will also be raffled automatically. Otherwise they will retain their automatically generated names."
-strRequireActiveChatterForChosenLabel="Draw Chosen From Active Chatters"
-strRequireActiveChatterForChosenTooltip="If checked, only viewers who have chatted at least once since the start of the mission are eligible to raffle as the Chosen."
 strExcludeBroadcasterLabel="Exclude Broadcaster"
 strExcludeBroadcasterTooltip="If checked, the broadcaster is not eligible to be raffled as a unit. They can still be manually given a unit."
 

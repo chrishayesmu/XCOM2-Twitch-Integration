@@ -38,7 +38,6 @@ var config int  ChannelPointsPerVote;
 
 var config bool bAssignUnitNames;
 var config bool bAssignChosenNames;
-var config bool bRequireActiveChatterForChosen;
 var config bool bExcludeBroadcaster;
 
 // #endregion

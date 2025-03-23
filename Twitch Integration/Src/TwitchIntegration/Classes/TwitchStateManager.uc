@@ -248,7 +248,7 @@ function LoadViewerList() {
 /// ownership first, or you may get the same viewer repeatedly.
 /// </summary>
 /// <returns>The index of the viewer in the CurrentChatters array, or INDEX_NONE if no viewers are available.</returns>
-function int RaffleViewer(bool bRequireActiveChatter) {
+function int RaffleViewer() {
     local bool bExcludeBroadcaster;
     local int AvailableIndex, Index, RaffledIndex;
     local int NumAvailableViewers;
@@ -278,11 +278,6 @@ function int RaffleViewer(bool bRequireActiveChatter) {
             continue;
         }
 
-        // TODO: not currently enforceable; app isn't tracking active chatters
-        // if (bRequireActiveChatter && !CurrentChatters[Index].bHasSentChat) {
-        //     continue;
-        // }
-
         NumAvailableViewers++;
     }
 
@@ -303,11 +298,6 @@ function int RaffleViewer(bool bRequireActiveChatter) {
         if (bExcludeBroadcaster && CurrentChatters[Index].IsBroadcaster) {
             continue;
         }
-
-        // TODO: not currently enforceable; see above
-        // if (bRequireActiveChatter && !CurrentChatters[Index].bHasSentChat) {
-        //     continue;
-        // }
 
         if (AvailableIndex == RaffledIndex) {
             break;

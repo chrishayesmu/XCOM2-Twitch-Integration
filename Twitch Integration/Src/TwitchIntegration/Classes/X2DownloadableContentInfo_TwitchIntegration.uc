@@ -316,33 +316,4 @@ exec function TwitchStartPoll(name PollGroupTemplateName) {
     `TISTATEMGR.StartPoll(Template);
 }
 
-exec function TwitchListPollChoiceTemplates() {
-    local X2DataTemplate Template;
-    local X2PollChoiceTemplate PollChoiceTemplate;
-
-    class'Helpers'.static.OutputMsg("X2PollChoiceTemplates:");
-    class'Helpers'.static.OutputMsg("-----------------------------------------");
-
-    foreach class'X2PollChoiceTemplateManager'.static.GetPollChoiceTemplateManager().IterateTemplates(Template) {
-        PollChoiceTemplate = X2PollChoiceTemplate(Template);
-
-        class'Helpers'.static.OutputMsg(PollChoiceTemplate.DataName $ ": '" $ PollChoiceTemplate.FriendlyName $ "' has " $ PollChoiceTemplate.ActionNames.Length $ " actions");
-    }
-}
-
-
-exec function TwitchListPollGroupTemplates() {
-    local X2DataTemplate Template;
-    local X2PollGroupTemplate PollGroupTemplate;
-
-    class'Helpers'.static.OutputMsg("X2PollGroupTemplates:");
-    class'Helpers'.static.OutputMsg("-----------------------------------------");
-
-    foreach class'X2PollGroupTemplateManager'.static.GetPollGroupTemplateManager().IterateTemplates(Template) {
-        PollGroupTemplate = X2PollGroupTemplate(Template);
-
-        class'Helpers'.static.OutputMsg(PollGroupTemplate.DataName $ ": '" $ PollGroupTemplate.PollTitle $ "' has " $ PollGroupTemplate.Choices.Length $ " choices");
-    }
-}
-
 // #endregion

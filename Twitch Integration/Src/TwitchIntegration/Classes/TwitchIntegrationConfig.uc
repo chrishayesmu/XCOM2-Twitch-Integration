@@ -74,8 +74,6 @@ var localized string strAssignUnitNamesLabel;
 var localized string strAssignUnitNamesTooltip;
 var localized string strAssignChosenNamesLabel;
 var localized string strAssignChosenNamesTooltip;
-var localized string strRequireActiveChatterForChosenLabel;
-var localized string strRequireActiveChatterForChosenTooltip;
 var localized string strExcludeBroadcasterLabel;
 var localized string strExcludeBroadcasterTooltip;
 
@@ -119,7 +117,6 @@ var config int  ChannelPointsPerVote;
 
 var config bool bAssignUnitNames;
 var config bool bAssignChosenNames;
-var config bool bRequireActiveChatterForChosen;
 var config bool bExcludeBroadcaster;
 
 // #endregion
@@ -177,30 +174,12 @@ function ClientModCallback(MCM_API_Instance ConfigAPI, int GameMode) {
 
     Group = Page.AddGroup('TwitchRaffleSettings', strRaffleSettingsGroupTitle);
     Setting = Group.AddCheckbox(nameof(bAssignUnitNames), strAssignUnitNamesLabel, strAssignUnitNamesTooltip, bAssignUnitNames, AssignUnitNamesSaveHandler, DisableGroupWhenFalseHandler);
-    Group.AddCheckbox(nameof(bAssignChosenNames), strAssignChosenNamesLabel, strAssignChosenNamesTooltip, bAssignChosenNames, AssignChosenNamesSaveHandler, DisableEnableChosenOptionsHandler);
-    Group.AddCheckbox(nameof(bRequireActiveChatterForChosen), strRequireActiveChatterForChosenLabel, strRequireActiveChatterForChosenTooltip, bRequireActiveChatterForChosen, RequireActiveChatterForChosenSaveHandler);
+    Group.AddCheckbox(nameof(bAssignChosenNames), strAssignChosenNamesLabel, strAssignChosenNamesTooltip, bAssignChosenNames, AssignChosenNamesSaveHandler);
     Group.AddCheckbox(nameof(bExcludeBroadcaster), strExcludeBroadcasterLabel, strExcludeBroadcasterTooltip, bExcludeBroadcaster, ExcludeBroadcasterSaveHandler);
 
     DisableGroupWhenFalseHandler(Setting, bAssignUnitNames);
 
     Page.ShowSettings();
-}
-
-private function DisableEnableChosenOptionsHandler(MCM_API_Setting Setting, bool Value) {
-    local int Index, NumSettings;
-    local MCM_API_Setting CurrentSetting;
-    local MCM_API_SettingsGroup ParentGroup;
-
-    ParentGroup = Setting.GetParentGroup();
-    NumSettings = ParentGroup.GetNumberOfSettings();
-
-    for (Index = 0; Index < NumSettings; Index++) {
-        CurrentSetting = ParentGroup.GetSettingByIndex(Index);
-
-        if (CurrentSetting.GetName() == nameof(bRequireActiveChatterForChosen)) {
-            CurrentSetting.SetEditable(Value);
-        }
-    }
 }
 
 private function DisableGroupWhenFalseHandler(MCM_API_Setting Setting, bool Value) {
@@ -321,7 +300,6 @@ private function SaveChatLogFriendlyNameFormat(MCM_API_Setting _Setting, string 
 `MCM_API_BasicCheckboxSaveHandler(EnablePollsSaveHandler, bEnablePolls);
 `MCM_API_BasicCheckboxSaveHandler(ExcludeBroadcasterSaveHandler, bExcludeBroadcaster);
 `MCM_API_BasicCheckboxSaveHandler(FormatDeadMessagesSaveHandler, bFormatDeadMessages);
-`MCM_API_BasicCheckboxSaveHandler(RequireActiveChatterForChosenSaveHandler, bRequireActiveChatterForChosen);
 `MCM_API_BasicCheckboxSaveHandler(ShowChatLogSaveHandler, bShowChatLog);
 `MCM_API_BasicSliderSaveHandler(ChanceToStartPollSaveHandler, ChanceToStartPoll);
 `MCM_API_BasicSliderSaveHandler(ChannelPointsPerVoteSaveHandler, ChannelPointsPerVote);
