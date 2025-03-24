@@ -144,7 +144,6 @@ private function HandleSquadSelectScreen(UISquadSelect Screen, out array<TUnitLa
 
     List = Screen.m_kSlotList;
 
-    `TILOG("In HandleSquadSelectScreen; list has " $ List.GetItemCount() $ " items");
     `TILOG("Using position variable NamePosition_SquadSelectScreen", bLogPositionVariables);
 
     for (Index = 0; Index < List.GetItemCount(); Index++) {

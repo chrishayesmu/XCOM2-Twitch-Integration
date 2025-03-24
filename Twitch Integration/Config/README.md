@@ -22,7 +22,7 @@ Some of this can be configured in-game using ModConfigMenu, but it will always b
 
 There's only one localization file, located at `Localization/TwitchIntegration.int`. You can add others for your preferred language if you like.
 
-Within that file, there's some text you likely won't touch at the top, such as strings for the static parts of the UI. The useful parts for you will be adding text for any new poll events you define (sections starting with `PollEvent_`). Make sure every poll event has an entry in this file, or when they're selected in-game, your poll is just going to have a big blank box in it!
+Within that file, there's some text you likely won't touch at the top, such as strings for the static parts of the UI. The useful parts for you will be adding text for any new poll events you define (sections starting with `PollChoice_` or `TwitchPollGroup_`). Make sure every poll group and choice have an entry in this file, or they won't work in-game.
 
 Note that outcomes of the "roll the dice" chat command don't use the localization file. Their strings are hardcoded in `XComTwitchChatCommands.ini`.
 
@@ -36,7 +36,7 @@ Would your community enjoy watching you struggle against a Sectopod on turn 2 th
 
 This mod adds a number of console commands, all of which start with the word "Twitch" so you can easily find them. Here are a few of the more key commands:
 
-* `TwitchListRaffledViewers` - If you're raffling units, this can help you quickly see which viewers have won the raffle. Note that to see the output you need to use the full dev console (accessed with tilde, not backslash).
+* `TwitchListRaffledViewers` - If you're raffling units, this can help you quickly see which viewers have won the raffle. Note that to see the output you need to use the full dev console (accessed with tilde, not backslash). This actually outputs all owned units and not just raffled ones.
 * `TwitchRaffleUnitUnderMouse` - This re-raffles the unit closest to your mouse cursor (but will not raffle XCOM soldiers). You can use this if someone with an offensive username has won the raffle.
 * `TwitchReassignUnitUnderMouse <name>` - Similar to the previous command, but you get to choose which viewer owns the unit. Remember that any viewer can only own one object at a time.
 * `TwitchStartPoll <PollGroup>` - Starts a viewer poll. You can specify the poll group (see `XComTwitchPolls.ini` for options) but the actual options will be chosen randomly, per the normal poll logic.
