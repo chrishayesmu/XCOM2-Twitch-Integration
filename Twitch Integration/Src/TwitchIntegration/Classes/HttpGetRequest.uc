@@ -138,8 +138,15 @@ event Closed()
 
     bRequestInProgress = false;
 
-    if (OnRequestComplete != none) {
-    	OnRequestComplete(self, Response);
+    if (Response.ResponseCode >= 200 && Response.ResponseCode < 300) {
+        if (OnRequestComplete != none) {
+            OnRequestComplete(self, Response);
+        }
+    }
+    else {
+        if (OnRequestError != none) {
+            OnRequestError(self, Response);
+        }
     }
 }
 
@@ -194,14 +201,6 @@ event ReceivedText(string Text)
             if (Response.Headers[Index - 1].Key == "Transfer-Encoding" && Response.Headers[Index - 1].Value == "chunked") {
                 bIsChunkTransferEncoding = true;
             }
-        }
-
-        if (Response.ResponseCode < 200 || Response.ResponseCode >= 300) {
-            if (OnRequestError != none) {
-                OnRequestError(self, Response);
-            }
-
-            return;
         }
 
         `TILOG("bIsChunkTransferEncoding: " $ bIsChunkTransferEncoding, LogRequest);
