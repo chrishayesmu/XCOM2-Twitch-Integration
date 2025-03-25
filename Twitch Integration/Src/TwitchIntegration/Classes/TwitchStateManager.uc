@@ -75,6 +75,7 @@ function Initialize() {
     // Set up event handlers
     CreatePollEventHandler = new class'TwitchEventHandler_CreatePoll';
 
+    EventHandlers.AddItem(new class'TwitchEventHandler_ChannelPointRedeem');
     EventHandlers.AddItem(new class'TwitchEventHandler_ChatCommand');
     EventHandlers.AddItem(new class'TwitchEventHandler_ChatDeleted');
     EventHandlers.AddItem(CreatePollEventHandler);

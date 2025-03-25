@@ -283,6 +283,20 @@ exec function TwitchReassignUnitUnderMouse(optional string ViewerLogin) {
 }
 
 /// <summary>
+/// Simulates a channel point reward being redeemed, using the reward's ID.
+/// </summary>
+exec function TwitchRedeemChannelPointRewardById(string RewardId, string ViewerLogin) {
+    EnqueueChannelPointRewardEvent(RewardId, "", ViewerLogin, "");
+}
+
+/// <summary>
+/// Simulates a channel point reward being redeemed, using the reward's title.
+/// </summary>
+exec function TwitchRedeemChannelPointRewardByTitle(string RewardTitle, string ViewerLogin) {
+    EnqueueChannelPointRewardEvent("", RewardTitle, ViewerLogin, "");
+}
+
+/// <summary>
 /// Rigs an upcoming raffle to guarantee the given viewer wins it.
 /// </summary>
 exec function TwitchRigRaffle(string ViewerLogin) {
@@ -314,6 +328,20 @@ exec function TwitchStartPoll(name PollGroupTemplateName) {
     Template = class'X2PollGroupTemplateManager'.static.GetPollGroupTemplateManager().GetPollGroupTemplate(PollGroupTemplateName);
 
     `TISTATEMGR.StartPoll(Template);
+}
+
+private function EnqueueChannelPointRewardEvent(string RewardId, string RewardTitle, string ViewerLogin, string ViewerInput) {
+    local JsonObject JsonObj;
+
+    JsonObj = new class'JsonObject';
+
+    JsonObj.SetStringValue("$type", "channelPointRedeem");
+    JsonObj.SetStringValue("reward_id", RewardId);
+    JsonObj.SetStringValue("reward_title", RewardTitle);
+    JsonObj.SetStringValue("user_login", ViewerLogin);
+    JsonObj.SetStringValue("user_input", ViewerInput);
+
+    `TISTATEMGR.EventQueue.AddItem(JsonObj);
 }
 
 // #endregion
