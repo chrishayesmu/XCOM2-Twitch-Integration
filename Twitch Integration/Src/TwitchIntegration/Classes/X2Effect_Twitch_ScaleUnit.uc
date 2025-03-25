@@ -10,7 +10,6 @@ static function X2Effect_Twitch_ScaleUnit CreateScaleUnitEffect(float ScaleChang
 	ScaleUnitEffect.EffectName = 'ScaleUnitMesh';
     ScaleUnitEffect.ChangeInScale = ScaleChange;
 	ScaleUnitEffect.BuildPersistentEffect(1,, false,,eGameRule_PlayerTurnBegin);
-	ScaleUnitEffect.SetDisplayInfo(ePerkBuff_Bonus, "Scale Changed", "TODO", "img:///UILibrary_PerkIcons.UIPerk_absorption_fields");
 	ScaleUnitEffect.VisualizationFn = ScaleUnitVisualization;
 	ScaleUnitEffect.bRemoveWhenTargetDies = false;
 	ScaleUnitEffect.DuplicateResponse = eDupe_Ignore;
