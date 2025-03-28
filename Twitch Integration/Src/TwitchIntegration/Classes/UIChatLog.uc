@@ -18,7 +18,6 @@ struct ChatMessage {
     var string MsgId;
     var XComGameState_Unit Unit;
 
-    var bool bUnitWasDead; // Whether the unit was dead when this message was sent
     var ETeam UnitTeam;
 };
 
@@ -60,7 +59,7 @@ function UIChatLog InitChatLog() {
 
     Expand();
 
-    if (!`TI_CFG(bShowChatLog)) {
+    if (!`TI_CFG(bShowChatLog) || !`TI_CFG(bEnableXSay)) {
         Hide();
     }
 
@@ -78,7 +77,6 @@ function AddMessage(string Sender, string Body, array<EmoteData> Emotes, optiona
     Message.MsgId = MsgId;
 
     if (Unit != none) {
-        Message.bUnitWasDead = Unit.IsDead();
         Message.UnitTeam = Unit.GetTeam();
     }
 
@@ -141,14 +139,6 @@ private function string FormatMessageBody(ChatMessage Message) {
     Body = class'TextUtilities_Twitch'.static.SanitizeText(Message.Body);
     Body = class'UIUtilities_Twitch'.static.InsertEmotes(Body, Message.Emotes);
 
-    if (Message.Unit == none) {
-        return Body;
-    }
-
-    if (Message.bUnitWasDead && `TI_CFG(bFormatDeadMessages)) {
-        Body = class'UIUtilities_Twitch'.static.FormatDeadMessage(Body);
-    }
-
     return Body;
 }
 
@@ -157,8 +147,6 @@ private function string FormatSenderName(ChatMessage Message) {
     local string SenderColor, Sender;
     local eTwitchConfig_ChatLogColorScheme ColorScheme;
     local eTwitchConfig_ChatLogNameFormat NameFormat;
-    local TwitchChatter Viewer;
-    local XComGameState_TwitchObjectOwnership Ownership;
 
     Sender = Message.Sender;
 
@@ -168,7 +156,6 @@ private function string FormatSenderName(ChatMessage Message) {
 
     bIsFriendlyUnit = Message.UnitTeam == eTeam_XCom;
     NameFormat = bIsFriendlyUnit ? `TI_CFG(ChatLogFriendlyNameFormat) : `TI_CFG(ChatLogEnemyNameFormat);
-    Ownership = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Message.Unit.GetReference().ObjectID);
 
     // Only use full name for friendly units, or visible enemy units
     if (NameFormat == ETC_UnitNameOnly && (bIsFriendlyUnit || class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(Message.Unit.ObjectID))) {
@@ -177,14 +164,7 @@ private function string FormatSenderName(ChatMessage Message) {
 
     ColorScheme = `TI_CFG(ChatLogColorScheme);
 
-    if (ColorScheme == ETC_TwitchColors) {
-        if (`TISTATEMGR.GetViewer(Ownership.TwitchLogin, Viewer) != INDEX_NONE) {
-            // TODO: don't have viewer chat colors right now
-            SenderColor = class'UIUtilities_Colors'.const.NORMAL_HTML_COLOR;
-            // SenderColor = Mid(Viewer.ChatColor, 1); // strip leading # from color
-        }
-    }
-    else if (ColorScheme == ETC_TeamColors) {
+    if (ColorScheme == ETC_TeamColors) {
         switch (Message.UnitTeam) {
             case eTeam_Alien:
                 SenderColor = class'UIUtilities_Colors'.const.BAD_HTML_COLOR;
@@ -196,11 +176,6 @@ private function string FormatSenderName(ChatMessage Message) {
                 SenderColor = class'UIUtilities_Colors'.const.NORMAL_HTML_COLOR;
                 break;
         }
-    }
-
-    // bFormatDeadMessages takes priority over other color options
-    if (`TI_CFG(bFormatDeadMessages) && Message.bUnitWasDead) {
-        SenderColor = class'UIUtilities_Colors'.const.DISABLED_HTML_COLOR;
     }
 
     if (SenderColor != "") {
@@ -238,7 +213,7 @@ private function UpdateUI() {
     local string FormattedMessage;
     local ChatMessage Message;
 
-    if (!`TI_CFG(bShowChatLog)) {
+    if (!`TI_CFG(bShowChatLog) || !`TI_CFG(bEnableXSay)) {
         Hide();
         return;
     }

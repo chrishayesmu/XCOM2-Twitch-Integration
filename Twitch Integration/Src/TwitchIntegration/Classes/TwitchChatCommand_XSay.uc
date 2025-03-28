@@ -5,7 +5,6 @@ struct TNarrativeQueueItem {
     var XComGameState_TwitchXSay GameState;
     var XComNarrativeMoment NarrativeMoment;
     var array<EmoteData> Emotes;
-    var bool bUnitWasDead;
 };
 
 struct TUnitContentConfig {
@@ -132,7 +131,7 @@ function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, 
     }
 
     bIsTacticalGame = `TI_IS_TAC_GAME;
-    bShowInCommLink = true; // TODO: hook up to config
+    bShowInCommLink = `TI_CFG(bShowXSayInCommLink);
 
     NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch XSay");
 	XSayGameState = XComGameState_TwitchXSay(CreateChatCommandGameState(NewGameState, Body, Emotes, MessageId, Viewer));
@@ -156,9 +155,7 @@ function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, 
     // TODO: turn off comm link if not in LOS, or make it not show unit type, to avoid spoilers
     if (bShowInCommLink) {
         // Don't record a unit was dead if we're on the strat layer, unless they're a dead soldier
-        // TODO: this won't work when Chosen are permanently killed
         NarrativeItem.GameState = XSayGameState;
-        NarrativeItem.bUnitWasDead = Unit != none && Unit.IsDead() && (bIsTacticalGame || Unit.IsSoldier());
 
         EnqueueCommLink(NarrativeItem);
     }
@@ -310,6 +307,10 @@ private function string TruncateMessage(string Message, int MaxLength) {
 private function bool CanViewerXSay(string ViewerLogin, out XComGameState_Unit UnitState, out TViewerXSayOverride ViewerOverride) {
     local bool bIsTacticalGame, bUnitIsVisibleToSquad, bOverrideExists;
 
+    if (!`TI_CFG(bEnableXSay)) {
+        return false;
+    }
+
     bIsTacticalGame = `TI_IS_TAC_GAME;
     bOverrideExists = FindViewerOverride(ViewerLogin, ViewerOverride);
 
@@ -411,10 +412,6 @@ private function string GetMessageBody(TNarrativeQueueItem NarrativeItem) {
 
     Body = class'TextUtilities_Twitch'.static.SanitizeText(NarrativeItem.GameState.MessageBody);
     Body = class'UIUtilities_Twitch'.static.InsertEmotes(Body, NarrativeItem.GameState.Emotes);
-
-    if (NarrativeItem.bUnitWasDead && `TI_CFG(bFormatDeadMessages)) {
-        Body = class'UIUtilities_Twitch'.static.FormatDeadMessage(Body);
-    }
 
     return Body;
 }

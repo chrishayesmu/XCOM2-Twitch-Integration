@@ -9,7 +9,12 @@
 //---------------------------------------------------------------------------------------
 
 class X2DownloadableContentInfo_TwitchIntegration extends X2DownloadableContentInfo
+    config(Twitch__ShouldNotExist)
 	dependson(XComGameState_TwitchEventPoll);
+
+// Controls whether civilian names are visible. This is "disabled" rather than "enabled"
+// so that the default value results in visibility.
+var privatewrite config bool bCivilianNameplatesDisabled;
 
 /// <summary>
 /// This method is run when the player loads a saved game directly into Strategy while this DLC is installed
@@ -328,6 +333,10 @@ exec function TwitchStartPoll(name PollGroupTemplateName) {
     Template = class'X2PollGroupTemplateManager'.static.GetPollGroupTemplateManager().GetPollGroupTemplate(PollGroupTemplateName);
 
     `TISTATEMGR.StartPoll(Template);
+}
+
+exec function TwitchToggleNameplates() {
+    default.bCivilianNameplatesDisabled = !default.bCivilianNameplatesDisabled;
 }
 
 private function EnqueueChannelPointRewardEvent(string RewardId, string RewardTitle, string ViewerLogin, string ViewerInput) {

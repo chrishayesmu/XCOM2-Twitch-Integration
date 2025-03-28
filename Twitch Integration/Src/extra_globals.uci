@@ -4,8 +4,7 @@
 
 `define TIVIEWERNAME(Viewer) (`Viewer.DisplayName != "" ? `Viewer.DisplayName : `Viewer.Login)
 
-`define TI_CFG_GetValue(DefaultVal, ConfigVal) ( (class'TwitchIntegrationConfigDefaults'.default.ConfigVersion > class'TwitchIntegrationConfig'.default.ConfigVersion) ? `DefaultVal : `ConfigVal)
-`define TI_CFG(CfgName) (`TI_CFG_GetValue(class'TwitchIntegrationConfigDefaults'.default.`CfgName, class'TwitchIntegrationConfig'.default.`CfgName))
+`define TI_CFG(CfgName) ( class'TwitchIntegrationConfig'.default.ConfigVersion >= class'TwitchIntegrationConfig'.const.FirstVersion_`CfgName ? class'TwitchIntegrationConfig'.default.`CfgName : class'TwitchIntegrationConfigDefaults'.default.`CfgName )
 
 `define TI_IS_STRAT_GAME (`HQPRES != none)
 `define TI_IS_TAC_GAME (`BATTLE != none)
