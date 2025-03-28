@@ -141,8 +141,6 @@ static function UpdateInProgress(TwitchPollModel Poll) {
     local UIPollPanel PollPanel;
     local PollChoice Choice;
 
-    `TILOG("UpdateInProgress");
-
     PollGameState = class'X2TwitchUtils'.static.GetActivePoll();
 
     if (PollGameState == none) {
@@ -152,7 +150,6 @@ static function UpdateInProgress(TwitchPollModel Poll) {
 
     // This function doesn't handle polls that have ended
     if (PollGameState.RemainingTurns == 0 || Poll.Status != "ACTIVE") {
-        `TILOG("RemainingTurns is " $ PollGameState.RemainingTurns);
         return;
     }
 
@@ -166,8 +163,6 @@ static function UpdateInProgress(TwitchPollModel Poll) {
         PollPanel.InitPollPanel(PollGameState.Data.PollGroupTemplateName, Poll, PollGameState.Data.DurationInTurns);
     }
     else {
-        `TILOG("Updating existing PollPanel");
-
         if (PollGameState.RemainingTurns > 0) {
             PollPanel.SetTurnsRemaining(PollGameState.RemainingTurns);
         }
