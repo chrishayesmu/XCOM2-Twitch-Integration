@@ -118,10 +118,10 @@ function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, 
     local bool bIsTacticalGame, bShowInCommLink;
     local TNarrativeQueueItem NarrativeItem;
     local TViewerXSayOverride ViewerOverride;
-	local XComGameStateContext_ChangeContainer NewContext;
-	local XComGameState NewGameState;
-	local XComGameState_TwitchXSay XSayGameState;
-	local XComGameState_Unit Unit;
+    local XComGameStateContext_ChangeContainer NewContext;
+    local XComGameState NewGameState;
+    local XComGameState_TwitchXSay XSayGameState;
+    local XComGameState_Unit Unit;
 
     RegisterEmotes(Emotes);
 
@@ -134,7 +134,7 @@ function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, 
     bShowInCommLink = `TI_CFG(bShowXSayInCommLink);
 
     NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch XSay");
-	XSayGameState = XComGameState_TwitchXSay(CreateChatCommandGameState(NewGameState, Body, Emotes, MessageId, Viewer));
+    XSayGameState = XComGameState_TwitchXSay(CreateChatCommandGameState(NewGameState, Body, Emotes, MessageId, Viewer));
 
     // Need to include a new game state for the unit or else the visualizer may think it's still
     // visualizing an old ability and fail to do the flyover
@@ -144,7 +144,7 @@ function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, 
 
     if (bIsTacticalGame) {
         NewContext = XComGameStateContext_ChangeContainer(NewGameState.GetContext());
-	    NewContext.BuildVisualizationFn = BuildVisualization_TacLayer;
+        NewContext.BuildVisualizationFn = BuildVisualization_TacLayer;
     }
 
     `GAMERULES.SubmitGameState(NewGameState);
@@ -169,19 +169,19 @@ protected function BuildVisualization_TacLayer(XComGameState VisualizeGameState)
     local string ViewerName;
     local EWidgetColor MessageColor;
     local TwitchChatter Chatter;
-	local VisualizationActionMetadata ActionMetadata;
-	local X2Action_PlayMessageBanner MessageAction;
-	local X2Action_PlaySoundAndFlyOver SoundAndFlyover;
-	local XComGameState_TwitchXSay XSayGameState;
-	local XComGameState_Unit Unit;
-	local XComGameStateHistory History;
-	local XComTacticalController LocalController;
+    local VisualizationActionMetadata ActionMetadata;
+    local X2Action_PlayMessageBanner MessageAction;
+    local X2Action_PlaySoundAndFlyOver SoundAndFlyover;
+    local XComGameState_TwitchXSay XSayGameState;
+    local XComGameState_Unit Unit;
+    local XComGameStateHistory History;
+    local XComTacticalController LocalController;
 
-	History = `XCOMHISTORY;
+    History = `XCOMHISTORY;
 
-	foreach VisualizeGameState.IterateByClassType(class'XComGameState_TwitchXSay', XSayGameState) {
-		break;
-	}
+    foreach VisualizeGameState.IterateByClassType(class'XComGameState_TwitchXSay', XSayGameState) {
+        break;
+    }
 
     // Make sure this message wasn't deleted from Twitch chat before we visualize it
     if (XSayGameState.bMessageDeleted) {
@@ -193,11 +193,11 @@ protected function BuildVisualization_TacLayer(XComGameState VisualizeGameState)
     Unit = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(Chatter.Login);
     bUnitIsVisibleToSquad = Unit != none && class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(Unit.ObjectID);
 
-	ActionMetadata.StateObject_OldState = Unit;
-	ActionMetadata.StateObject_NewState = Unit;
+    ActionMetadata.StateObject_OldState = Unit;
+    ActionMetadata.StateObject_NewState = Unit;
 
     if (Unit != none) {
-    	ActionMetadata.VisualizeActor = History.GetVisualizer(Unit.ObjectID);
+        ActionMetadata.VisualizeActor = History.GetVisualizer(Unit.ObjectID);
     }
 
     // Don't do the flyover if we can't see the unit, regardless of settings
@@ -221,8 +221,8 @@ protected function BuildVisualization_TacLayer(XComGameState VisualizeGameState)
 
         SanitizedMessageBody = class'TextUtilities_Twitch'.static.SanitizeText(TruncateMessage(XSayGameState.MessageBody, MaxFlyoverLength));
 
-	    SoundAndFlyOver = X2Action_PlaySoundAndFlyOver(class'X2Action_PlaySoundAndFlyOver'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext(), false, ActionMetadata.LastActionAdded));
-	    SoundAndFlyOver.SetSoundAndFlyOverParameters(none, SanitizedMessageBody, '', MessageColor, /* _FlyOverIcon */,
+        SoundAndFlyOver = X2Action_PlaySoundAndFlyOver(class'X2Action_PlaySoundAndFlyOver'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext(), false, ActionMetadata.LastActionAdded));
+        SoundAndFlyOver.SetSoundAndFlyOverParameters(none, SanitizedMessageBody, '', MessageColor, /* _FlyOverIcon */,
                                                      CalcLookAtDuration(SanitizedMessageBody), /* _BlockUntilFinished */, /* _VisibleTeam */, class'UIWorldMessageMgr'.const.FXS_MSG_BEHAVIOR_FLOAT);
     }
 
@@ -570,8 +570,6 @@ private function AkBaseSoundObject GetCivilianSound(XComGameState_Unit Unit) {
     LanguageIndex = Unit.ObjectID % PossibleLanguages.Length;
     Language = PossibleLanguages[LanguageIndex];
 
-    //`TILOG("Unit " $ Unit.GetFullName() $ " will speak language " $ Language $ " at index " $ LanguageIndex);
-
     switch (Language) {
         case 'ENG':
             PossibleSounds = bUnitIsFemale ? default.CivilianSoundCues_English_Female : default.CivilianSoundCues_English_Male;
@@ -605,7 +603,6 @@ private function AkBaseSoundObject GetCivilianSound(XComGameState_Unit Unit) {
     }
 
     CueName = PossibleSounds[Rand(PossibleSounds.Length)];
-    //`TILOG("Using SoundCue " $ CueName $ " for civilian out of a possible " $ PossibleSounds.Length);
 
     return SoundCue(DynamicLoadObject(string(CueName), class'SoundCue'));
 }
@@ -685,7 +682,7 @@ private function OverrideCommLinkFields() {
     local TNarrativeQueueItem NarrativeItem;
     local TViewerXSayOverride ViewerOverride;
     local UINarrativeCommLink CommLink;
-	local UINarrativeMgr kNarrativeMgr;
+    local UINarrativeMgr kNarrativeMgr;
     local XComGameState_Unit Unit;
 
     if (PendingNarrativeItems.Length == 0) {
@@ -695,7 +692,7 @@ private function OverrideCommLinkFields() {
     }
 
     CommLink = `PRESBASE.GetUIComm();
-	kNarrativeMgr = CommLink.Movie.Pres.m_kNarrativeUIMgr;
+    kNarrativeMgr = CommLink.Movie.Pres.m_kNarrativeUIMgr;
 
     // Make sure the narrative manager has advanced to something we queued
     if (kNarrativeMgr.CurrentOutput.strTitle != "Twitch_Chat") {
@@ -736,8 +733,8 @@ private function OverrideCommLinkFields() {
     }
     else if (Unit != none && Unit.IsSoldier() && `TI_IS_STRAT_GAME) {
         // On strat layer, generate a headshot
-		`HQPRES.GetPhotoboothAutoGen().AddHeadShotRequest(Unit.GetReference(), 512, 512, OnHeadshotReady, , , /* bHighPriority */ true);
-		`HQPRES.GetPhotoboothAutoGen().RequestPhotos();
+        `HQPRES.GetPhotoboothAutoGen().AddHeadShotRequest(Unit.GetReference(), 512, 512, OnHeadshotReady, , , /* bHighPriority */ true);
+        `HQPRES.GetPhotoboothAutoGen().RequestPhotos();
     }
     else {
         // On tac layer, use the unit portrait (which may include an old headshot for soldiers)
@@ -797,9 +794,9 @@ function XComNarrativeMoment PickNarrativeMoment(string Message) {
 function string GetSoldierHeadshot(int UnitObjectID) {
     local string HeadshotPath;
     local Texture2D HeadshotTex;
-	local XComGameState_CampaignSettings SettingsState;
+    local XComGameState_CampaignSettings SettingsState;
 
-	SettingsState = XComGameState_CampaignSettings(`XCOMHISTORY.GetSingleGameStateObjectForClass(class'XComGameState_CampaignSettings'));
+    SettingsState = XComGameState_CampaignSettings(`XCOMHISTORY.GetSingleGameStateObjectForClass(class'XComGameState_CampaignSettings'));
     HeadshotTex = `XENGINE.m_kPhotoManager.GetHeadshotTexture(SettingsState.GameIndex, UnitObjectID, 512, 512);
 
     if (HeadshotTex != none) {
@@ -811,11 +808,11 @@ function string GetSoldierHeadshot(int UnitObjectID) {
 
 simulated function OnHeadshotReady(StateObjectReference UnitRef) {
     local UINarrativeCommLink CommLink;
-	local UINarrativeMgr kNarrativeMgr;
+    local UINarrativeMgr kNarrativeMgr;
 
     CommLink = `PRESBASE.GetUIComm();
 
-	kNarrativeMgr = CommLink.Movie.Pres.m_kNarrativeUIMgr;
+    kNarrativeMgr = CommLink.Movie.Pres.m_kNarrativeUIMgr;
     kNarrativeMgr.CurrentOutput.strImage = GetSoldierHeadshot(UnitRef.ObjectID);
 
     CommLink.AS_SetPortrait(kNarrativeMgr.CurrentOutput.strImage);
