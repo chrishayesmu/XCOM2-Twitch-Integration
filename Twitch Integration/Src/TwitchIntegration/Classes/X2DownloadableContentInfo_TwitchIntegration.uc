@@ -327,10 +327,20 @@ exec function TwitchUnassignViewer(string ViewerLogin)
 /// <summary>
 /// Starts a new poll with randomly-selected events from the given poll group.
 /// </summary>
-exec function TwitchStartPoll(name PollGroupTemplateName) {
+exec function TwitchStartPoll(optional name PollGroupTemplateName = '') {
     local X2PollGroupTemplate Template;
 
-    Template = class'X2PollGroupTemplateManager'.static.GetPollGroupTemplateManager().GetPollGroupTemplate(PollGroupTemplateName);
+    if (PollGroupTemplateName == '') {
+        Template = `TISTATEMGR.SelectPollGroupTemplateByWeight();
+    }
+    else {
+        Template = class'X2PollGroupTemplateManager'.static.GetPollGroupTemplateManager().GetPollGroupTemplate(PollGroupTemplateName);
+
+        if (Template == none) {
+            class'Helpers'.static.OutputMsg("Couldn't find a poll group template with the name " $ PollGroupTemplateName);
+            return;
+        }
+    }
 
     `TISTATEMGR.StartPoll(Template);
 }

@@ -205,7 +205,6 @@ function EndPoll(string Id) {
 function GetCurrentPollState() {
     local HttpGetRequest httpGet;
 
-    `TILOG("GetCurrentPollState");
     httpGet = Spawn(class'HttpGetRequest');
     httpGet.Call("localhost:5000/api/poll/current", OnCurrentPollReceived, OnCurrentPollReceiveError);
 }
@@ -349,6 +348,39 @@ function ResolveCurrentPoll_Actual() {
 	Context.BuildVisualizationFn = BuildVisualization_PollEnding;
 
 	`GAMERULES.SubmitGameState(NewGameState);
+}
+
+// Public so it can be called from console commands/actions
+function X2PollGroupTemplate SelectPollGroupTemplateByWeight() {
+    local array<X2PollGroupTemplate> EligibleTemplates;
+    local X2PollGroupTemplate Template;
+    local int RunningTotal;
+    local int TotalWeight;
+    local int WeightRoll;
+
+    EligibleTemplates = class'X2PollGroupTemplateManager'.static.GetPollGroupTemplateManager().GetEligiblePollGroupTemplates();
+
+    if (EligibleTemplates.Length == 0) {
+        return none;
+    }
+
+    foreach EligibleTemplates(Template) {
+        TotalWeight += Template.Weight;
+    }
+
+    WeightRoll = Rand(TotalWeight);
+
+    foreach EligibleTemplates(Template) {
+        if (WeightRoll < RunningTotal + Template.Weight) {
+            `TILOG("Weighted roll selected poll group " $ Template.DataName $ " with roll " $ WeightRoll);
+            return Template;
+        }
+
+        RunningTotal += Template.Weight;
+    }
+
+    `TILOG("Default selected poll group " $ EligibleTemplates[EligibleTemplates.Length - 1].DataName $ "; TotalWeight=" $ TotalWeight $ ", roll=" $ WeightRoll);
+    return EligibleTemplates[EligibleTemplates.Length - 1];
 }
 
 function StartPoll(X2PollGroupTemplate PollGroupTemplate, optional XComGameState_Player PlayerState) {
@@ -656,38 +688,6 @@ private function EventListenerReturn OnPlayerTurnBegun(Object EventData, Object 
     class'UIPollPanel'.static.GetPanel().SetTurnsRemaining(PollGameState.RemainingTurns);
 
     return ELR_NoInterrupt;
-}
-
-private function X2PollGroupTemplate SelectPollGroupTemplateByWeight() {
-    local array<X2PollGroupTemplate> EligibleTemplates;
-    local X2PollGroupTemplate Template;
-    local int RunningTotal;
-    local int TotalWeight;
-    local int WeightRoll;
-
-    EligibleTemplates = class'X2PollGroupTemplateManager'.static.GetPollGroupTemplateManager().GetEligiblePollGroupTemplates();
-
-    if (EligibleTemplates.Length == 0) {
-        return none;
-    }
-
-    foreach EligibleTemplates(Template) {
-        TotalWeight += Template.Weight;
-    }
-
-    WeightRoll = Rand(TotalWeight);
-
-    foreach EligibleTemplates(Template) {
-        if (WeightRoll < RunningTotal + Template.Weight) {
-            `TILOG("Weighted roll selected poll group " $ Template.DataName $ " with roll " $ WeightRoll);
-            return Template;
-        }
-
-        RunningTotal += Template.Weight;
-    }
-
-    `TILOG("Default selected poll group " $ EligibleTemplates[EligibleTemplates.Length - 1].DataName $ "; TotalWeight=" $ TotalWeight $ ", roll=" $ WeightRoll);
-    return EligibleTemplates[EligibleTemplates.Length - 1];
 }
 
 private function bool ShouldStartPoll(XComGameState_Player PlayerState) {
