@@ -49,6 +49,10 @@ strWillBuffEffectDescription="+<Amount/> Will for <Ability:TurnsRemaining/> turn
 strWillBuffEffectFlyoverText="Twitch: +<Amount/> Will"
 strWillBuffEffectTitle="Twitch Will Boost"
 
+[TwitchEventHandler_ChannelPointRedeem]
+BannerTitle="Twitch Channel Points Reward"
+BannerText="Redeemed by <ViewerName/>"
+
 [TwitchIntegrationConfig]
 strChangeButtonLabel="Change.."
 

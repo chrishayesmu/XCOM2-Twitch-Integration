@@ -7,20 +7,28 @@ struct ChannelPointRedeemConfig {
     var array<name> Actions;
 };
 
+var localized const string BannerTitle;
+var localized const string BannerText;
+
 var config array<ChannelPointRedeemConfig> Redemptions;
 
 function Handle(TwitchStateManager StateMgr, JsonObject Data) {
+    local XComGameStateContext_ChangeContainer NewContext;
+    local XComGameState NewGameState;
+    local XComGameState_ChannelPointRedemption RedeemState;
+    local array<X2TwitchEventActionTemplate> ValidActions;
     local X2TwitchEventActionTemplate Action;
     local XComGameState_Unit UnitState;
-    local string RewardId, RewardTitle, ViewerLogin, ViewerInput;
+    local string RewardId, RewardTitle, ViewerLogin, ViewerName, ViewerInput;
     local int Index, RedemptionIndex;
 
     RewardId = Data.GetStringValue("reward_id");
     RewardTitle = Data.GetStringValue("reward_title");
     ViewerLogin = Data.GetStringValue("user_login");
+    ViewerName = Data.GetStringValue("user_name");
     ViewerInput = Data.GetStringValue("user_input"); // unused, but potentially an extension point for later
 
-    `TILOG("Channel point redemption: reward ID = " $ RewardId $ ", reward title = " $ RewardTitle);
+    `TILOG("Channel point redemption by " $ ViewerLogin $ ": reward ID = " $ RewardId $ ", reward title = " $ RewardTitle);
 
     RedemptionIndex = Redemptions.Find('RewardId', RewardId);
 
@@ -46,9 +54,50 @@ function Handle(TwitchStateManager StateMgr, JsonObject Data) {
         }
 
         if (Action.IsValid(UnitState)) {
-            Action.Apply(UnitState);
+            ValidActions.AddItem(Action);
         }
     }
+
+    NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Channel Point Redeem");
+    RedeemState = XComGameState_ChannelPointRedemption(NewGameState.CreateNewStateObject(class'XComGameState_ChannelPointRedemption'));
+
+    RedeemState.RedeemerLogin = ViewerLogin;
+    RedeemState.RedeemerName = ViewerName;
+    RedeemState.RedeemerInput = ViewerInput;
+    RedeemState.RedeemerUnitObjectID = UnitState != none ? UnitState.GetReference().ObjectID : 0;
+    RedeemState.RewardId = RewardId;
+    RedeemState.RewardTitle = RewardTitle;
+    RedeemState.HadValidActions = ValidActions.Length > 0;
+
+    NewContext = XComGameStateContext_ChangeContainer(NewGameState.GetContext());
+    NewContext.BuildVisualizationFn = BuildVisualization;
+
+    `GAMERULES.SubmitGameState(NewGameState);
+
+    foreach ValidActions(Action) {
+        Action.Apply(UnitState);
+    }
+}
+
+protected function BuildVisualization(XComGameState VisualizeGameState) {
+    local VisualizationActionMetadata ActionMetadata;
+    local X2Action_PlayMessageBanner MessageAction;
+    local XComGameState_ChannelPointRedemption RedeemState;
+    local string BannerValue;
+
+    foreach VisualizeGameState.IterateByClassType(class'XComGameState_ChannelPointRedemption', RedeemState) {
+        break;
+    }
+
+    ActionMetadata.StateObject_OldState = RedeemState;
+    ActionMetadata.StateObject_NewState = RedeemState;
+
+    BannerValue = Repl(BannerText, "<ViewerName/>", RedeemState.RedeemerName);
+
+    MessageAction = X2Action_PlayMessageBanner(class'X2Action_PlayMessageBanner'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext()));
+    MessageAction.AddMessageBanner(BannerTitle, /* IconPath */ "", RedeemState.RewardTitle, BannerValue, eUIState_Normal);
+
+    // TODO indicate an invalid redeem somehow so the streamer can refund the user their points
 }
 
 defaultproperties
