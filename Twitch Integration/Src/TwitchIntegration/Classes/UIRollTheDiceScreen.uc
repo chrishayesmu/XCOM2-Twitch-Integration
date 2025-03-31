@@ -1,4 +1,5 @@
-class UIRollTheDiceScreen extends UIScreen;
+class UIRollTheDiceScreen extends UIScreen
+    dependson(TwitchStateManager);
 
 
 const LINE_HEIGHT_PX = 31.85; // Each line of text is not quite 32px high. Value determined experimentally
@@ -9,7 +10,7 @@ var localized string strDialogTitle;
 var localized string strHeaderText;
 
 var array<string> Options;
-var string ViewerLogin;
+var int TargetUnitObjectID;
 var int WinningOptionIndex;
 var name WinningOptionTemplateName;
 
@@ -51,7 +52,7 @@ simulated function InitScreen(XComPlayerController InitController, UIMovie InitM
     m_bgBox = Spawn(class'UIBGBox', self);
     m_bgBox.InitBG('', 0, 0, 700, 160 + NUM_OPTIONS_VISIBLE * LINE_HEIGHT_PX, eUIState_Normal);
 
-    HeaderText = Repl(strHeaderText, "<ViewerName/>", ViewerLogin);
+    HeaderText = Repl(strHeaderText, "<ViewerName/>", GetDisplayName());
 	m_TitleHeader = Spawn(class'UIX2PanelHeader', self);
 	m_TitleHeader.InitPanelHeader('', strDialogTitle, HeaderText);
 
@@ -118,6 +119,26 @@ protected function float CalculateTextSpeed() {
     return 0.0f;
 }
 
+protected function string GetDisplayName() {
+    local TwitchChatter Viewer;
+    local XComGameState_Unit UnitState;
+    local XComGameState_TwitchObjectOwnership OwnershipState;
+
+    OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(TargetUnitObjectID);
+
+    if (OwnershipState != none) {
+        if (`TISTATEMGR.TryGetViewer(OwnershipState.TwitchLogin, Viewer)) {
+            return Viewer.DisplayName;
+        }
+
+        return OwnershipState.TwitchLogin;
+    }
+
+    UnitState = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(TargetUnitObjectID));
+
+    return UnitState.GetFullName();
+}
+
 private function OnCloseButtonPress(UIButton Button) {
     local XComGameState_Unit UnitState;
     local X2TwitchEventActionTemplate ActionTemplate;
@@ -125,7 +146,7 @@ private function OnCloseButtonPress(UIButton Button) {
     `SCREENSTACK.Pop(self);
     Movie.Pres.PlayUISound(eSUISound_MenuClose);
 
-    UnitState = class'X2TwitchUtils'.static.FindUnitOwnedByViewer(ViewerLogin);
+    UnitState = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(TargetUnitObjectID));
     ActionTemplate = class'X2TwitchUtils'.static.GetTwitchEventActionTemplate(WinningOptionTemplateName);
 
     ActionTemplate.Apply(UnitState);

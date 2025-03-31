@@ -11,8 +11,8 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
     Targets = FindTargets(InvokingUnit);
 
     `TILOG("Applying ActivateAbility action to " $ Targets.Length $ " targets");
+
     foreach Targets(Unit) {
-        `TILOG("Target: " $ Unit.GetFullName());
         TargetLocations.Length = 0;
         TargetLocations.AddItem(Unit.GetVisualizer().Location);
 

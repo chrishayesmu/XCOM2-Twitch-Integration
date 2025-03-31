@@ -38,7 +38,6 @@ function UIRaffleWinnersPanel InitRafflePanel() {
 	`XEVENTMGR.RegisterForEvent(ThisObj, 'TwitchUnitOwnerAssigned', OnOwnershipChanged, ELD_Immediate);
 	`XEVENTMGR.RegisterForEvent(ThisObj, 'TwitchUnitOwnerRemoved', OnOwnershipChanged, ELD_Immediate);
 
-
     Hide();
 
     // In case of loading a save, no ownership events will fire for a while,

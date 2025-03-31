@@ -25,6 +25,7 @@ defaultproperties
     TemplateClasses.Add(class'X2TwitchEventActionTemplate_CombineActions')
     TemplateClasses.Add(class'X2TwitchEventActionTemplate_ModifyActionPoints')
     TemplateClasses.Add(class'X2TwitchEventActionTemplate_ModifyAmmo')
+    TemplateClasses.Add(class'X2TwitchEventActionTemplate_RollTheDice')
     TemplateClasses.Add(class'X2TwitchEventActionTemplate_SpawnUnits')
     TemplateClasses.Add(class'X2TwitchEventActionTemplate_TimeoutUser')
 }

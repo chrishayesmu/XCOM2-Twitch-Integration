@@ -166,9 +166,6 @@ static function UpdateInProgress(TwitchPollModel Poll) {
         if (PollGameState.RemainingTurns > 0) {
             PollPanel.SetTurnsRemaining(PollGameState.RemainingTurns);
         }
-        else {
-            // PollPanel.SetTimeRemainingText(Poll.SecondsRemaining);
-        }
 
         // First iterate to count total votes
         foreach Poll.Choices(Choice) {

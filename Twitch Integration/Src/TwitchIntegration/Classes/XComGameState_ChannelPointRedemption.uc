@@ -7,3 +7,8 @@ var int RedeemerUnitObjectID; // Object ID of the unit owned by the redeemer, if
 var string RewardId;          // Unique ID of the reward, assigned by Twitch
 var string RewardTitle;       // Viewer-facing title of the reward, assigned by the streamer
 var bool HadValidActions;     // Whether this redeem had any valid actions to trigger at the time it was used
+
+defaultproperties
+{
+    bTacticalTransient = true
+}
