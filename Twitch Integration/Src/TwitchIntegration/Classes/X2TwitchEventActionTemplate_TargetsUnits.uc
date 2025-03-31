@@ -35,6 +35,7 @@ var config bool IncludeConcealed;
 var config bool IncludeDead;
 var config bool IncludeLiving;
 var config array<name> RequireNotImmuneToDamageTypes;
+var config bool RequireInjured;
 var config bool RequireTwitchOwner;
 var config int NumTargets;
 
@@ -162,17 +163,17 @@ protected function bool IsValidTarget(XComGameState_Unit Unit) {
         return false;
     }
 
-    if (Unit.IsCivilian() && !IncludeCivilians) {
+    if (!IncludeCivilians && Unit.IsCivilian()) {
         `TILOG("Unit civilian status does not match: " $ `SHOWVAR(Unit.IsCivilian()));
         return false;
     }
 
-    if (Unit.IsDead() && !IncludeDead) {
+    if (!IncludeDead && Unit.IsDead()) {
         `TILOG("Unit IsDead does not match: " $ `SHOWVAR(Unit.IsDead()) $ ", " $ `SHOWVAR(IncludeDead));
         return false;
     }
 
-    if (!Unit.IsDead() && !IncludeLiving) {
+    if (!IncludeLiving && !Unit.IsDead()) {
         `TILOG("Unit IsDead does not match: " $ `SHOWVAR(Unit.IsDead()) $ ", " $ `SHOWVAR(IncludeLiving));
         return false;
     }
@@ -187,6 +188,11 @@ protected function bool IsValidTarget(XComGameState_Unit Unit) {
             `TILOG("Unit is immune to " $ RequireNotImmuneToDamageTypes[I] $ " damage");
             return false;
         }
+    }
+
+    if (RequireInjured && !Unit.IsInjured()) {
+        `TILOG("Unit IsInjured does not match: " $ `SHOWVAR(Unit.IsInjured()) $ ", " $ `SHOWVAR(RequireInjured));
+        return false;
     }
 
     if (RequireTwitchOwner) {
