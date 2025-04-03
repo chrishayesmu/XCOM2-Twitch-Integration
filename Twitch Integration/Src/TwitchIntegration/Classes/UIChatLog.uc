@@ -1,6 +1,6 @@
 class UIChatLog extends UIPanel
     config(TwitchChatCommands)
-    dependson(TwitchIntegrationConfig, UIScreenListener_TwitchUsernameInjector);
+    dependson(TwitchIntegrationConfig, UIScreenListener_TwitchUsernameInjector, X2TwitchChatCommandTemplate);
 
 const MaxMessagesStored = 100;
 

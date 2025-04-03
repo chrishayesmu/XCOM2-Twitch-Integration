@@ -1,5 +1,4 @@
-class TwitchChatCommand_XSay extends TwitchChatCommand
-    dependson(TwitchStateManager);
+class X2TwitchChatCommandTemplate_XSay extends X2TwitchChatCommandTemplate;
 
 struct TNarrativeQueueItem {
     var XComGameState_TwitchXSay GameState;
@@ -69,50 +68,7 @@ var private XComNarrativeMoment NextNarrativeMomentShort;
 var private XComNarrativeMoment NextNarrativeMomentMedium;
 var private XComNarrativeMoment NextNarrativeMomentLong;
 
-function Initialize(TwitchStateManager StateMgr) {
-    local Object ThisObj;
-
-    if (NarrativeMomentShort01 == none) {
-        NarrativeMomentShort01 = XComNarrativeMoment(DynamicLoadObject("TwitchIntegration_UI.XSayBlank_Short_01", class'XComNarrativeMoment'));
-    }
-
-    if (NarrativeMomentShort02 == none) {
-        NarrativeMomentShort02 = XComNarrativeMoment(DynamicLoadObject("TwitchIntegration_UI.XSayBlank_Short_02", class'XComNarrativeMoment'));
-    }
-
-    if (NarrativeMomentMedium01 == none) {
-        NarrativeMomentMedium01 = XComNarrativeMoment(DynamicLoadObject("TwitchIntegration_UI.XSayBlank_Medium_01", class'XComNarrativeMoment'));
-    }
-
-    if (NarrativeMomentMedium02 == none) {
-        NarrativeMomentMedium02 = XComNarrativeMoment(DynamicLoadObject("TwitchIntegration_UI.XSayBlank_Medium_02", class'XComNarrativeMoment'));
-    }
-
-    if (NarrativeMomentLong01 == none) {
-        NarrativeMomentLong01 = XComNarrativeMoment(DynamicLoadObject("TwitchIntegration_UI.XSayBlank_Long_01", class'XComNarrativeMoment'));
-    }
-
-    if (NarrativeMomentLong02 == none) {
-        NarrativeMomentLong02 = XComNarrativeMoment(DynamicLoadObject("TwitchIntegration_UI.XSayBlank_Long_02", class'XComNarrativeMoment'));
-    }
-
-    if (NextNarrativeMomentShort == none) {
-        NextNarrativeMomentShort = NarrativeMomentShort01;
-    }
-
-    if (NextNarrativeMomentMedium == none) {
-        NextNarrativeMomentMedium = NarrativeMomentMedium01;
-    }
-
-    if (NextNarrativeMomentLong == none) {
-        NextNarrativeMomentLong = NarrativeMomentLong01;
-    }
-
-    ThisObj = self;
-    `XEVENTMGR.RegisterForEvent(ThisObj, 'TwitchChatMessageDeleted', OnMessageDeleted, ELD_Immediate);
-
-    `XWORLDINFO.MyWatchVariableMgr.RegisterWatchVariable(`PRESBASE.m_kNarrativeUIMgr, 'm_arrConversations', self, EnqueueXSayToCommLinkIfPossible);
-}
+var private bool bLoadedNarratives;
 
 function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, string MessageId, TwitchChatter Viewer) {
     local bool bIsTacticalGame, bShowInCommLink;
@@ -122,6 +78,12 @@ function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, 
     local XComGameState NewGameState;
     local XComGameState_TwitchXSay XSayGameState;
     local XComGameState_Unit Unit;
+
+    LoadNarratives();
+
+    if (!super.Invoke(CommandAlias, Body, Emotes, MessageId, Viewer)) {
+        return false;
+    }
 
     RegisterEmotes(Emotes);
 
@@ -153,6 +115,7 @@ function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, 
     class'X2TwitchUtils'.static.AddMessageToChatLog(XSayGameState.SenderLogin, XSayGameState.MessageBody, XSayGameState.Emotes, Unit, XSayGameState.TwitchMessageId);
 
     // TODO: turn off comm link if not in LOS, or make it not show unit type, to avoid spoilers
+    `TILOG("bShowInCommLink: " $ bShowInCommLink);
     if (bShowInCommLink) {
         // Don't record a unit was dead if we're on the strat layer, unless they're a dead soldier
         NarrativeItem.GameState = XSayGameState;
@@ -243,7 +206,7 @@ protected function BuildVisualization_TacLayer(XComGameState VisualizeGameState)
     }
 }
 
-private function float CalcLookAtDuration(string Message) {
+protected function float CalcLookAtDuration(string Message) {
     if (default.LookAtDuration > 0) {
         // User-configured value: just use it directly
         return default.LookAtDuration;
@@ -296,7 +259,58 @@ function EventListenerReturn OnMessageDeleted(Object EventData, Object EventSour
     return ELR_NoInterrupt;
 }
 
-private function string TruncateMessage(string Message, int MaxLength) {
+protected function LoadNarratives() {
+    local Object ThisObj;
+
+    if (bLoadedNarratives) {
+        return;
+    }
+
+    bLoadedNarratives = true;
+
+    if (NarrativeMomentShort01 == none) {
+        NarrativeMomentShort01 = XComNarrativeMoment(DynamicLoadObject("TwitchIntegration_UI.XSayBlank_Short_01", class'XComNarrativeMoment'));
+    }
+
+    if (NarrativeMomentShort02 == none) {
+        NarrativeMomentShort02 = XComNarrativeMoment(DynamicLoadObject("TwitchIntegration_UI.XSayBlank_Short_02", class'XComNarrativeMoment'));
+    }
+
+    if (NarrativeMomentMedium01 == none) {
+        NarrativeMomentMedium01 = XComNarrativeMoment(DynamicLoadObject("TwitchIntegration_UI.XSayBlank_Medium_01", class'XComNarrativeMoment'));
+    }
+
+    if (NarrativeMomentMedium02 == none) {
+        NarrativeMomentMedium02 = XComNarrativeMoment(DynamicLoadObject("TwitchIntegration_UI.XSayBlank_Medium_02", class'XComNarrativeMoment'));
+    }
+
+    if (NarrativeMomentLong01 == none) {
+        NarrativeMomentLong01 = XComNarrativeMoment(DynamicLoadObject("TwitchIntegration_UI.XSayBlank_Long_01", class'XComNarrativeMoment'));
+    }
+
+    if (NarrativeMomentLong02 == none) {
+        NarrativeMomentLong02 = XComNarrativeMoment(DynamicLoadObject("TwitchIntegration_UI.XSayBlank_Long_02", class'XComNarrativeMoment'));
+    }
+
+    if (NextNarrativeMomentShort == none) {
+        NextNarrativeMomentShort = NarrativeMomentShort01;
+    }
+
+    if (NextNarrativeMomentMedium == none) {
+        NextNarrativeMomentMedium = NarrativeMomentMedium01;
+    }
+
+    if (NextNarrativeMomentLong == none) {
+        NextNarrativeMomentLong = NarrativeMomentLong01;
+    }
+
+    ThisObj = self;
+    `XEVENTMGR.RegisterForEvent(ThisObj, 'TwitchChatMessageDeleted', OnMessageDeleted, ELD_Immediate);
+
+    `XWORLDINFO.MyWatchVariableMgr.RegisterWatchVariable(`PRESBASE.m_kNarrativeUIMgr, 'm_arrConversations', self, EnqueueXSayToCommLinkIfPossible);
+}
+
+protected function string TruncateMessage(string Message, int MaxLength) {
     if (Len(Message) > MaxLength) {
         Message = Left(Message, MaxLength) $ " ...";
     }
@@ -304,7 +318,7 @@ private function string TruncateMessage(string Message, int MaxLength) {
     return Message;
 }
 
-private function bool CanViewerXSay(string ViewerLogin, out XComGameState_Unit UnitState, out TViewerXSayOverride ViewerOverride) {
+protected function bool CanViewerXSay(string ViewerLogin, out XComGameState_Unit UnitState, out TViewerXSayOverride ViewerOverride) {
     local bool bIsTacticalGame, bUnitIsVisibleToSquad, bOverrideExists;
 
     if (!`TI_CFG(bEnableXSay)) {
@@ -352,7 +366,7 @@ private function bool CanViewerXSay(string ViewerLogin, out XComGameState_Unit U
     return false;
 }
 
-private function EnqueueCommLink(TNarrativeQueueItem NarrativeItem) {
+protected function EnqueueCommLink(TNarrativeQueueItem NarrativeItem) {
     if (PendingNarrativeItems.Length >= MaxQueuedCommLinkNarratives) {
         return;
     }
@@ -363,7 +377,7 @@ private function EnqueueCommLink(TNarrativeQueueItem NarrativeItem) {
     EnqueueXSayToCommLinkIfPossible();
 }
 
-private function EnqueueXSayToCommLinkIfPossible() {
+protected function EnqueueXSayToCommLinkIfPossible() {
     local int Index;
     local UINarrativeMgr kNarrativeMgr;
 
@@ -392,7 +406,7 @@ private function EnqueueXSayToCommLinkIfPossible() {
     `TISTATEMGR.SetTimer(0.1, /* inbLoop */ true, nameof(OverrideCommLinkFields), self);
 }
 
-private function bool FindViewerOverride(string ViewerLogin, out TViewerXSayOverride ViewerOverride) {
+protected function bool FindViewerOverride(string ViewerLogin, out TViewerXSayOverride ViewerOverride) {
     local TViewerXSayOverride PossibleOverride;
 
     ViewerLogin = Locs(ViewerLogin);
@@ -407,7 +421,7 @@ private function bool FindViewerOverride(string ViewerLogin, out TViewerXSayOver
     return false;
 }
 
-private function string GetMessageBody(TNarrativeQueueItem NarrativeItem) {
+protected function string GetMessageBody(TNarrativeQueueItem NarrativeItem) {
     local string Body;
 
     Body = class'TextUtilities_Twitch'.static.SanitizeText(NarrativeItem.GameState.MessageBody);
@@ -416,7 +430,7 @@ private function string GetMessageBody(TNarrativeQueueItem NarrativeItem) {
     return Body;
 }
 
-private function string GetUnitPortrait(XComGameState_Unit Unit) {
+protected function string GetUnitPortrait(XComGameState_Unit Unit) {
     local Name CharGroupName;
     local XComGameState_Unit SourceUnit;
     local TUnitContentConfig ContentCfg;
@@ -448,7 +462,7 @@ private function string GetUnitPortrait(XComGameState_Unit Unit) {
     return ContentCfg.CommlinkImage;
 }
 
-private function AkBaseSoundObject GetCivilianSound(XComGameState_Unit Unit) {
+protected function AkBaseSoundObject GetCivilianSound(XComGameState_Unit Unit) {
     local bool bUnitIsFemale;
     local int LanguageIndex;
     local array<name> PossibleLanguages;
@@ -607,7 +621,7 @@ private function AkBaseSoundObject GetCivilianSound(XComGameState_Unit Unit) {
     return SoundCue(DynamicLoadObject(string(CueName), class'SoundCue'));
 }
 
-private function bool GetContentConfig(name CharacterGroupName, out TUnitContentConfig ContentCfg)
+protected function bool GetContentConfig(name CharacterGroupName, out TUnitContentConfig ContentCfg)
 {
     local int Index;
 
@@ -622,7 +636,7 @@ private function bool GetContentConfig(name CharacterGroupName, out TUnitContent
     return true;
 }
 
-private function AkBaseSoundObject GetUnitSound(TNarrativeQueueItem NarrativeItem, XComGameState_Unit Unit) {
+protected function AkBaseSoundObject GetUnitSound(TNarrativeQueueItem NarrativeItem, XComGameState_Unit Unit) {
     local bool bUnitIsFemale;
     local name CharGroupName;
     local string SelectedSoundPath;
@@ -675,7 +689,7 @@ private function AkBaseSoundObject GetUnitSound(TNarrativeQueueItem NarrativeIte
     return AkBaseSoundObject(DynamicLoadObject(SelectedSoundPath, class'AkBaseSoundObject'));
 }
 
-private function OverrideCommLinkFields() {
+protected function OverrideCommLinkFields() {
     local bool bHasViewerOverride;
     local string UnitPortrait;
     local AkBaseSoundObject Sound;

@@ -1,15 +1,23 @@
 class X2TwitchEventActionDataSet extends X2DataSet
 	config(TwitchActions);
 
-var private array< Class<X2TwitchEventActionTemplate> > TemplateClasses;
+var private config array<string> TemplateClasses;
 
 static function array<X2DataTemplate> CreateTemplates()
 {
     local int I, J;
     local array<X2DataTemplate> AllTemplates, NewTemplates;
+    local Class<X2TwitchEventActionTemplate> kClass;
 
     for (I = 0; I < default.TemplateClasses.Length; I++) {
-        NewTemplates = class'TwitchDataSetUtils'.static.CreateTemplatesFromConfig(default.TemplateClasses[I]);
+        kClass = Class<X2TwitchEventActionTemplate>(class'Engine'.static.FindClassType(default.TemplateClasses[I]));
+
+        if (kClass == none) {
+            `TILOG("ERROR: couldn't load a X2TwitchEventActionTemplate class called " $ default.TemplateClasses[I]);
+            continue;
+        }
+
+        NewTemplates = class'TwitchDataSetUtils'.static.CreateTemplatesFromConfig(kClass);
 
         for (J = 0; J < NewTemplates.Length; J++) {
             AllTemplates.AddItem(NewTemplates[J]);
@@ -17,15 +25,4 @@ static function array<X2DataTemplate> CreateTemplates()
     }
 
     return AllTemplates;
-}
-
-defaultproperties
-{
-    TemplateClasses.Add(class'X2TwitchEventActionTemplate_ActivateAbility')
-    TemplateClasses.Add(class'X2TwitchEventActionTemplate_CombineActions')
-    TemplateClasses.Add(class'X2TwitchEventActionTemplate_ModifyActionPoints')
-    TemplateClasses.Add(class'X2TwitchEventActionTemplate_ModifyAmmo')
-    TemplateClasses.Add(class'X2TwitchEventActionTemplate_RollTheDice')
-    TemplateClasses.Add(class'X2TwitchEventActionTemplate_SpawnUnits')
-    TemplateClasses.Add(class'X2TwitchEventActionTemplate_TimeoutUser')
 }

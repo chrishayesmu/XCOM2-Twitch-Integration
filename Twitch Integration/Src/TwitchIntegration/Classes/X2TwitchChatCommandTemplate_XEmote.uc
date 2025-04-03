@@ -1,9 +1,12 @@
-class TwitchChatCommand_XEmote extends TwitchChatCommand
-    dependson(TwitchStateManager);
+class X2TwitchChatCommandTemplate_XEmote extends X2TwitchChatCommandTemplate;
 
 function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, string MessageId, TwitchChatter Viewer) {
     local string EmoteImagePath;
     local XComGameState_Unit UnitState;
+
+    if (!super.Invoke(CommandAlias, Body, Emotes, MessageId, Viewer)) {
+        return false;
+    }
 
     RegisterEmotes(Emotes);
 

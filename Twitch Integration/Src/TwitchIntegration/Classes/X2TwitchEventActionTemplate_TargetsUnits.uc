@@ -58,11 +58,8 @@ protected function BuildDefaultVisualization(XComGameState VisualizeGameState) {
     History = `XCOMHISTORY;
 	Context = VisualizeGameState.GetContext();
 
-    `TILOG("BuildDefaultVisualization");
-
 	foreach VisualizeGameState.IterateByClassType(class'XComGameState_Unit', UnitCurrentState) {
         UnitPreviousState = XComGameState_Unit(History.GetGameStateForObjectID(UnitCurrentState.ObjectID, eReturnType_Reference, VisualizeGameState.HistoryIndex - 1));
-        `TILOG("BuildDefaultVisualization: UnitCurrentState = " $ UnitCurrentState $ "; UnitPreviousState = " $ UnitPreviousState);
 
         ActionMetadata = EmptyMetaData;
 

@@ -1,4 +1,5 @@
-class UIUtilities_Twitch extends Object;
+class UIUtilities_Twitch extends Object
+    dependson(X2TwitchChatCommandTemplate);
 
 const TwitchIcon_3D = "img:///TwitchIntegration_UI.Icon_Twitch";
 

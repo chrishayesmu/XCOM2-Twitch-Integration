@@ -3,38 +3,13 @@
 /// to instances of the TwitchChatCommand class.
 /// </summary>
 class TwitchEventHandler_ChatCommand extends TwitchEventHandler
-    dependson(TwitchChatCommand, TwitchStateManager)
-    config(TwitchChatCommands);
-
-var config array<string> EnabledCommands;
-
-var private array<TwitchChatCommand> CommandHandlers;
-
-function Initialize(TwitchStateManager StateMgr) {
-    local string CommandHandlerName;
-    local TwitchChatCommand CommandHandler;
-    local Class CommandHandlerClass;
-
-    // Load command handlers from config
-    foreach EnabledCommands(CommandHandlerName) {
-        CommandHandlerClass = class'Engine'.static.FindClassType(CommandHandlerName);
-
-        if (CommandHandlerClass == none) {
-            `TILOG("ERROR: couldn't load a chat command class with the name " $ CommandHandlerName);
-            continue;
-        }
-
-        CommandHandler = TwitchChatCommand(new(None, CommandHandlerName) CommandHandlerClass);
-        CommandHandler.Initialize(StateMgr);
-	    CommandHandlers.AddItem(CommandHandler);
-    }
-}
+    dependson(TwitchStateManager, X2TwitchChatCommandTemplate);
 
 function Handle(TwitchStateManager StateMgr, JsonObject Data) {
     local array<EmoteData> Emotes;
     local XComGameState NewGameState;
     local XComGameState_TwitchChatCommandTracking CommandTrackingState;
-    local TwitchChatCommand CommandHandler;
+    local X2TwitchChatCommandTemplate CommandHandler;
     local TwitchChatter Viewer;
     local string Command, Body, MessageId, UserLogin;
 
@@ -51,34 +26,31 @@ function Handle(TwitchStateManager StateMgr, JsonObject Data) {
     UserLogin = Data.GetStringValue("user_login");
     Emotes = ParseEmoteData(Data);
 
-    `TILOG("Attempting to handle chat command " $ Command);
+    CommandHandler = class'X2TwitchChatCommandTemplateManager'.static.GetChatCommandTemplateManager().GetChatCommandTemplateForAlias(Command);
 
-    foreach CommandHandlers(CommandHandler) {
-        if (CommandHandler.CommandAliases.Find(Command) == INDEX_NONE) {
-            continue;
-        }
+    `TILOG("Attempting to handle chat command " $ Command $ " with template " $ (CommandHandler != none ? CommandHandler.DataName : 'none'));
 
-        if (CommandTrackingState.IsChatCommandOnCooldown(CommandHandler, UserLogin)) {
-            `TILOG("Command is on cooldown");
-            return;
-        }
-
-        StateMgr.UpsertViewer(UserLogin, Viewer);
-
-        `TILOG("Handling command with " $ CommandHandler);
-        if (CommandHandler.Invoke(Command, Body, Emotes, MessageId, Viewer) && CommandHandler.ShouldTrackUsage()) {
-            // Record the command usage
-            NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Tracking Chat Command " $ Command);
-            CommandTrackingState = XComGameState_TwitchChatCommandTracking(NewGameState.ModifyStateObject(class'XComGameState_TwitchChatCommandTracking', CommandTrackingState.ObjectID));
-            CommandTrackingState.RecordCommandUsage(CommandHandler, Viewer.Login);
-
-		    `GAMERULES.SubmitGameState(NewGameState);
-        }
-
+    if (CommandHandler == none) {
+        `TILOG("Did not find any applicable command handler");
         return;
     }
 
-    `TILOG("Did not find any applicable command handler");
+    if (CommandTrackingState.IsChatCommandOnCooldown(CommandHandler, UserLogin)) {
+        `TILOG("Command is on cooldown");
+        return;
+    }
+
+    StateMgr.UpsertViewer(UserLogin, Viewer);
+
+    `TILOG("Handling command with template " $ CommandHandler.DataName);
+    if (CommandHandler.Invoke(Command, Body, Emotes, MessageId, Viewer) && CommandHandler.ShouldTrackUsage()) {
+        // Record the command usage
+        NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Tracking Chat Command " $ Command);
+        CommandTrackingState = XComGameState_TwitchChatCommandTracking(NewGameState.ModifyStateObject(class'XComGameState_TwitchChatCommandTracking', CommandTrackingState.ObjectID));
+        CommandTrackingState.RecordCommandUsage(CommandHandler, Viewer.Login);
+
+        `GAMERULES.SubmitGameState(NewGameState);
+    }
 }
 
 private function array<EmoteData> ParseEmoteData(JsonObject Data) {

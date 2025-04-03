@@ -1,6 +1,6 @@
-class TwitchChatCommand extends TwitchEventHandler
-    dependson(TwitchStateManager)
-    abstract;
+class X2TwitchChatCommandTemplate extends X2DataTemplate
+    config(TwitchChatCommands)
+    dependson(TwitchStateManager);
 
 struct ChatCommandRateLimitConfig {
     var float CooldownInSeconds;
@@ -14,19 +14,20 @@ struct EmoteData {
     var int EndIndex;
 };
 
-// Which commands the class can handle, without the leading exclamation point
+// Which command strings this command can handle, without the leading exclamation point
 // (i.e. "xsay" rather than "!xsay")
 var config array<string> CommandAliases;
 
 var config bool bEnableInStrategy;
 var config bool bEnableInTactical;
+var config bool bRequireOwnedUnit;
 
 var config ChatCommandRateLimitConfig IndividualRateLimits;
 var config ChatCommandRateLimitConfig GlobalRateLimits;
 
 var protected const class<XComGameState_ChatCommandBase> GameStateClass; // must be set in defaultproperties of subclasses
 
-function Initialize(TwitchStateManager StateMgr) {
+function Initialize() {
     local int I;
 
     // Lowercase all aliases to simplify things
@@ -46,7 +47,13 @@ function Initialize(TwitchStateManager StateMgr) {
 /// <param name="Viewer">The viewer object for the sender. Rarely, this may be inaccurate if a user is chatting before Twitch's
 /// API has returned them in the chatters list; in particular, subscriber/VIP/moderator info may be missing.</param>
 /// <returns>True if the command was successfully invoked (and thus should be placed on cooldown), false otherwise.</returns>
-function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, string MessageId, TwitchChatter Viewer);
+function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, string MessageId, TwitchChatter Viewer) {
+    if (bRequireOwnedUnit && Viewer.OwnedObjectID == 0) {
+        return false;
+    }
+
+    return true;
+}
 
 /// <summary>
 /// Whether usage of this command should be tracked in the XComGameState_TwitchChatCommandTracking singleton. Tracking is
@@ -77,6 +84,10 @@ protected function XComGameState_ChatCommandBase CreateChatCommandGameState(XCom
     return ChatCommandGameState;
 }
 
+/// <summary>
+/// Registers the given emotes in the Twitch Integration mod so they can be displayed in-game. If your command interacts with
+/// emotes in any way, you should call this function.
+/// </summary>
 protected function RegisterEmotes(array<EmoteData> Emotes) {
     local int Index;
 

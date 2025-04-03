@@ -41,7 +41,6 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
             continue;
         }
 
-        `TILOG("There are " $ ValidPositiveOptions.Length $ " positive and " $ ValidNegativeOptions.Length $ " negative options in the pool for unit " $ Unit.GetFullName() $ " (before filtering)");
         ValidPositiveOptions = FilterOptions(PositiveOptions, Unit, TotalPositiveWeight);
         ValidNegativeOptions = FilterOptions(NegativeOptions, Unit, TotalNegativeWeight);
 

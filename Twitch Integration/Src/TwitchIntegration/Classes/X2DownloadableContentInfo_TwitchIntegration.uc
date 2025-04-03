@@ -16,6 +16,19 @@ class X2DownloadableContentInfo_TwitchIntegration extends X2DownloadableContentI
 // so that the default value results in visibility.
 var privatewrite config bool bCivilianNameplatesDisabled;
 
+exec function TwitchListChatCommands() {
+    local string CommandAliases;
+    local X2TwitchChatCommandTemplate Template;
+    local array<X2TwitchChatCommandTemplate> ChatCommandTemplates;
+
+    ChatCommandTemplates = class'X2TwitchChatCommandTemplateManager'.static.GetChatCommandTemplateManager().GetAllChatCommandTemplates();
+
+    foreach ChatCommandTemplates(Template) {
+        JoinArray(Template.CommandAliases, CommandAliases, ", ");
+        class'Helpers'.static.OutputMsg("Template " $ Template.DataName $ " aliases: " $ CommandAliases);
+    }
+}
+
 /// <summary>
 /// This method is run when the player loads a saved game directly into Strategy while this DLC is installed
 /// </summary>
@@ -25,6 +38,21 @@ static event OnLoadedSavedGameToStrategy()
 
     if (`TISTATEMGR == none) {
 	    `XCOMGAME.Spawn(class'TwitchStateManager').Initialize();
+    }
+}
+
+/// <summary>
+/// Called after the Templates have been created (but before they are validated) while this DLC / Mod is installed.
+/// </summary>
+static event OnPostTemplatesCreated()
+{
+    local X2TwitchChatCommandTemplate Template;
+    local array<X2TwitchChatCommandTemplate> ChatCommandTemplates;
+
+    ChatCommandTemplates = class'X2TwitchChatCommandTemplateManager'.static.GetChatCommandTemplateManager().GetAllChatCommandTemplates();
+
+    foreach ChatCommandTemplates(Template) {
+        Template.Initialize();
     }
 }
 
