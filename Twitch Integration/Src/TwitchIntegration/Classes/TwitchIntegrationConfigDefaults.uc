@@ -36,4 +36,12 @@ var config bool bExcludeBroadcaster;
 
 // #endregion
 
+// #region Roll the Dice settings
+
+var config bool bRtdBalanceOptions;
+var config bool bRtdQuickMode;
+
+// #endregion
+
+
 // #endregion

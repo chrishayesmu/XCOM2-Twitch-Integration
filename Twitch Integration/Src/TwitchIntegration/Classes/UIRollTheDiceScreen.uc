@@ -140,16 +140,8 @@ protected function string GetDisplayName() {
 }
 
 private function OnCloseButtonPress(UIButton Button) {
-    local XComGameState_Unit UnitState;
-    local X2TwitchEventActionTemplate ActionTemplate;
-
     `SCREENSTACK.Pop(self);
     Movie.Pres.PlayUISound(eSUISound_MenuClose);
-
-    UnitState = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(TargetUnitObjectID));
-    ActionTemplate = class'X2TwitchUtils'.static.GetTwitchEventActionTemplate(WinningOptionTemplateName);
-
-    ActionTemplate.Apply(UnitState);
 }
 
 // Positions the carousel text and related elements. Ignored once the carousel starts spinning, to avoid
@@ -359,8 +351,8 @@ state Stopped {
 
 defaultproperties
 {
-    SecondsUntilCarouselStart=1.0
-    SecondsToRampUp=0.75
-    SecondsAtMaxSpeed=3.5
-    TextSpeed=400
+    SecondsUntilCarouselStart=0.3
+    SecondsToRampUp=0.5
+    SecondsAtMaxSpeed=2.0
+    TextSpeed=500
 }

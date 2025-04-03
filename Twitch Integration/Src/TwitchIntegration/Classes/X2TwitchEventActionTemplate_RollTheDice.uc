@@ -24,6 +24,7 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
     local XComGameState_TwitchRollTheDice RtdGameState;
     local XComGameState_Unit Unit;
 	local XComGameStateContext_ChangeContainer NewContext;
+    local X2TwitchEventActionTemplate ActionTemplate;
     local array<XComGameState_Unit> Targets;
     local array<RtdOption> ValidPositiveOptions, ValidNegativeOptions, AllOptions;
     local array<string> OptionFriendlyNames;
@@ -80,11 +81,21 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
         RtdGameState.SelectedActionIndex = SelectWeightedChoice(AllOptions);
         RtdGameState.SelectedActionTemplateName = AllOptions[RtdGameState.SelectedActionIndex].ActionName;
 
+        if (RtdGameState.SelectedActionIndex < ValidPositiveOptions.Length) {
+            RtdGameState.OutcomeType = eRTDO_Positive;
+        }
+        else {
+            RtdGameState.OutcomeType = eRTDO_Negative;
+        }
+
         NewContext = XComGameStateContext_ChangeContainer(NewGameState.GetContext());
         NewContext.BuildVisualizationFn = BuildVisualization;
 
         `TILOG("Submitting game state with winning action " $ RtdGameState.SelectedActionTemplateName);
         `GAMERULES.SubmitGameState(NewGameState);
+
+        ActionTemplate = class'X2TwitchUtils'.static.GetTwitchEventActionTemplate(RtdGameState.SelectedActionTemplateName);
+        ActionTemplate.Apply(Unit);
     }
 }
 
@@ -119,8 +130,13 @@ protected function bool BalanceOptionArrays(out array<RtdOption> ValidPositiveOp
 }
 
 protected function BuildVisualization(XComGameState VisualizeGameState) {
+    local EUIState BannerState;
     local VisualizationActionMetadata ActionMetadata;
+    local XComGameState_TwitchObjectOwnership OwnershipState;
 	local XComGameState_TwitchRollTheDice RtdState;
+    local X2Action_PlayMessageBanner MessageAction;
+    local X2Action_PlaySoundAndFlyOver SoundAndFlyover;
+    local string BannerText;
 
 	foreach VisualizeGameState.IterateByClassType(class'XComGameState_TwitchRollTheDice', RtdState) {
 		break;
@@ -128,8 +144,19 @@ protected function BuildVisualization(XComGameState VisualizeGameState) {
 
     ActionMetadata.StateObject_OldState = none;
 	ActionMetadata.StateObject_NewState = RtdState;
+    ActionMetadata.VisualizeActor = `XCOMHISTORY.GetVisualizer(RtdState.TargetUnitObjectID);
 
-    class'X2Action_ShowRollTheDiceScreen'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext());
+    if (`TI_CFG(bRtdQuickMode)) {
+        OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(RtdState.TargetUnitObjectID);
+        BannerState = RtdState.OutcomeType == eRTDO_Positive ? eUIState_Good : eUIState_Bad;
+        BannerText = Repl(class'XComGameState_TwitchRollTheDice'.default.strBannerText, "<ViewerName/>", OwnershipState.TwitchLogin);
+
+        MessageAction = X2Action_PlayMessageBanner(class'X2Action_PlayMessageBanner'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext()));
+        MessageAction.AddMessageBanner(class'XComGameState_TwitchRollTheDice'.default.strBannerTitle, /* IconPath */ "", RtdState.PossibleActions[RtdState.SelectedActionIndex], BannerText, BannerState);
+    }
+    else {
+        class'X2Action_ShowRollTheDiceScreen'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext());
+    }
 }
 
 protected function CacheTemplates() {

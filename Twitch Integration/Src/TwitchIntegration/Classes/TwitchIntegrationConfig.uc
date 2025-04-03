@@ -25,6 +25,8 @@ const FirstVersion_ChannelPointsPerVote = 1;
 const FirstVersion_bAssignUnitNames = 1;
 const FirstVersion_bAssignChosenNames = 1;
 const FirstVersion_bExcludeBroadcaster = 1;
+const FirstVersion_bRtdBalanceOptions = 3;
+const FirstVersion_bRtdQuickMode = 3;
 
 // #endregion
 
@@ -102,6 +104,16 @@ var localized string strExcludeBroadcasterTooltip;
 
 // #endregion
 
+// #region Roll the Dice strings
+
+var localized string strRtdSettingsGroupTitle;
+var localized string strRtdBalanceOptionsLabel;
+var localized string strRtdBalanceOptionsTooltip;
+var localized string strRtdQuickModeLabel;
+var localized string strRtdQuickModeTooltip;
+
+// #endregion
+
 // #endregion
 
 // #region Config variables
@@ -135,6 +147,13 @@ var config int  ChannelPointsPerVote;
 var config bool bAssignUnitNames;
 var config bool bAssignChosenNames;
 var config bool bExcludeBroadcaster;
+
+// #endregion
+
+// #region Roll the Dice settings
+
+var config bool bRtdBalanceOptions;
+var config bool bRtdQuickMode;
 
 // #endregion
 
@@ -199,6 +218,12 @@ function ClientModCallback(MCM_API_Instance ConfigAPI, int GameMode) {
 
     DisableGroupWhenFalseHandler(GroupControllingSetting, bAssignUnitNames);
 
+    Group = Page.AddGroup('TwitchRollTheDiceSettings', strRtdSettingsGroupTitle);
+    Group.AddCheckbox(nameof(bRtdBalanceOptions), strRtdBalanceOptionsLabel, strRtdBalanceOptionsTooltip, bRtdBalanceOptions, RtdBalanceOptionsSaveHandler);
+    Group.AddCheckbox(nameof(bRtdQuickMode), strRtdQuickModeLabel, strRtdQuickModeTooltip, bRtdQuickMode, RtdQuickModeSaveHandler);
+
+    DisableGroupWhenFalseHandler(GroupControllingSetting, bAssignUnitNames);
+
     Page.ShowSettings();
 }
 
@@ -244,23 +269,26 @@ private function DisableSubsequentSettingsWhenFalseHandler(MCM_API_Setting Setti
 }
 
 private function LoadSavedSettings() {
-    bEnableXSay = `TI_CFG(bEnableXSay, 2);
-    bShowXSayInCommLink = `TI_CFG(bShowXSayInCommLink, 2);
-    bShowChatLog = `TI_CFG(bShowChatLog, 1);
-    ChatLogColorScheme = `TI_CFG(ChatLogColorScheme, 1);
-    ChatLogEnemyNameFormat = `TI_CFG(ChatLogEnemyNameFormat, 1);
-    ChatLogFriendlyNameFormat = `TI_CFG(ChatLogFriendlyNameFormat, 1);
+    bEnableXSay = `TI_CFG(bEnableXSay);
+    bShowXSayInCommLink = `TI_CFG(bShowXSayInCommLink);
+    bShowChatLog = `TI_CFG(bShowChatLog);
+    ChatLogColorScheme = `TI_CFG(ChatLogColorScheme);
+    ChatLogEnemyNameFormat = `TI_CFG(ChatLogEnemyNameFormat);
+    ChatLogFriendlyNameFormat = `TI_CFG(ChatLogFriendlyNameFormat);
 
-    bEnablePolls = `TI_CFG(bEnablePolls, 1);
-    MinTurnsBeforeFirstPoll = `TI_CFG(MinTurnsBeforeFirstPoll, 1);
-    MinTurnsBetweenPolls = `TI_CFG(MinTurnsBetweenPolls, 1);
-    ChanceToStartPoll = `TI_CFG(ChanceToStartPoll, 1);
-    bAllowChannelPointVotes = `TI_CFG(bAllowChannelPointVotes, 1);
-    ChannelPointsPerVote = `TI_CFG(ChannelPointsPerVote, 1);
+    bEnablePolls = `TI_CFG(bEnablePolls);
+    MinTurnsBeforeFirstPoll = `TI_CFG(MinTurnsBeforeFirstPoll);
+    MinTurnsBetweenPolls = `TI_CFG(MinTurnsBetweenPolls);
+    ChanceToStartPoll = `TI_CFG(ChanceToStartPoll);
+    bAllowChannelPointVotes = `TI_CFG(bAllowChannelPointVotes);
+    ChannelPointsPerVote = `TI_CFG(ChannelPointsPerVote);
 
-    bAssignUnitNames = `TI_CFG(bAssignUnitNames, 1);
-    bAssignChosenNames = `TI_CFG(bAssignChosenNames, 1);
-    bExcludeBroadcaster = `TI_CFG(bExcludeBroadcaster, 1);
+    bAssignUnitNames = `TI_CFG(bAssignUnitNames);
+    bAssignChosenNames = `TI_CFG(bAssignChosenNames);
+    bExcludeBroadcaster = `TI_CFG(bExcludeBroadcaster);
+
+    bRtdBalanceOptions = `TI_CFG(bRtdBalanceOptions);
+    bRtdQuickMode = `TI_CFG(bRtdQuickMode);
 
     if (class'TwitchIntegrationConfigDefaults'.default.ConfigVersion > default.ConfigVersion) {
         default.ConfigVersion = class'TwitchIntegrationConfigDefaults'.default.ConfigVersion;
@@ -340,6 +368,8 @@ private function SaveChatLogFriendlyNameFormat(MCM_API_Setting _Setting, string 
 `MCM_API_BasicCheckboxSaveHandler(EnablePollsSaveHandler, bEnablePolls);
 `MCM_API_BasicCheckboxSaveHandler(EnableXSaySaveHandler, bEnableXSay);
 `MCM_API_BasicCheckboxSaveHandler(ExcludeBroadcasterSaveHandler, bExcludeBroadcaster);
+`MCM_API_BasicCheckboxSaveHandler(RtdBalanceOptionsSaveHandler, bRtdBalanceOptions);
+`MCM_API_BasicCheckboxSaveHandler(RtdQuickModeSaveHandler, bRtdQuickMode);
 `MCM_API_BasicCheckboxSaveHandler(ShowChatLogSaveHandler, bShowChatLog);
 `MCM_API_BasicCheckboxSaveHandler(ShowXSayInCommLinkSaveHandler, bShowXSayInCommLink);
 `MCM_API_BasicSliderSaveHandler(ChanceToStartPollSaveHandler, ChanceToStartPoll);

@@ -1,8 +1,6 @@
 [UIChatLog]
 ClearButtonLabel="Clear Chat"
 
-
-
 [UIPollPanel]
 strTotalVotesPlural="votes"
 strTotalVotesSingular="vote"
@@ -52,6 +50,10 @@ strWillBuffEffectTitle="Twitch Will Boost"
 [TwitchEventHandler_ChannelPointRedeem]
 BannerTitle="Twitch Channel Points Reward"
 BannerText="Redeemed by <ViewerName/>"
+
+[XComGameState_TwitchRollTheDice]
+strBannerTitle="Roll the Dice"
+strBannerText="Rolled for <ViewerName/>"
 
 [TwitchIntegrationConfig]
 strChangeButtonLabel="Change.."
@@ -110,6 +112,12 @@ strAssignChosenNamesLabel="Raffle the Chosen Assassin/Hunter/Warlock"
 strAssignChosenNamesTooltip="If checked, the Chosen will also be raffled automatically. Otherwise they will retain their automatically generated names."
 strExcludeBroadcasterLabel="Exclude Broadcaster"
 strExcludeBroadcasterTooltip="If checked, the broadcaster is not eligible to be raffled as a unit. They can still be manually given a unit."
+
+strRtdSettingsGroupTitle="Roll the Dice Settings"
+strRtdBalanceOptionsLabel="Balance Positive and Negative Options"
+strRtdBalanceOptionsTooltip="If checked, the game will attempt to balance positive and negative outcomes to be roughly equally likely."
+strRtdQuickModeLabel="Quick Mode"
+strRtdQuickModeTooltip="If checked, the normal dice rolling screen is removed in favor of a faster-displaying option."
 
 [TwitchPollGroup_EnemyRising X2PollGroupTemplate]
 PollTitle="Enemy Rising"
