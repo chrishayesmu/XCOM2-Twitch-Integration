@@ -356,7 +356,7 @@ static protected function EventListenerReturn RemoveTransientOwnershipStates(Obj
 static function bool IsOwnershipTransient(XComGameState_Unit Unit) {
     // Friendly soldiers and the Chosen have permanent ownership
     // TODO: soldiers may be created in the tac-to-strat transition (rewards/rescues?)
-    if (Unit.IsSoldier() || Unit.IsChosen()) {
+    if (Unit == none || Unit.IsSoldier() || Unit.IsChosen()) {
         return false;
     }
 

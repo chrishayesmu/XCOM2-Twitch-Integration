@@ -8,6 +8,7 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
     local XComGameState_TwitchObjectOwnership Ownership;
 
     Targets = FindTargets(InvokingUnit);
+
     if (Targets.Length == 0) {
         return;
     }

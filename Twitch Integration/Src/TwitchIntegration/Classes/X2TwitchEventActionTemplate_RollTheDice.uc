@@ -135,7 +135,6 @@ protected function BuildVisualization(XComGameState VisualizeGameState) {
     local XComGameState_TwitchObjectOwnership OwnershipState;
 	local XComGameState_TwitchRollTheDice RtdState;
     local X2Action_PlayMessageBanner MessageAction;
-    local X2Action_PlaySoundAndFlyOver SoundAndFlyover;
     local string BannerText;
 
 	foreach VisualizeGameState.IterateByClassType(class'XComGameState_TwitchRollTheDice', RtdState) {

@@ -2,11 +2,6 @@ class X2TwitchEventActionTemplate extends X2DataTemplate
     config(TwitchActions)
     abstract;
 
-struct TwitchActionEntry {
-    var name ActionName;  // Name of the action template to use
-    var int Weight;       // Individual weight in a situation where the action is selected randomly from a pool
-};
-
 function Apply(optional XComGameState_Unit InvokingUnit);
 
 /// <summary>

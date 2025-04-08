@@ -1,7 +1,7 @@
 class X2TwitchEventActionTemplate_TargetsUnits extends X2TwitchEventActionTemplate
     abstract;
 
-enum eTwitch_UnitSelectionCriteria {
+enum ETwitchUnitSelectionCriteria {
     eTwitchUSC_Random,
 
     eTwitchUSC_HighestHP,
@@ -29,7 +29,7 @@ struct TwitchActionFlyoverParams {
 };
 
 var config array<eTeam> UnitTeams;
-var config eTwitch_UnitSelectionCriteria SelectBasedOn;
+var config ETwitchUnitSelectionCriteria SelectBasedOn;
 var config bool IncludeCivilians;
 var config bool IncludeConcealed;
 var config bool IncludeDead;
