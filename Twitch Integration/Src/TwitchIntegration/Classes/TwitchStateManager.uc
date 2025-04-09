@@ -310,7 +310,7 @@ function int RaffleViewer() {
     return Index;
 }
 
-function ResolveCurrentPoll() {
+function ResolveCurrentPoll(bool ApplyResults) {
     local XComGameState NewGameState;
 	local XComGameStateContext_ChangeContainer Context;
     local XComGameState_TwitchEventPoll PollGameState;
@@ -327,22 +327,7 @@ function ResolveCurrentPoll() {
     PollGameState = XComGameState_TwitchEventPoll(NewGameState.ModifyStateObject(class'XComGameState_TwitchEventPoll', PollGameState.ObjectID));
     PollGameState.RemainingTurns = PollGameState.RemainingTurns > 0 ? 0 : -1; // don't erase negative values, which indicate a time-based poll
     PollGameState.IsActive = false;
-
-    Context = XComGameStateContext_ChangeContainer(NewGameState.GetContext());
-	Context.BuildVisualizationFn = BuildVisualization_PollEnding;
-
-	`GAMERULES.SubmitGameState(NewGameState);
-}
-
-function ResolveCurrentPoll_Actual() {
-    local XComGameState NewGameState;
-	local XComGameStateContext_ChangeContainer Context;
-    local XComGameState_TwitchEventPoll PollGameState;
-
-    NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Poll Resolving");
-    PollGameState = XComGameState_TwitchEventPoll(NewGameState.ModifyStateObject(class'XComGameState_TwitchEventPoll', PollGameState.ObjectID));
-    PollGameState.RemainingTurns = PollGameState.RemainingTurns > 0 ? 0 : -1; // don't erase negative values, which indicate a time-based poll
-    PollGameState.IsActive = false;
+    PollGameState.ApplyResults = ApplyResults;
 
     Context = XComGameStateContext_ChangeContainer(NewGameState.GetContext());
 	Context.BuildVisualizationFn = BuildVisualization_PollEnding;
@@ -351,14 +336,21 @@ function ResolveCurrentPoll_Actual() {
 }
 
 // Public so it can be called from console commands/actions
-function X2PollGroupTemplate SelectPollGroupTemplateByWeight() {
+function X2PollGroupTemplate SelectPollGroupTemplateByWeight(optional array<name> AllowedTemplateNames) {
     local array<X2PollGroupTemplate> EligibleTemplates;
     local X2PollGroupTemplate Template;
-    local int RunningTotal;
-    local int TotalWeight;
-    local int WeightRoll;
+    local int RunningTotal, TotalWeight, WeightRoll;
+    local int Index;
 
     EligibleTemplates = class'X2PollGroupTemplateManager'.static.GetPollGroupTemplateManager().GetEligiblePollGroupTemplates();
+
+    if (AllowedTemplateNames.Length > 0) {
+        for (Index = EligibleTemplates.Length - 1; Index >= 0; Index--) {
+            if (AllowedTemplateNames.Find(EligibleTemplates[Index].DataName) == INDEX_NONE) {
+                EligibleTemplates.Remove(Index, 1);
+            }
+        }
+    }
 
     if (EligibleTemplates.Length == 0) {
         return none;
@@ -383,7 +375,7 @@ function X2PollGroupTemplate SelectPollGroupTemplateByWeight() {
     return EligibleTemplates[EligibleTemplates.Length - 1];
 }
 
-function StartPoll(X2PollGroupTemplate PollGroupTemplate, optional XComGameState_Player PlayerState) {
+function StartPoll(X2PollGroupTemplate PollGroupTemplate) {
     local int Index, NumChoices;
     local int ChannelPointsPerVote;
     local X2PollChoiceTemplateManager TemplateMgr;
@@ -395,10 +387,6 @@ function StartPoll(X2PollGroupTemplate PollGroupTemplate, optional XComGameState
     if (class'X2TwitchUtils'.static.GetActivePoll() != none) {
         `TILOG("Not starting a poll because there's already one running");
         return;
-    }
-
-    if (PlayerState == none) {
-        PlayerState = XComGameState_Player(`XCOMHISTORY.GetGameStateForObjectID(`TACTICALRULES.GetCachedUnitActionPlayerRef().ObjectID));
     }
 
     NumChoices = PollGroupTemplate.RollForNumberOfChoices();
@@ -484,6 +472,11 @@ private function BuildVisualization_PollEnding(XComGameState VisualizeGameState)
 	foreach VisualizeGameState.IterateByClassType(class'XComGameState_TwitchEventPoll', PollState) {
 		break;
 	}
+
+    if (!PollState.ApplyResults) {
+        class'UIPollPanel'.static.HidePanel();
+        return;
+    }
 
 	ActionMetadata.StateObject_OldState = `XCOMHISTORY.GetGameStateForObjectID(PollState.ObjectID, eReturnType_Reference, VisualizeGameState.HistoryIndex - 1);
 	ActionMetadata.StateObject_NewState = PollState;
@@ -663,7 +656,7 @@ private function EventListenerReturn OnPlayerTurnBegun(Object EventData, Object 
 
     if (PollGameState == none) {
         if (ShouldStartPoll(PlayerState)) {
-            StartPoll(SelectPollGroupTemplateByWeight(), PlayerState);
+            StartPoll(SelectPollGroupTemplateByWeight());
         }
 
         return ELR_NoInterrupt;
@@ -675,7 +668,7 @@ private function EventListenerReturn OnPlayerTurnBegun(Object EventData, Object 
     }
 
     if (PollGameState.RemainingTurns == 1) {
-        ResolveCurrentPoll();
+        ResolveCurrentPoll(/* ApplyResults */ true);
         return ELR_NoInterrupt;
     }
 

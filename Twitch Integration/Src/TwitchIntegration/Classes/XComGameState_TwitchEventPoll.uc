@@ -15,6 +15,7 @@ var string TwitchPollId; // ID assigned to the poll by Twitch
 var int PlayerTurnCountWhenStarted; // The XComGameState_Player.PlayerTurnCount on the turn this poll began
 var int RemainingTurns; // How many turns are left to vote (if the time is measured in turns)
 var bool IsActive; // Whether this poll is still active or not
+var bool ApplyResults; // If true, this poll's results should be used; otherwise it is discarded
 
 defaultproperties
 {

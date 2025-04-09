@@ -184,8 +184,8 @@ exec function TwitchClearRiggedRaffles() {
 /// <summary>
 /// Ends the currently running poll, if any.
 /// </summary>
-exec function TwitchEndPoll() {
-	`TISTATEMGR.ResolveCurrentPoll();
+exec function TwitchEndPoll(optional bool ApplyResults = true) {
+	`TISTATEMGR.ResolveCurrentPoll(ApplyResults);
 }
 
 /// <summary>

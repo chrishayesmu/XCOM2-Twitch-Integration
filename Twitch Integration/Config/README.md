@@ -41,7 +41,7 @@ This mod adds a number of console commands, all of which start with the word "Tw
 * `TwitchRaffleUnitUnderMouse` - This re-raffles the unit closest to your mouse cursor (but will not raffle XCOM soldiers). You can use this if someone with an offensive username has won the raffle.
 * `TwitchReassignUnitUnderMouse <ViewerName>` - Similar to the previous command, but you get to choose which viewer owns the unit. Remember that any viewer can only own one object at a time.
 * `TwitchStartPoll <PollGroup>` - Starts a viewer poll. You can specify the poll group (see `XComTwitchPolls.ini` for options) but the actual options will be chosen randomly, per the normal poll logic.
-* `TwitchEndPoll` - Ends the current poll immediately without waiting for its timer. The currently winning option will take effect.
+* `TwitchEndPoll [ApplyResults=true]` - Ends the current poll immediately without waiting for its timer. If `ApplyResults` is `true`, the currently winning option will take effect. Otherwise the poll's results are thrown away and not displayed.
 * `TwitchRigRaffle <ViewerName>` - Rigs the next unit raffle so that the provided user wins, if eligible. If used multiple times, subsequent raffles will be rigged in order. Rigged raffles will not persist if a save game is loaded or if a tactical/strategy transition occurs.
 * `TwitchClearRiggedRaffles` - Clears out the list of rigged raffles from the previous command.
 
