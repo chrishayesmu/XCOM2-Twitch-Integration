@@ -94,8 +94,13 @@ protected function BuildVisualization(XComGameState VisualizeGameState) {
 
     BannerValue = Repl(BannerText, "<ViewerName/>", RedeemState.RedeemerName);
 
-    MessageAction = X2Action_PlayMessageBanner(class'X2Action_PlayMessageBanner'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext()));
-    MessageAction.AddMessageBanner(BannerTitle, /* IconPath */ "", RedeemState.RewardTitle, BannerValue, eUIState_Normal);
+    if (`TI_IS_TAC_GAME) {
+        MessageAction = X2Action_PlayMessageBanner(class'X2Action_PlayMessageBanner'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext()));
+        MessageAction.AddMessageBanner(BannerTitle, /* IconPath */ "", RedeemState.RewardTitle, BannerValue, eUIState_Normal);
+    }
+    else {
+        `HQPRES.NotifyBanner(BannerTitle, /* ImagePath */, RedeemState.RewardTitle, BannerValue, eUIState_Normal);
+    }
 
     // TODO indicate an invalid redeem somehow so the streamer can refund the user their points
 }
