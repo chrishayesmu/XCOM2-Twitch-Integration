@@ -161,7 +161,7 @@ event Tick(float DeltaTime) {
         }
     }
 
-    if (bUnraffledUnitsExist) {
+    if (bUnraffledUnitsExist && `TI_CFG(bAssignUnitNames)) {
         fTimeSinceLastRaffle += DeltaTime;
 
         if (fTimeSinceLastRaffle >= 5.0f && bIsViewerListPopulated) {
