@@ -233,7 +233,6 @@ exec function TwitchListRaffledViewers() {
         }
 
         class'Helpers'.static.OutputMsg(Message);
-        `TILOG(Message);
     }
 }
 

@@ -294,12 +294,15 @@ static protected function EventListenerReturn OnPreCompleteStrategyFromTacticalT
         Unit = XComGameState_Unit(History.GetGameStateForObjectID(OwnershipState.OwnedObjectRef.ObjectID, eReturnType_Reference));
 
         if (IsOwnershipTransient(Unit)) {
-            `TILOG("Skipping transient unit " $ Unit.GetFullName());
-            continue;
+            // Somehow the strat layer is randomly pulling ownership states from previous missions, but not the *immediately* previous
+            // mission. So we just delete the unwanted ownerships ourselves to prevent them from causing problems.
+            `TILOG("Deleting ownership for transient unit " $ Unit.GetFullName());
+            NewGameState.RemoveStateObject(OwnershipState.ObjectID);
         }
-
-        `TILOG("Copying non-transient state object: Unit is " $ Unit.GetFullName() $ " and owner is " $ OwnershipState.TwitchLogin);
-        NewGameState.ModifyStateObject(class'XComGameState_TwitchObjectOwnership', OwnershipState.ObjectID);
+        else {
+            `TILOG("Copying non-transient state object: Unit is " $ Unit.GetFullName() $ " and owner is " $ OwnershipState.TwitchLogin);
+            NewGameState.ModifyStateObject(class'XComGameState_TwitchObjectOwnership', OwnershipState.ObjectID);
+        }
     }
 
     if (NewGameState.GetNumGameStateObjects() > 0) {
