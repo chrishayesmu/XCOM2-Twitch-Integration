@@ -48,8 +48,19 @@ function Initialize() {
 /// API has returned them in the chatters list; in particular, subscriber/VIP/moderator info may be missing.</param>
 /// <returns>True if the command was successfully invoked (and thus should be placed on cooldown), false otherwise.</returns>
 function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, string MessageId, TwitchChatter Viewer) {
-    if (bRequireOwnedUnit && Viewer.OwnedObjectID == 0) {
-        return false;
+    local XComGameState_Unit UnitState;
+
+    if (bRequireOwnedUnit) {
+        if (Viewer.OwnedObjectID == 0) {
+            return false;
+        }
+
+        // When on the tactical layer, it's not enough to own a unit; it has to be in the current mission
+        if (`TI_IS_TAC_GAME) {
+            UnitState = class'X2TwitchUtils'.static.GetViewerUnitOnMission(Viewer.Login);
+
+            return UnitState != none;
+        }
     }
 
     return true;
