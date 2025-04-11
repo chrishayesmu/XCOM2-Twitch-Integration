@@ -6,6 +6,7 @@ const VERBOSE_LOGS = false;
 
 struct TwitchFlag {
     var int AttachedObjectID;
+    var UIUnitFlag AttachedFlag;
     var UIBGBox BGBox;
     var TwitchUnitFlagEmote TwitchEmote;
     var UIImage TwitchIcon;
@@ -22,7 +23,8 @@ var config float BackgroundOpacity;
 
 var private float fTimeSinceLastFlagCheck;
 var private array<int> UnitIDsPendingFlagUpdate;
-var private array<TwitchFlag> m_kTwitchFlags;
+var private array<TwitchFlag> m_arrTwitchFlags;
+var private UIUnitFlagManager  m_kUnitFlagManager;
 
 const ICON_HEIGHT = 28;
 const ICON_WIDTH = 28;
@@ -34,8 +36,9 @@ function Initialize() {
     local XComGameState_Unit Unit;
 
     History = `XCOMHISTORY;
+    m_kUnitFlagManager = `PRES.m_kUnitFlagManager;
 
-    `TILOG("Creating Twitch unit flags");
+    `TILOG("Creating Twitch unit flags; UnitFlagManager = " $ m_kUnitFlagManager);
 
     // When loading into tactical, we need to make sure our UI is present
     foreach History.IterateByClassType(class'XComGameState_TwitchObjectOwnership', OwnershipState) {
@@ -44,6 +47,8 @@ function Initialize() {
         `TILOG("Syncing unit flag for unit " $ Unit.GetFullName() $ " to owner " $ OwnershipState.TwitchLogin);
         AddOrUpdateFlag(Unit, OwnershipState);
     }
+
+	`XWORLDINFO.MyWatchVariableMgr.RegisterWatchVariable(m_kUnitFlagManager, 'm_arrFlags', self, OnUnitFlagsArrayChanged);
 }
 
 event Tick(float DeltaTime) {
@@ -70,13 +75,12 @@ event Tick(float DeltaTime) {
 }
 
 function bool AddOrUpdateFlag(XComGameState_Unit Unit, optional XComGameState_TwitchObjectOwnership Ownership = none) {
-    local int UnitObjID;
+    local int FlagIndex, UnitObjID;
     local TwitchFlag TFlag;
     local UIUnitFlag UnitFlag;
     local XComPresentationLayer Pres;
 
     `TILOG("AddOrUpdateFlag for Unit = " $ Unit $ ", Ownership = " $ Ownership, VERBOSE_LOGS);
-    `XWORLDINFO.ConsoleCommand("flushlogs");
 
     if (Unit == none) {
         `TILOG("ERROR: asked to update unit flag but Unit was none!");
@@ -108,14 +112,21 @@ function bool AddOrUpdateFlag(XComGameState_Unit Unit, optional XComGameState_Tw
         return false;
     }
 
-    `XWORLDINFO.ConsoleCommand("flushlogs");
-
-    if (GetFlagForObject(UnitObjID, TFlag)) {
+    if (GetFlagForObject(UnitObjID, TFlag, FlagIndex)) {
         `TILOG("Already found internal Twitch flag for obj ID " $ UnitObjID, VERBOSE_LOGS);
-        `XWORLDINFO.ConsoleCommand("flushlogs");
 
-        if (Ownership != none) {
+        if (TFlag.AttachedFlag != UnitFlag) {
+            `TILOG("Original unit flag has changed; swapping to the new one");
+
+            RecreateTwitchFlag(TFlag, UnitFlag, Unit, Ownership);
+            m_arrTwitchFlags[FlagIndex] = TFlag;
+        }
+        else if (Ownership != none) {
             TFlag.TwitchName.SetText(Ownership.TwitchLogin);
+            TFlag.TwitchName.Show();
+            TFlag.BGBox.Show();
+            TFlag.TwitchEmote.Show();
+            TFlag.TwitchIcon.Show();
             TFlag.TwitchName.Show();
         }
         else {
@@ -128,10 +139,9 @@ function bool AddOrUpdateFlag(XComGameState_Unit Unit, optional XComGameState_Tw
     }
     else if (Ownership != none) {
         `TILOG("Creating new Twitch flag", VERBOSE_LOGS);
-        `XWORLDINFO.ConsoleCommand("flushlogs");
 
         TFlag = CreateTwitchFlag(UnitFlag, Unit, Ownership);
-        m_kTwitchFlags.AddItem(TFlag);
+        m_arrTwitchFlags.AddItem(TFlag);
 
         // Once our flag is created, it's time to set the unit's name. We don't want to do this
         // before the unit flag is fully initialized, because we want the base game's flag to show
@@ -142,17 +152,29 @@ function bool AddOrUpdateFlag(XComGameState_Unit Unit, optional XComGameState_Tw
     return true;
 }
 
-function bool GetFlagForObject(int ObjectID, out TwitchFlag TFlag) {
-    local int Index;
-
-    Index = m_kTwitchFlags.Find('AttachedObjectID', ObjectID);
+function bool GetFlagForObject(int ObjectID, out TwitchFlag TFlag, optional out int Index) {
+    Index = m_arrTwitchFlags.Find('AttachedObjectID', ObjectID);
 
     if (Index == INDEX_NONE) {
         return false;
     }
 
-    TFlag = m_kTwitchFlags[Index];
+    TFlag = m_arrTwitchFlags[Index];
     return true;
+}
+
+function OnUnitFlagsArrayChanged() {
+    local XComGameState_Unit Unit;
+    local int Index, ObjectID;
+
+    `TILOG("Unit flag array changed; processing " $ m_kUnitFlagManager.m_arrFlags.Length $ " flags");
+
+    for (Index = 0; Index < m_kUnitFlagManager.m_arrFlags.Length; Index++) {
+        ObjectID = m_kUnitFlagManager.m_arrFlags[Index].StoredObjectID;
+        Unit = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(ObjectID));
+
+        AddOrUpdateFlag(Unit);
+    }
 }
 
 function SetTwitchEmoteImage(XComGameState_Unit Unit, string ImagePath) {
@@ -171,6 +193,8 @@ private function TwitchFlag CreateTwitchFlag(UIUnitFlag UnitFlag, XComGameState_
     `TISTATEMGR.GetViewer(Ownership.TwitchLogin, Chatter);
 
     TFlag.AttachedObjectID = UnitFlag.StoredObjectID;
+    TFlag.AttachedFlag = UnitFlag;
+
     EmoteSize = Unit.GetTeam() == eTeam_XCom ? FriendlyEmoteSize : UnalliedEmoteSize;
 
     // Random width; it'll be changed later when the viewer's name is set and realized
@@ -205,6 +229,21 @@ private function TwitchFlag CreateTwitchFlag(UIUnitFlag UnitFlag, XComGameState_
     }
 
     return TFlag;
+}
+
+private function RecreateTwitchFlag(out TwitchFlag TFlag, UIUnitFlag UnitFlag, XComGameState_Unit Unit, XComGameState_TwitchObjectOwnership Ownership) {
+    local TwitchFlag NewTFlag;
+
+    // Create a new flag and destroy the old one after copying its data
+    NewTFlag = CreateTwitchFlag(UnitFlag, Unit, Ownership);
+    NewTFlag.TwitchEmote.DirectLoadImage(TFlag.TwitchEmote.ImagePath);
+
+    TFlag.BGBox.Destroy();
+    TFlag.TwitchEmote.Destroy();
+    TFlag.TwitchIcon.Destroy();
+    TFlag.TwitchName.Destroy();
+
+    TFlag = NewTFlag;
 }
 
 private function SetUnitName(XComGameState_Unit Unit, XComGameState_TwitchObjectOwnership Ownership) {
@@ -254,7 +293,7 @@ private function OnTextSizeRealized() {
 
     // We don't get any indication of which Text object just got realized,
     // so we have no choice but to go through all of our flags
-    foreach m_kTwitchFlags(TFlag) {
+    foreach m_arrTwitchFlags(TFlag) {
         TFlag.BGBox.SetWidth(ICON_WIDTH + TFlag.TwitchName.Width + 12);
     }
 }

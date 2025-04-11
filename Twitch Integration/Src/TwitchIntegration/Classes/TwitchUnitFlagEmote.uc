@@ -7,6 +7,7 @@ var config float AnimationTimeInSeconds;
 var config float DisplayTimeInSeconds;
 
 var private int TargetWidth, TargetHeight;
+var private bool HasInitialImageLoadOccurred;
 
 simulated function TwitchUnitFlagEmote Init(int MaxWidth, int MaxHeight, optional name InitName, optional string initImagePath,  optional delegate<OnClickedCallback> OnClickDel) {
     super.InitImage(InitName, InitImagePath, OnClickDel);
@@ -25,7 +26,36 @@ simulated function TwitchUnitFlagEmote Init(int MaxWidth, int MaxHeight, optiona
     return self;
 }
 
+/// <summary>
+/// Directly loads an image without animating it. Needed in situations where the unit flag is
+/// being discreetly recreated and we don't want all the emotes to flicker for no reason.
+/// </summary>
+simulated function UIImage DirectLoadImage(string NewPath) {
+    super.LoadImage(NewPath);
+
+    if (NewPath == "") {
+        SetSize(1, 1);
+        Hide();
+    }
+    else {
+        SetSize(TargetWidth, TargetHeight);
+        Show();
+    }
+
+    return self;
+}
+
 simulated function UIImage LoadImage(string NewPath) {
+    // On the initial image load, we need to avoid setting the timer to hide the image if it's
+    // blank, or else the timer will hide directly-loaded images unexpectedly.
+    if (!HasInitialImageLoadOccurred) {
+        HasInitialImageLoadOccurred = true;
+
+        if (NewPath == "") {
+            return self;
+        }
+    }
+
     super.LoadImage(NewPath);
 
     ClearTimer(nameof(BeginAnimateOut));
