@@ -278,6 +278,10 @@ function int RaffleViewer() {
             continue;
         }
 
+        if (BlacklistedViewerNames.Find(CurrentChatters[Index].Login) != INDEX_NONE) {
+            continue;
+        }
+
         NumAvailableViewers++;
     }
 
@@ -296,6 +300,10 @@ function int RaffleViewer() {
         }
 
         if (bExcludeBroadcaster && CurrentChatters[Index].IsBroadcaster) {
+            continue;
+        }
+
+        if (BlacklistedViewerNames.Find(CurrentChatters[Index].Login) != INDEX_NONE) {
             continue;
         }
 
