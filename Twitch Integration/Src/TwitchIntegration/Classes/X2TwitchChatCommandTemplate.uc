@@ -18,6 +18,9 @@ struct EmoteData {
 // (i.e. "xsay" rather than "!xsay")
 var config array<string> CommandAliases;
 
+var config array<string> ViewerWhitelist;
+var config array<string> ViewerBlacklist;
+
 var config bool bEnableInStrategy;
 var config bool bEnableInTactical;
 var config bool bRequireOwnedUnit;
@@ -30,9 +33,17 @@ var protected const class<XComGameState_ChatCommandBase> GameStateClass; // must
 function Initialize() {
     local int I;
 
-    // Lowercase all aliases to simplify things
+    // Lowercase any viewer name references to simplify things
     for (I = 0; I < CommandAliases.Length; I++) {
         CommandAliases[I] = Locs(CommandAliases[I]);
+    }
+
+    for (I = 0; I < ViewerWhitelist.Length; I++) {
+        ViewerWhitelist[I] = Locs(ViewerWhitelist[I]);
+    }
+
+    for (I = 0; I < ViewerBlacklist.Length; I++) {
+        ViewerBlacklist[I] = Locs(ViewerBlacklist[I]);
     }
 }
 
@@ -59,8 +70,18 @@ function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, 
         if (`TI_IS_TAC_GAME) {
             UnitState = class'X2TwitchUtils'.static.GetViewerUnitOnMission(Viewer.Login);
 
-            return UnitState != none;
+            if (UnitState == none) {
+                return false;
+            }
         }
+    }
+
+    if (ViewerWhitelist.Length > 0 && ViewerWhitelist.Find(Locs(Viewer.Login)) == INDEX_NONE) {
+        return false;
+    }
+
+    if (ViewerBlacklist.Length > 0 && ViewerBlacklist.Find(Locs(Viewer.Login)) != INDEX_NONE) {
+        return false;
     }
 
     return true;
