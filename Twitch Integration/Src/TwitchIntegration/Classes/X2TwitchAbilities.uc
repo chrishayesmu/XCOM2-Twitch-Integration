@@ -809,24 +809,6 @@ static function X2Effect_PersistentStatChange CreateStatChangeStatusEffect(name 
 	return PersistentStatChangeEffect;
 }
 
-static function StatChangeEffectVisualization(XComGameState VisualizeGameState, out VisualizationActionMetadata ActionMetadata, const name EffectApplyResult)
-{
-	local XComGameState_Unit UnitState;
-
-	if (EffectApplyResult != 'AA_Success')
-	{
-		return;
-	}
-
-	UnitState = XComGameState_Unit(ActionMetadata.StateObject_NewState);
-
-	if (UnitState != none)
-	{
-        // TODO figure out what stat changed based on the effect state
-		class'X2StatusEffects'.static.AddEffectSoundAndFlyOverToTrack(ActionMetadata, VisualizeGameState.GetContext(), "Aim Bonus", '', eColor_Good, class'UIUtilities_Image'.const.UnitStatus_Marked);
-	}
-}
-
 protected static function BurningVisualization(XComGameState VisualizeGameState, out VisualizationActionMetadata ActionMetadata, const name EffectApplyResult)
 {
     // Copied from X2StatusEffects.BurningVisualization to add LookAtDuration

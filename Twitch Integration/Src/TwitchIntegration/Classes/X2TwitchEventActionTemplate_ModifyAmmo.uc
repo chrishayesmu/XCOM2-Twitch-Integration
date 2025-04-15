@@ -36,7 +36,6 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
         Weapon.Ammo = TargetAmmoAmount;
 
         // Just create a new unit state to attach the flyover visualization to it
-        // TODO: use a custom viz function instead
         Unit = XComGameState_Unit(NewGameState.ModifyStateObject(class'XComGameState_Unit', Unit.ObjectID));
     }
 
