@@ -12,6 +12,11 @@ class X2DownloadableContentInfo_TwitchIntegration extends X2DownloadableContentI
     config(Twitch__ShouldNotExist)
 	dependson(XComGameState_TwitchEventPoll);
 
+var config bool IsExtendedPersonnelInfoActive;
+var config bool IsExtendedPersonnelInfoReduxActive;
+var config bool IsRobojumperSquadSelectActive;
+var config bool IsUnitFlagExtendedActive;
+
 // Controls whether civilian names are visible. This is "disabled" rather than "enabled"
 // so that the default value results in visibility.
 var privatewrite config bool bCivilianNameplatesDisabled;
@@ -48,6 +53,13 @@ static event OnPostTemplatesCreated()
 {
     local X2TwitchChatCommandTemplate Template;
     local array<X2TwitchChatCommandTemplate> ChatCommandTemplates;
+
+    // Doing this here as a convenient "the engine is initialized" point
+    CacheActiveModsOfInterest();
+    `TILOG(`SHOWVAR(default.IsExtendedPersonnelInfoActive));
+    `TILOG(`SHOWVAR(default.IsExtendedPersonnelInfoReduxActive));
+    `TILOG(`SHOWVAR(default.IsRobojumperSquadSelectActive));
+    `TILOG(`SHOWVAR(default.IsUnitFlagExtendedActive));
 
     ChatCommandTemplates = class'X2TwitchChatCommandTemplateManager'.static.GetChatCommandTemplateManager().GetAllChatCommandTemplates();
 
@@ -374,6 +386,34 @@ exec function TwitchStartPoll(optional name PollGroupTemplateName = '') {
 
 exec function TwitchToggleNameplates() {
     default.bCivilianNameplatesDisabled = !default.bCivilianNameplatesDisabled;
+}
+
+private static function CacheActiveModsOfInterest() {
+    local XComOnlineEventMgr EventManager;
+    local int Index;
+    local name ModName;
+
+    EventManager = `ONLINEEVENTMGR;
+
+    for (Index = 0; Index < EventManager.GetNumDLC(); Index++)
+    {
+        ModName = EventManager.GetDLCNames(Index);
+
+        switch (ModName) {
+            case 'ExtendedPersonnelInfo':
+                default.IsExtendedPersonnelInfoActive = true;
+                break;
+            case 'EPI_Redux':
+                default.IsExtendedPersonnelInfoReduxActive = true;
+                break;
+            case 'robojumperSquadSelect_WotC':
+                default.IsRobojumperSquadSelectActive = true;
+                break;
+            case 'WOTCLootIndicator_Extended':
+                default.IsUnitFlagExtendedActive = true;
+                break;
+        }
+    }
 }
 
 private function EnqueueChannelPointRewardEvent(string RewardId, string RewardTitle, string ViewerLogin, string ViewerInput) {

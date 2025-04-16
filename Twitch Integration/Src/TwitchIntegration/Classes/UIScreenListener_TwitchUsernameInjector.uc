@@ -37,13 +37,17 @@ var config TLabelPosition NamePosition_SoldierBondAlertScreen_2;
 var config TLabelPosition NamePosition_SoldierBondScreen;
 var config TLabelPosition NamePosition_SoldierCapturedScreen;
 var config TLabelPosition NamePosition_SoldierList;
+var config TLabelPosition NamePosition_SoldierList_WithEpi_HighlightedUnit;
 var config TLabelPosition NamePosition_SquadSelectScreen;
 
 // #endregion
 
 var private UIArmory_MainMenu ArmoryMainMenu;
-var private delegate<OnItemSelectedCallback> OriginalOnItemClicked;
-var private delegate<OnItemSelectedCallback> OriginalOnSelectionChanged;
+var private delegate<OnItemSelectedCallback> Armory_OriginalOnItemClicked;
+var private delegate<OnItemSelectedCallback> Armory_OriginalOnSelectionChanged;
+
+var private TUnitLabel m_kPersonnel_HighlightedUnitLabel;
+var private delegate<OnItemSelectedCallback> Personnel_OriginalOnSelectionChanged;
 
 var private array<TUnitLabel> m_kUnitLabels;
 var private array<TUnitLabel> m_kPersonnelListLabels;
@@ -56,6 +60,7 @@ const LogScreenNames = false;
 delegate OnItemSelectedCallback(UIList ContainerList, int ItemIndex);
 
 event OnInit(UIScreen Screen) {
+    local UIPersonnel Personnel;
     local Object ThisObj;
 
     `TILOG("OnInit screen: " $ Screen.Class.Name, LogScreenNames);
@@ -64,8 +69,27 @@ event OnInit(UIScreen Screen) {
     ThisObj = self;
     `XEVENTMGR.RegisterForEvent(ThisObj, 'UIPersonnel_OnSortFinished', OnScreenSorted, ELD_Immediate);
 
-    if (UIPersonnel(Screen) == none) {
+    Personnel = UIPersonnel(Screen);
+
+    if (Personnel == none) {
         RealizeUI(Screen);
+    }
+    else if (class'X2DownloadableContentInfo_TwitchIntegration'.default.IsExtendedPersonnelInfoActive || class'X2DownloadableContentInfo_TwitchIntegration'.default.IsExtendedPersonnelInfoReduxActive) {
+        Personnel_OriginalOnSelectionChanged = Personnel.m_kList.OnSetSelectedIndex;
+	    Personnel.m_kList.OnSetSelectedIndex = OnPersonnelListSelectionChanged;
+
+        `TILOG("Using position variable NamePosition_SoldierList_WithEpi_HighlightedUnit", bLogPositionVariables);
+
+        m_kPersonnel_HighlightedUnitLabel.bAddBackground = true;
+        m_kPersonnel_HighlightedUnitLabel.PosX = NamePosition_SoldierList_WithEpi_HighlightedUnit.X;
+        m_kPersonnel_HighlightedUnitLabel.PosY = NamePosition_SoldierList_WithEpi_HighlightedUnit.Y;
+
+        // Don't pull ownership info when creating the UI elements, we'll do that ourselves whenever the highlighted unit changes
+        CreateTwitchUI(Screen, m_kPersonnel_HighlightedUnitLabel, OnPersonnelListHighlightedSoldierTextSizeRealized, /* UseOwnershipInfo */ false);
+        HideLabel(m_kPersonnel_HighlightedUnitLabel);
+
+        // Initial screen opening won't trigger this event, so do it manually
+        OnPersonnelListSelectionChanged(Personnel.m_kList, Personnel.m_kList.SelectedIndex);
     }
 }
 
@@ -84,8 +108,8 @@ event OnRemoved(UIScreen Screen) {
 
         // Clear references to things we don't own
         ArmoryMainMenu = none;
-        OriginalOnItemClicked = none;
-        OriginalOnSelectionChanged = none;
+        Armory_OriginalOnItemClicked = none;
+        Armory_OriginalOnSelectionChanged = none;
     }
 
     if (UIPersonnel(Screen) != none) {
@@ -115,14 +139,14 @@ private function CheckForArmoryMainMenuScreen(UIScreen Screen) {
         // The armory screen isn't very extensible, so we need to hijack some event handlers. We store and invoke
         // the original ones in case another mod has done the same thing, to give us the best chance of
         // playing nicely with them.
-        if (OriginalOnItemClicked == none) {
-            OriginalOnItemClicked = ArmoryMainMenu.List.OnItemClicked;
+        if (Armory_OriginalOnItemClicked == none) {
+            Armory_OriginalOnItemClicked = ArmoryMainMenu.List.OnItemClicked;
         }
 
         ArmoryMainMenu.List.OnItemClicked = OnArmoryMainMenuItemClicked;
 
-        if (OriginalOnSelectionChanged == none) {
-            OriginalOnSelectionChanged = ArmoryMainMenu.List.OnSelectionChanged;
+        if (Armory_OriginalOnSelectionChanged == none) {
+            Armory_OriginalOnSelectionChanged = ArmoryMainMenu.List.OnSelectionChanged;
         }
 
         ArmoryMainMenu.List.OnSelectionChanged = OnArmoryMainMenuSelectionChanged;
@@ -227,7 +251,6 @@ private function CheckForSoldierList(UIScreen Screen) {
     m_kPersonnelListLabels.Length = 0;
 
     `TILOG("Using position variable NamePosition_SoldierList", bLogPositionVariables);
-
 
     for (Index = 0; Index < ObjectIDs.Length; Index++) {
         Label.bAddBackground = true;
@@ -366,12 +389,12 @@ private function CleanUpUsernameElements(bool bCleanUpMainMenuList) {
     m_kUnitLabels.Length = 0;
 }
 
-private function CreateTwitchUI(UIPanel ParentPanel, out TUnitLabel Label, delegate<UIText.OnTextSizeRealized> TextSizeRealizedDelegate) {
+private function CreateTwitchUI(UIPanel ParentPanel, out TUnitLabel Label, delegate<UIText.OnTextSizeRealized> TextSizeRealizedDelegate, bool UseOwnershipInfo = true) {
     local XComGameState_TwitchObjectOwnership OwnershipState;
 
-    OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Label.UnitObjectID);
+    OwnershipState = UseOwnershipInfo ? class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Label.UnitObjectID) : none;
 
-    if (OwnershipState == none) {
+    if (UseOwnershipInfo && OwnershipState == none) {
         return;
     }
 
@@ -386,7 +409,7 @@ private function CreateTwitchUI(UIPanel ParentPanel, out TUnitLabel Label, deleg
 
     Label.Text = ParentPanel.Spawn(class'UIText', ParentPanel);
     Label.Text.OnTextSizeRealized = TextSizeRealizedDelegate;
-    Label.Text.InitText(, OwnershipState.TwitchLogin);
+    Label.Text.InitText(, UseOwnershipInfo ? OwnershipState.TwitchLogin : "");
     Label.Text.SetPosition(Label.TwitchIcon.X + 34, Label.PosY - 2);
 }
 
@@ -450,6 +473,7 @@ private function OnNameInputBoxClosed(string TextVal) {
         NewGameState.RemoveStateObject(OwnershipState.ObjectID);
     }
     else {
+        // TODO: need to check if the entered name already owns something
         if (OwnershipState == none) {
 	        OwnershipState = XComGameState_TwitchObjectOwnership(NewGameState.CreateNewStateObject(class'XComGameState_TwitchObjectOwnership'));
         }
@@ -477,7 +501,7 @@ private simulated function OnArmoryMainMenuItemClicked(UIList ContainerList, int
         OpenTwitchNameInputBox();
     }
     else {
-        OriginalOnItemClicked(ContainerList, ItemIndex);
+        Armory_OriginalOnItemClicked(ContainerList, ItemIndex);
     }
 }
 
@@ -486,7 +510,46 @@ private simulated function OnArmoryMainMenuSelectionChanged(UIList ContainerList
 	    ArmoryMainMenu.MC.ChildSetString("descriptionText", "htmlText", class'UIUtilities_Text'.static.AddFontInfo(strDescription, ArmoryMainMenu.bIsIn3D));
     }
     else {
-        OriginalOnSelectionChanged(ContainerList, ItemIndex);
+        Armory_OriginalOnSelectionChanged(ContainerList, ItemIndex);
+    }
+}
+
+private simulated function OnPersonnelListSelectionChanged(UIList ContainerList, int ItemIndex) {
+    local TUnitLabel Label;
+	local UIPersonnel_ListItem ListItem;
+    local XComGameState_TwitchObjectOwnership OwnershipState;
+
+    Personnel_OriginalOnSelectionChanged(ContainerList, ItemIndex);
+
+	ListItem = UIPersonnel_ListItem(ContainerList.GetItem(ItemIndex));
+
+    if (!class'X2DownloadableContentInfo_TwitchIntegration'.default.IsExtendedPersonnelInfoActive && !class'X2DownloadableContentInfo_TwitchIntegration'.default.IsExtendedPersonnelInfoReduxActive) {
+        return;
+    }
+
+    if (ItemIndex < 0) {
+        HideLabel(m_kPersonnel_HighlightedUnitLabel);
+    }
+    else {
+        OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(ListItem.UnitRef.ObjectID);
+
+        if (OwnershipState != none) {
+            m_kPersonnel_HighlightedUnitLabel.Text.SetText(OwnershipState.TwitchLogin);
+            ShowLabel(m_kPersonnel_HighlightedUnitLabel);
+        }
+        else {
+            HideLabel(m_kPersonnel_HighlightedUnitLabel);
+        }
+    }
+
+    // TODO: hide soldier labels for the list and add one for the active soldier
+    foreach m_kPersonnelListLabels(Label) {
+        if (ItemIndex < 0) {
+            ShowLabel(Label);
+        }
+        else {
+            HideLabel(Label);
+        }
     }
 }
 
@@ -501,6 +564,10 @@ private function OnPersonnelListTextSizeRealized() {
             MoveLabel(Label, -1 * Label.BGBox.Width - 10);
         }
     }
+}
+
+private function OnPersonnelListHighlightedSoldierTextSizeRealized() {
+    ScaleBGBoxToText(m_kPersonnel_HighlightedUnitLabel);
 }
 
 private function OnTextSizeRealized() {
@@ -546,10 +613,22 @@ private function RealizeUI(UIScreen Screen, optional bool bInjectToMainMenu = tr
     }
 }
 
+private function HideLabel(TUnitLabel Label) {
+    Label.BGBox.Hide();
+    Label.Text.Hide();
+    Label.TwitchIcon.Hide();
+}
+
 private function MoveLabel(TUnitLabel Label, float NewPosX) {
     Label.BGBox.SetX(NewPosX);
     Label.TwitchIcon.SetX(Label.BGBox.X + 6);
     Label.Text.SetX(Label.TwitchIcon.X + 34);
+}
+
+private function ShowLabel(TUnitLabel Label) {
+    Label.BGBox.Show();
+    Label.Text.Show();
+    Label.TwitchIcon.Show();
 }
 
 private function ScaleBGBoxToText(TUnitLabel Label) {
