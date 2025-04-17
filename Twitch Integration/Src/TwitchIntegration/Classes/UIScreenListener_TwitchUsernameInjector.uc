@@ -39,6 +39,7 @@ var config TLabelPosition NamePosition_SoldierCapturedScreen;
 var config TLabelPosition NamePosition_SoldierList;
 var config TLabelPosition NamePosition_SoldierList_WithEpi_HighlightedUnit;
 var config TLabelPosition NamePosition_SquadSelectScreen;
+var config TLabelPosition NamePosition_SquadSelectScreen_WithRjss;
 
 // #endregion
 
@@ -158,6 +159,31 @@ private function CheckForArmoryMainMenuScreen(UIScreen Screen) {
         TwitchListItem.InitListItem(strButtonLabel)
                       .NeedsAttention(OwnershipState == none);
     }
+}
+
+private function HandleRjssSquadSelectScreen(robojumper_UISquadSelect Screen, out array<TUnitLabel> Labels) {
+    local int Index;
+    local TUnitLabel EmptyLabel, Label;
+    local robojumper_UISquadSelect_ListItem ListItem;
+
+    `TILOG("Using position variable NamePosition_SquadSelectScreen_WithRjss", bLogPositionVariables);
+
+    for (Index = 0; Index < Screen.SquadList.GetNumItems(); Index++) {
+        ListItem = robojumper_UISquadSelect_ListItem(Screen.SquadList.GetItem(Index));
+
+        Label.bAddBackground = true;
+        Label.PosX = NamePosition_SquadSelectScreen_WithRjss.X;
+        Label.PosY = NamePosition_SquadSelectScreen_WithRjss.Y;
+        Label.UnitObjectID = ListItem.GetUnitRef().ObjectID;
+
+        CreateTwitchUI(ListItem, Label, OnTextSizeRealized_SquadSelect);
+
+        Labels.AddItem(Label);
+        Label = EmptyLabel;
+    }
+
+    // Give the RJSS elements time to realize their height so we can position relative to it
+    `TISTATEMGR.SetTimer(0.2, /* inBLoop */ false, 'RepositionRjssSquadSelectLabels', self);
 }
 
 private function HandleSquadSelectScreen(UISquadSelect Screen, out array<TUnitLabel> Labels) {
@@ -344,8 +370,15 @@ private function bool CheckForUISoldierHeader(UIScreen Screen, out array<TUnitLa
         Labels.AddItem(Label);
     }
     else if (UISquadSelect(Screen) != none) {
-        // This one needs to create its own UI, so handle it a little differently
-        HandleSquadSelectScreen(UISquadSelect(Screen), Labels);
+        // Squad select needs to create its own UI, so handle it a little differently
+
+        if (class'X2DownloadableContentInfo_TwitchIntegration'.default.IsRobojumperSquadSelectActive) {
+            HandleRjssSquadSelectScreen(robojumper_UISquadSelect(Screen), Labels);
+        }
+        else {
+            HandleSquadSelectScreen(UISquadSelect(Screen), Labels);
+        }
+
         return true;
     }
 
@@ -561,7 +594,7 @@ private function OnPersonnelListTextSizeRealized() {
             ScaleBGBoxToText(Label);
 
             // Move everything left so they don't overlap the list itself
-            MoveLabel(Label, -1 * Label.BGBox.Width - 10);
+            MoveLabelX(Label, -1 * Label.BGBox.Width - 10);
         }
     }
 }
@@ -587,7 +620,7 @@ private function OnTextSizeRealized_SquadSelect() {
 
         // The UI panel we're parented to doesn't actually know its own width, so it's just hardcoded here
         PosX = (286 - Label.BGBox.Width) / 2;
-        MoveLabel(Label, PosX);
+        MoveLabelX(Label, PosX);
     }
 }
 
@@ -613,16 +646,35 @@ private function RealizeUI(UIScreen Screen, optional bool bInjectToMainMenu = tr
     }
 }
 
+private function RepositionRjssSquadSelectLabels() {
+    local TUnitLabel Label;
+    local robojumper_UISquadSelect_ListItem Parent;
+
+    foreach m_kUnitLabels(Label) {
+        // Move each label up above the loadout block for their respective unit
+        Parent = robojumper_UISquadSelect_ListItem(Label.BGBox.ParentPanel);
+        MoveLabelY(Label, -Parent.TheList.Height + NamePosition_SquadSelectScreen_WithRjss.Y);
+    }
+}
+
 private function HideLabel(TUnitLabel Label) {
     Label.BGBox.Hide();
     Label.Text.Hide();
     Label.TwitchIcon.Hide();
 }
 
-private function MoveLabel(TUnitLabel Label, float NewPosX) {
+private function MoveLabelX(TUnitLabel Label, float NewPosX) {
     Label.BGBox.SetX(NewPosX);
     Label.TwitchIcon.SetX(Label.BGBox.X + 6);
     Label.Text.SetX(Label.TwitchIcon.X + 34);
+}
+
+private function MoveLabelY(TUnitLabel Label, float NewPosY) {
+    Label.PosY = NewPosY;
+
+    Label.BGBox.SetY(NewPosY - 6);
+    Label.TwitchIcon.SetY(NewPosY);
+    Label.Text.SetY(NewPosY - 2);
 }
 
 private function ShowLabel(TUnitLabel Label) {
