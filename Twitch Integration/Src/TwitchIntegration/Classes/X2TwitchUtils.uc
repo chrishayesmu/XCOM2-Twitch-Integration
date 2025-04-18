@@ -1,5 +1,9 @@
 class X2TwitchUtils extends Object;
 
+var localized string strNameConflictTitle;
+var localized string strNameConflictText;
+var localized string strNameConflictOkButton;
+
 static function AddMessageToChatLog(string Sender, string Body, array<EmoteData> Emotes, optional XComGameState_Unit FromUnit, optional string MsgId) {
     local UIChatLog ChatLog;
 
@@ -242,6 +246,20 @@ static function X2PollChoiceTemplate GetPollChoiceTemplate(Name TemplateName) {
 
     TemplateMgr = class'X2PollChoiceTemplateManager'.static.GetPollChoiceTemplateManager();
     return TemplateMgr.GetPollChoiceTemplate(TemplateName);
+}
+
+/// <summary>
+/// Raises a dialog on the screen stating that the given viewer login is already in use by another unit.
+/// </summary>
+static function RaiseViewerLoginAlreadyInUseDialog(string ViewerLogin) {
+    local TDialogueBoxData DialogData;
+
+    DialogData.eType = eDialog_Warning;
+    DialogData.strTitle = default.strNameConflictTitle;
+    DialogData.strText = Repl(default.strNameConflictText, "<ViewerName/>", ViewerLogin);
+    DialogData.strAccept = default.strNameConflictOkButton;
+
+    `PRESBASE.UIRaiseDialog(DialogData);
 }
 
 static function string SecondsToTimeString(int TotalSeconds) {

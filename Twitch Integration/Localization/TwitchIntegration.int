@@ -47,6 +47,11 @@ strWillBuffEffectDescription="+<Amount/> Will for <Ability:TurnsRemaining/> turn
 strWillBuffEffectFlyoverText="Twitch: +<Amount/> Will"
 strWillBuffEffectTitle="Twitch Will Boost"
 
+[X2TwitchUtils]
+strNameConflictTitle="Twitch Name Already In Use"
+strNameConflictText="The viewer \"<ViewerName/>\" already owns a unit and cannot be given another. You can manually unassign ownership in the UI for soldiers, or with the console command \"TwitchUnassignViewer\", and try again."
+strNameConflictOkButton="OK"
+
 [TwitchEventHandler_ChannelPointRedeem]
 BannerTitle="Twitch Channel Points Reward"
 BannerText="Redeemed by <ViewerName/>"

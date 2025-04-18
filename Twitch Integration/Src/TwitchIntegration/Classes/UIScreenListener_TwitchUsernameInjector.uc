@@ -483,49 +483,43 @@ private simulated function OpenTwitchNameInputBox() {
     `PRESBASE.UIInputDialog(kData);
 }
 
-private function OnNameInputBoxClosed(string TextVal) {
-    local XComGameState NewGameState;
-    local XComGameState_TwitchObjectOwnership OwnershipState;
+private function OnNameInputBoxClosed(string NewViewerLogin) {
+    local XComGameState_TwitchObjectOwnership UnitOwnershipState, ViewerOwnershipState;
 
-    OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(ArmoryMainMenu.UnitReference.ObjectID);
+    UnitOwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(ArmoryMainMenu.UnitReference.ObjectID);
 
-    if (OwnershipState != none && OwnershipState.TwitchLogin == TextVal) {
+    if (UnitOwnershipState != none && UnitOwnershipState.TwitchLogin == NewViewerLogin) {
         // Player didn't change anything
         return;
     }
 
-    if (TextVal == "" && OwnershipState == none) {
+    if (NewViewerLogin == "" && UnitOwnershipState == none) {
         // There was no owner before, and still isn't
         return;
     }
 
-	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Assign Twitch Owner From UI");
-
-    if (TextVal == "") {
+    if (NewViewerLogin == "") {
         // There was an owner but now is not
-        NewGameState.RemoveStateObject(OwnershipState.ObjectID);
+        class'XComGameState_TwitchObjectOwnership'.static.DeleteOwnership(UnitOwnershipState);
     }
     else {
-        // TODO: need to check if the entered name already owns something
-        if (OwnershipState == none) {
-	        OwnershipState = XComGameState_TwitchObjectOwnership(NewGameState.CreateNewStateObject(class'XComGameState_TwitchObjectOwnership'));
-        }
-        else {
-            OwnershipState = XComGameState_TwitchObjectOwnership(NewGameState.ModifyStateObject(class'XComGameState_TwitchObjectOwnership', OwnershipState.ObjectID));
+        // Check if the entered viewer already owns a unit
+        ViewerOwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForUser(NewViewerLogin);
+
+        if (ViewerOwnershipState != none) {
+            class'X2TwitchUtils'.static.RaiseViewerLoginAlreadyInUseDialog(NewViewerLogin);
+            return;
         }
 
-        OwnershipState.OwnedObjectRef = ArmoryMainMenu.UnitReference;
-        OwnershipState.TwitchLogin = TextVal;
+        class'X2EventListener_TwitchNames'.static.AssignOwnership(NewViewerLogin, ArmoryMainMenu.UnitReference.ObjectID, , /* OverridePreviousOwnership */ true);
     }
-
-    `GAMERULES.SubmitGameState(NewGameState);
 
     // This callback is invoked after the input screen pops itself, so the main menu UI has already been rendered
     // without consideration for our newest game state
     RealizeUI(`SCREENSTACK.GetCurrentScreen(), /* bInjectToMainMenu */ false);
 
     if (TwitchListItem != none) {
-        TwitchListItem.NeedsAttention(TextVal == "");
+        TwitchListItem.NeedsAttention(NewViewerLogin == "");
     }
 }
 

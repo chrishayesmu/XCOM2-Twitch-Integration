@@ -55,22 +55,32 @@ function OnChangeButtonClicked(UIButton Button) {
 	Movie.Pres.UIInputDialog(kData);
 }
 
-function OnChangeOwnerInputClosed(string Value) {
-    local XComGameState_TwitchObjectOwnership OwnershipState;
+function OnChangeOwnerInputClosed(string NewViewerLogin) {
+    local XComGameState_TwitchObjectOwnership UnitOwnershipState, ViewerOwnershipState;
 	local XGUnit ActiveUnit;
 
 	ActiveUnit = XComTacticalController(PC).GetActiveUnit();
-    OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(ActiveUnit.ObjectID);
+    UnitOwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(ActiveUnit.ObjectID);
 
-    if (Value == "") {
-        if (OwnershipState != none) {
-            `TILOG("Deleting ownership of unit from owner " $ OwnershipState.TwitchLogin);
-            class'XComGameState_TwitchObjectOwnership'.static.DeleteOwnership(OwnershipState);
+    if (NewViewerLogin == "") {
+        if (UnitOwnershipState != none) {
+            `TILOG("Deleting ownership of unit from owner " $ UnitOwnershipState.TwitchLogin);
+            class'XComGameState_TwitchObjectOwnership'.static.DeleteOwnership(UnitOwnershipState);
         }
     }
-    else if (!(Value ~= OwnershipState.TwitchLogin)) {
-        `TILOG("Assigning unit to new owner " $ Value);
-        class'X2EventListener_TwitchNames'.static.AssignOwnership(Value, ActiveUnit.ObjectID, , /* OverridePreviousOwnership */ true);
+    else if (!(NewViewerLogin ~= UnitOwnershipState.TwitchLogin)) {
+        ViewerOwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForUser(NewViewerLogin);
+
+        if (ViewerOwnershipState != none) {
+            `TILOG("Viewer already owns a unit");
+            class'X2TwitchUtils'.static.RaiseViewerLoginAlreadyInUseDialog(NewViewerLogin);
+
+            return;
+        }
+        else {
+            `TILOG("Assigning unit to new owner " $ NewViewerLogin);
+            class'X2EventListener_TwitchNames'.static.AssignOwnership(NewViewerLogin, ActiveUnit.ObjectID, , /* OverridePreviousOwnership */ true);
+        }
     }
 
     RealizeUI();
