@@ -1,3 +1,6 @@
+// This class is a stateful template, which is a terrible sin. Do not make the mistakes of this class!
+// It's only set up this way because the original XSay wasn't a template. Being stateful causes a lot of
+// things to break, e.g. when saves are loaded and this template retains state from the previous game.
 class X2TwitchChatCommandTemplate_XSay extends X2TwitchChatCommandTemplate;
 
 struct TNarrativeQueueItem {
@@ -81,6 +84,10 @@ function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, 
 
     LoadNarratives();
 
+    if (!`TISTATEMGR.IsTimerActive('EnqueueXSayToCommLinkIfPossible', self)) {
+        `TISTATEMGR.SetTimer(0.1, /* bInLoop */ true, 'EnqueueXSayToCommLinkIfPossible', self);
+    }
+
     if (!super.Invoke(CommandAlias, Body, Emotes, MessageId, Viewer)) {
         return false;
     }
@@ -115,7 +122,6 @@ function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, 
     class'X2TwitchUtils'.static.AddMessageToChatLog(XSayGameState.SenderLogin, XSayGameState.MessageBody, XSayGameState.Emotes, Unit, XSayGameState.TwitchMessageId);
 
     // TODO: turn off comm link if not in LOS, or make it not show unit type, to avoid spoilers
-    `TILOG("bShowInCommLink: " $ bShowInCommLink);
     if (bShowInCommLink) {
         // Don't record a unit was dead if we're on the strat layer, unless they're a dead soldier
         NarrativeItem.GameState = XSayGameState;
@@ -304,10 +310,9 @@ protected function LoadNarratives() {
         NextNarrativeMomentLong = NarrativeMomentLong01;
     }
 
+    // TODO: since this is a template and only initializes once, this event will quit working after scene transition when the event listeners are cleared
     ThisObj = self;
     `XEVENTMGR.RegisterForEvent(ThisObj, 'TwitchChatMessageDeleted', OnMessageDeleted, ELD_Immediate);
-
-    `XWORLDINFO.MyWatchVariableMgr.RegisterWatchVariable(`PRESBASE.m_kNarrativeUIMgr, 'm_arrConversations', self, EnqueueXSayToCommLinkIfPossible);
 }
 
 protected function string TruncateMessage(string Message, int MaxLength) {
