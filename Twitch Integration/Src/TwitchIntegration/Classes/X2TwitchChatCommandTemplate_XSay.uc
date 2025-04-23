@@ -11,6 +11,7 @@ struct TNarrativeQueueItem {
 
 struct TUnitContentConfig {
     var name CharacterGroupName;
+    var name CharacterTemplateName;
     var string CommlinkImage;
     var array<string> CommlinkSoundsFemale;
     var array<string> CommlinkSoundsMale;
@@ -436,7 +437,7 @@ protected function string GetMessageBody(TNarrativeQueueItem NarrativeItem) {
 }
 
 protected function string GetUnitPortrait(XComGameState_Unit Unit) {
-    local Name CharGroupName;
+    local Name CharGroupName, CharTemplateName;
     local XComGameState_Unit SourceUnit;
     local TUnitContentConfig ContentCfg;
 
@@ -450,6 +451,7 @@ protected function string GetUnitPortrait(XComGameState_Unit Unit) {
     }
 
     CharGroupName = Unit.GetMyTemplate().CharacterGroupName;
+    CharTemplateName = Unit.GetMyTemplate().DataName;
 
     if (CharGroupName == 'PsiZombie' || CharGroupName == 'PsiZombieHuman') {
         SourceUnit = class'X2TwitchUtils'.static.FindSourceUnitFromSpawnEffect(Unit);
@@ -459,7 +461,7 @@ protected function string GetUnitPortrait(XComGameState_Unit Unit) {
         }
     }
 
-    if (!GetContentConfig(CharGroupName, ContentCfg))
+    if (!GetContentConfig(CharTemplateName, CharGroupName, ContentCfg))
     {
         return "TwitchIntegration_UI.AlienCowboy_A";
     }
@@ -476,10 +478,8 @@ protected function AkBaseSoundObject GetCivilianSound(XComGameState_Unit Unit) {
 
     bUnitIsFemale = Unit.kAppearance.iGender == 2;
 
-    // Sound cues exist for English, French, German, Italian, Polish, Russian and Spanish
-    `TILOG("GetCivilianSound: bUnitIsFemale = " $ bUnitIsFemale $ "; Country = " $ Unit.GetCountry());
-
     // Populate language pool. Some languages are added multiple times to shift their likelihood.
+    // Sound cues exist for English, French, German, Italian, Polish, Russian, and Spanish.
     switch (Unit.GetCountry()) {
         case 'Country_Australia':
         case 'Country_Canada':
@@ -626,24 +626,30 @@ protected function AkBaseSoundObject GetCivilianSound(XComGameState_Unit Unit) {
     return SoundCue(DynamicLoadObject(string(CueName), class'SoundCue'));
 }
 
-protected function bool GetContentConfig(name CharacterGroupName, out TUnitContentConfig ContentCfg)
+protected function bool GetContentConfig(name CharacterTemplateName, name CharacterGroupName, out TUnitContentConfig ContentCfg)
 {
     local int Index;
 
-    Index = UnitContentCfg.Find('CharacterGroupName', CharacterGroupName);
+    Index = UnitContentCfg.Find('CharacterTemplateName', CharacterTemplateName);
 
-    if (Index == INDEX_NONE)
-    {
-        return false;
+    if (Index != INDEX_NONE) {
+        ContentCfg = UnitContentCfg[Index];
+        return true;
     }
 
-    ContentCfg = UnitContentCfg[Index];
-    return true;
+    Index = UnitContentCfg.Find('CharacterGroupName', CharacterGroupName);
+
+    if (Index != INDEX_NONE) {
+        ContentCfg = UnitContentCfg[Index];
+        return true;
+    }
+
+    return false;
 }
 
 protected function AkBaseSoundObject GetUnitSound(TNarrativeQueueItem NarrativeItem, XComGameState_Unit Unit) {
     local bool bUnitIsFemale;
-    local name CharGroupName;
+    local name CharGroupName, CharTemplateName;
     local string SelectedSoundPath;
     local array<string> SoundPaths;
     local TUnitContentConfig ContentCfg;
@@ -663,9 +669,10 @@ protected function AkBaseSoundObject GetUnitSound(TNarrativeQueueItem NarrativeI
     }
 
     CharGroupName = Unit.GetMyTemplate().CharacterGroupName;
+    CharTemplateName = Unit.GetMyTemplate().DataName;
     bUnitIsFemale = Unit.kAppearance.iGender == 2;
 
-    if (!GetContentConfig(CharGroupName, ContentCfg))
+    if (!GetContentConfig(CharTemplateName, CharGroupName, ContentCfg))
     {
         return none;
     }
