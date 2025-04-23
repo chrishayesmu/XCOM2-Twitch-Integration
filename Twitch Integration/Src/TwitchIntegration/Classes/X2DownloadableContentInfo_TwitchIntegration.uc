@@ -329,14 +329,14 @@ exec function TwitchReassignUnitUnderMouse(optional string ViewerLogin) {
 /// <summary>
 /// Simulates a channel point reward being redeemed, using the reward's ID.
 /// </summary>
-exec function TwitchRedeemChannelPointRewardById(string RewardId, string ViewerLogin, optional string ViewerInput = "") {
+exec function TwitchRedeemChannelPointRewardById(string RewardId, string ViewerLogin, optional string ViewerInput) {
     EnqueueChannelPointRewardEvent(RewardId, "Console Reward By ID", ViewerLogin, ViewerInput);
 }
 
 /// <summary>
 /// Simulates a channel point reward being redeemed, using the reward's title.
 /// </summary>
-exec function TwitchRedeemChannelPointRewardByTitle(string RewardTitle, string ViewerLogin = "", optional string ViewerInput = "") {
+exec function TwitchRedeemChannelPointRewardByTitle(string RewardTitle, string ViewerLogin, optional string ViewerInput) {
     EnqueueChannelPointRewardEvent("1dabc870-67b3-4aff-8832-3610c9980666", RewardTitle, ViewerLogin, ViewerInput);
 }
 

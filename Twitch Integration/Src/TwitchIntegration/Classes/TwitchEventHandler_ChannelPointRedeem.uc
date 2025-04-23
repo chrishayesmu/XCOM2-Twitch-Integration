@@ -8,7 +8,9 @@ struct ChannelPointRedeemConfig {
 };
 
 var localized const string BannerTitle;
+var localized const string BannerTitleFailedNoActions;
 var localized const string BannerText;
+var localized const string BannerTextFailedNoActions;
 
 var config array<ChannelPointRedeemConfig> Redemptions;
 
@@ -67,7 +69,7 @@ function Handle(TwitchStateManager StateMgr, JsonObject Data) {
     RedeemState.RedeemerUnitObjectID = UnitState != none ? UnitState.GetReference().ObjectID : 0;
     RedeemState.RewardId = RewardId;
     RedeemState.RewardTitle = RewardTitle;
-    RedeemState.HadValidActions = ValidActions.Length > 0;
+    RedeemState.HadValidActions = Redemptions[RedemptionIndex].Actions.Length == 0 || ValidActions.Length > 0; // don't mark empty actions as failed, they may be used just for UI
 
     NewContext = XComGameStateContext_ChangeContainer(NewGameState.GetContext());
     NewContext.BuildVisualizationFn = BuildVisualization;
@@ -83,7 +85,9 @@ protected function BuildVisualization(XComGameState VisualizeGameState) {
     local VisualizationActionMetadata ActionMetadata;
     local X2Action_PlayMessageBanner MessageAction;
     local XComGameState_ChannelPointRedemption RedeemState;
-    local string BannerValue;
+    local eUIState UIState;
+    local string BannerValue, Title;
+    local bool RedeemFailed;
 
     foreach VisualizeGameState.IterateByClassType(class'XComGameState_ChannelPointRedemption', RedeemState) {
         break;
@@ -92,17 +96,20 @@ protected function BuildVisualization(XComGameState VisualizeGameState) {
     ActionMetadata.StateObject_OldState = RedeemState;
     ActionMetadata.StateObject_NewState = RedeemState;
 
-    BannerValue = Repl(BannerText, "<ViewerName/>", RedeemState.RedeemerName);
+    // Check if redemption failed and signal appropriately
+    RedeemFailed = !RedeemState.HadValidActions;
+    Title = RedeemFailed ? BannerTitleFailedNoActions : BannerTitle;
+    UIState = RedeemFailed ? eUIState_Bad : eUIState_Normal;
+
+    BannerValue = RedeemFailed ? BannerTextFailedNoActions : Repl(BannerText, "<ViewerName/>", RedeemState.RedeemerName);
 
     if (`TI_IS_TAC_GAME) {
         MessageAction = X2Action_PlayMessageBanner(class'X2Action_PlayMessageBanner'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext()));
-        MessageAction.AddMessageBanner(BannerTitle, /* IconPath */ "", RedeemState.RewardTitle, BannerValue, eUIState_Normal);
+        MessageAction.AddMessageBanner(Title, /* IconPath */ "", RedeemState.RewardTitle, BannerValue, UIState);
     }
     else {
-        `HQPRES.NotifyBanner(BannerTitle, /* ImagePath */, RedeemState.RewardTitle, BannerValue, eUIState_Normal);
+        `HQPRES.NotifyBanner(Title, /* ImagePath */, RedeemState.RewardTitle, BannerValue, UIState);
     }
-
-    // TODO indicate an invalid redeem somehow so the streamer can refund the user their points
 }
 
 defaultproperties

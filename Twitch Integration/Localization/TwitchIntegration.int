@@ -55,7 +55,9 @@ strNameConflictCancelButton="Cancel"
 
 [TwitchEventHandler_ChannelPointRedeem]
 BannerTitle="Twitch Channel Points Reward"
+BannerTitleFailedNoActions="Twitch Channel Points Reward Failed"
 BannerText="Redeemed by <ViewerName/>"
+BannerTextFailedNoActions="No actions currently valid for this reward."
 
 [XComGameState_TwitchRollTheDice]
 strBannerTitle="Roll the Dice"
