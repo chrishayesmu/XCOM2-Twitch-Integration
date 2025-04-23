@@ -297,6 +297,29 @@ static function string SecondsToTimeString(int TotalSeconds) {
     return Text;
 }
 
+static function bool TryPayStrategyCost(StrategyCost Cost) {
+    local array<StrategyCostScalar> EmptyScalars;
+    local XComGameState_HeadquartersXCom XComHQ;
+	local XComGameState NewGameState;
+
+    EmptyScalars.Length = 0; // silences a warning
+
+    XComHQ = XComGameState_HeadquartersXCom(`XCOMHISTORY.GetSingleGameStateObjectForClass(class'XComGameState_HeadquartersXCom'));
+
+    if (!XComHQ.CanAffordAllStrategyCosts(Cost, EmptyScalars)) {
+        return false;
+    }
+
+    NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch: Paying Strategy Cost");
+    XComHQ = XComGameState_HeadquartersXCom(NewGameState.ModifyStateObject(class'XComGameState_HeadquartersXCom', XComHQ.ObjectID));
+
+    XComHQ.PayStrategyCost(NewGameState, Cost, EmptyScalars);
+
+    `GAMERULES.SubmitGameState(NewGameState);
+
+    return true;
+}
+
 private static function OnCloseViewerLoginAlreadyInUseDialog(Name eAction, UICallbackData xUserData) {
     local string ViewerLogin;
     local UICallbackData_StateObjectReference CallbackData;

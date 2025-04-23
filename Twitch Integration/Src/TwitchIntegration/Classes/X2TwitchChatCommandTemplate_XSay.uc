@@ -75,7 +75,6 @@ var private XComNarrativeMoment NextNarrativeMomentLong;
 var private bool bLoadedNarratives;
 
 function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, string MessageId, TwitchChatter Viewer) {
-    local bool bIsTacticalGame, bShowInCommLink;
     local TNarrativeQueueItem NarrativeItem;
     local TViewerXSayOverride ViewerOverride;
     local XComGameStateContext_ChangeContainer NewContext;
@@ -89,19 +88,16 @@ function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, 
         `TISTATEMGR.SetTimer(0.1, /* bInLoop */ true, 'EnqueueXSayToCommLinkIfPossible', self);
     }
 
-    if (!super.Invoke(CommandAlias, Body, Emotes, MessageId, Viewer)) {
-        return false;
-    }
-
-    RegisterEmotes(Emotes);
-
     if (!CanViewerXSay(Viewer.Login, Unit, ViewerOverride)) {
         `TILOG("Viewer is not able to xsay right now; skipping");
         return false;
     }
 
-    bIsTacticalGame = `TI_IS_TAC_GAME;
-    bShowInCommLink = `TI_CFG(bShowXSayInCommLink);
+    if (!super.Invoke(CommandAlias, Body, Emotes, MessageId, Viewer)) {
+        return false;
+    }
+
+    RegisterEmotes(Emotes);
 
     NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch XSay");
     XSayGameState = XComGameState_TwitchXSay(CreateChatCommandGameState(NewGameState, Body, Emotes, MessageId, Viewer));
@@ -112,7 +108,7 @@ function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, 
         Unit = XComGameState_Unit(NewGameState.ModifyStateObject(class'XComGameState_Unit', Unit.ObjectID));
     }
 
-    if (bIsTacticalGame) {
+    if (`TI_IS_TAC_GAME) {
         NewContext = XComGameStateContext_ChangeContainer(NewGameState.GetContext());
         NewContext.BuildVisualizationFn = BuildVisualization_TacLayer;
     }
@@ -123,7 +119,7 @@ function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, 
     class'X2TwitchUtils'.static.AddMessageToChatLog(XSayGameState.SenderLogin, XSayGameState.MessageBody, XSayGameState.Emotes, Unit, XSayGameState.TwitchMessageId);
 
     // TODO: turn off comm link if not in LOS, or make it not show unit type, to avoid spoilers
-    if (bShowInCommLink) {
+    if (`TI_CFG(bShowXSayInCommLink)) {
         // Don't record a unit was dead if we're on the strat layer, unless they're a dead soldier
         NarrativeItem.GameState = XSayGameState;
 

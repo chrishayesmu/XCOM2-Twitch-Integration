@@ -28,6 +28,8 @@ var config bool bRequireOwnedUnit;
 var config ChatCommandRateLimitConfig IndividualRateLimits;
 var config ChatCommandRateLimitConfig GlobalRateLimits;
 
+var config StrategyCost CostToUse;
+
 var protected const class<XComGameState_ChatCommandBase> GameStateClass; // must be set in defaultproperties of subclasses
 
 function Initialize() {
@@ -58,6 +60,9 @@ function Initialize() {
 /// <param name="Viewer">The viewer object for the sender. Rarely, this may be inaccurate if a user is chatting before Twitch's
 /// API has returned them in the chatters list; in particular, subscriber/VIP/moderator info may be missing.</param>
 /// <returns>True if the command was successfully invoked (and thus should be placed on cooldown), false otherwise.</returns>
+/// <remarks>Subclasses should call the base class Invoke, but be warned that it can have side effects, such as paying
+/// costs to use the command. Subclasses should therefore perform their own checks that the chat command can be used before
+/// calling the base Invoke, to avoid paying costs and then failing to deliver any result.</remarks>
 function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, string MessageId, TwitchChatter Viewer) {
     local XComGameState_Unit UnitState;
 
@@ -81,6 +86,10 @@ function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, 
     }
 
     if (ViewerBlacklist.Length > 0 && ViewerBlacklist.Find(Locs(Viewer.Login)) != INDEX_NONE) {
+        return false;
+    }
+
+    if (!class'X2TwitchUtils'.static.TryPayStrategyCost(CostToUse)) {
         return false;
     }
 
