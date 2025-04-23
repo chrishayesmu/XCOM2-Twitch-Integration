@@ -1,7 +1,6 @@
 // Usually we connect to Twitch by responding to the OnTacticalBeginPlay event, but unfortunately,
 // that event does not fire when loading into the tactical game directly.
-class UIScreenListener_TwitchTacticalHud extends UIScreenListener
-    config(NonExistentConfigFile);
+class UIScreenListener_TwitchTacticalHud extends UIScreenListener;
 
 event OnInit(UIScreen Screen) {
     local UITacticalHud TacticalHud;
