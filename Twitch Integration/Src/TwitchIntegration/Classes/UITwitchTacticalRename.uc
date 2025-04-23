@@ -57,7 +57,10 @@ function OnChangeButtonClicked(UIButton Button) {
 
 function OnChangeOwnerInputClosed(string NewViewerLogin) {
     local XComGameState_TwitchObjectOwnership UnitOwnershipState, ViewerOwnershipState;
+    local XComGameState_Unit OriginalUnit;
 	local XGUnit ActiveUnit;
+    local StateObjectReference OwnershipRef, UnitRef;
+    local string UnitName;
 
 	ActiveUnit = XComTacticalController(PC).GetActiveUnit();
     UnitOwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(ActiveUnit.ObjectID);
@@ -73,7 +76,13 @@ function OnChangeOwnerInputClosed(string NewViewerLogin) {
 
         if (ViewerOwnershipState != none) {
             `TILOG("Viewer already owns a unit");
-            class'X2TwitchUtils'.static.RaiseViewerLoginAlreadyInUseDialog(NewViewerLogin);
+            OriginalUnit = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(ViewerOwnershipState.OwnedObjectRef.ObjectID));
+
+            OwnershipRef.ObjectID = ViewerOwnershipState.ObjectID;
+            UnitRef.ObjectID = ActiveUnit.ObjectID;
+
+            UnitName = OriginalUnit.IsSoldier() ? OriginalUnit.GetName(eNameType_FullNick) : OriginalUnit.GetMyTemplate().strCharacterName;
+            class'X2TwitchUtils'.static.RaiseViewerLoginAlreadyInUseDialog(NewViewerLogin, UnitName, OwnershipRef, UnitRef);
 
             return;
         }

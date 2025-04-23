@@ -485,6 +485,9 @@ private simulated function OpenTwitchNameInputBox() {
 
 private function OnNameInputBoxClosed(string NewViewerLogin) {
     local XComGameState_TwitchObjectOwnership UnitOwnershipState, ViewerOwnershipState;
+    local XComGameState_Unit OriginalUnit;
+    local StateObjectReference OwnershipRef, UnitRef;
+    local string UnitName;
 
     UnitOwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(ArmoryMainMenu.UnitReference.ObjectID);
 
@@ -507,7 +510,14 @@ private function OnNameInputBoxClosed(string NewViewerLogin) {
         ViewerOwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForUser(NewViewerLogin);
 
         if (ViewerOwnershipState != none) {
-            class'X2TwitchUtils'.static.RaiseViewerLoginAlreadyInUseDialog(NewViewerLogin);
+            OriginalUnit = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(ViewerOwnershipState.OwnedObjectRef.ObjectID));
+
+            OwnershipRef.ObjectID = ViewerOwnershipState.ObjectID;
+            UnitRef.ObjectID = ArmoryMainMenu.UnitReference.ObjectID;
+
+            // TODO: we need to call RealizeUI if the player chooses to override ownership, but there's no callback to do so right now
+            UnitName = OriginalUnit.IsSoldier() ? OriginalUnit.GetName(eNameType_FullNick) : OriginalUnit.GetMyTemplate().strCharacterName;
+            class'X2TwitchUtils'.static.RaiseViewerLoginAlreadyInUseDialog(NewViewerLogin, UnitName, OwnershipRef, UnitRef);
             return;
         }
 

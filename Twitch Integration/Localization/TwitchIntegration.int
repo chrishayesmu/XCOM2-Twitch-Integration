@@ -49,8 +49,9 @@ strWillBuffEffectTitle="Twitch Will Boost"
 
 [X2TwitchUtils]
 strNameConflictTitle="Twitch Name Already In Use"
-strNameConflictText="The viewer \"<ViewerName/>\" already owns a unit and cannot be given another. You can manually unassign ownership in the UI for soldiers, or with the console command \"TwitchUnassignViewer\", and try again."
-strNameConflictOkButton="OK"
+strNameConflictText="The viewer \"<ViewerName/>\" already owns a unit: <OriginalUnitName/><br/><br/>Viewers can only own one unit. Do you want to replace the existing ownership?"
+strNameConflictAcceptButton="Replace Ownership"
+strNameConflictCancelButton="Cancel"
 
 [TwitchEventHandler_ChannelPointRedeem]
 BannerTitle="Twitch Channel Points Reward"

@@ -2,7 +2,8 @@ class X2TwitchUtils extends Object;
 
 var localized string strNameConflictTitle;
 var localized string strNameConflictText;
-var localized string strNameConflictOkButton;
+var localized string strNameConflictAcceptButton;
+var localized string strNameConflictCancelButton;
 
 static function AddMessageToChatLog(string Sender, string Body, array<EmoteData> Emotes, optional XComGameState_Unit FromUnit, optional string MsgId) {
     local UIChatLog ChatLog;
@@ -251,13 +252,26 @@ static function X2PollChoiceTemplate GetPollChoiceTemplate(Name TemplateName) {
 /// <summary>
 /// Raises a dialog on the screen stating that the given viewer login is already in use by another unit.
 /// </summary>
-static function RaiseViewerLoginAlreadyInUseDialog(string ViewerLogin) {
+static function RaiseViewerLoginAlreadyInUseDialog(string ViewerLogin, string OriginalUnitName, StateObjectReference OriginalOwnershipStateRef, StateObjectReference TargetUnitStateObjectRef) {
+    local UICallbackData_StateObjectReference CallbackData;
     local TDialogueBoxData DialogData;
+    local string DialogText;
 
-    DialogData.eType = eDialog_Warning;
+    CallbackData = new class'UICallbackData_StateObjectReference';
+    CallbackData.ObjectRef = OriginalOwnershipStateRef;
+    CallbackData.ObjectRef2 = TargetUnitStateObjectRef;
+
+    DialogText = Repl(default.strNameConflictText, "<ViewerName/>", ViewerLogin);
+    DialogText = Repl(DialogText, "<OriginalUnitName/>", OriginalUnitName);
+
+    DialogData.eType = eDialog_Normal;
     DialogData.strTitle = default.strNameConflictTitle;
-    DialogData.strText = Repl(default.strNameConflictText, "<ViewerName/>", ViewerLogin);
-    DialogData.strAccept = default.strNameConflictOkButton;
+    DialogData.strText = DialogText;
+    DialogData.strAccept = default.strNameConflictAcceptButton;
+    DialogData.strCancel = default.strNameConflictCancelButton;
+
+    DialogData.xUserData = CallbackData;
+    DialogData.fnCallbackEx = OnCloseViewerLoginAlreadyInUseDialog;
 
     `PRESBASE.UIRaiseDialog(DialogData);
 }
@@ -281,4 +295,27 @@ static function string SecondsToTimeString(int TotalSeconds) {
     Text $= SecondsPart >= 10 ? string(SecondsPart) : "0" $ string(SecondsPart);
 
     return Text;
+}
+
+private static function OnCloseViewerLoginAlreadyInUseDialog(Name eAction, UICallbackData xUserData) {
+    local string ViewerLogin;
+    local UICallbackData_StateObjectReference CallbackData;
+    local XComGameState_TwitchObjectOwnership OldOwnershipState;
+
+    if (eAction != 'eUIAction_Accept') {
+        return;
+    }
+
+    `TILOG("Replacing an existing unit ownership per the player's input");
+
+    CallbackData = UICallbackData_StateObjectReference(xUserData);
+
+    // Use the old ownership state to figure out the owner of the new unit, then get rid of it
+    OldOwnershipState = XComGameState_TwitchObjectOwnership(`XCOMHISTORY.GetGameStateForObjectID(CallbackData.ObjectRef.ObjectID));
+    ViewerLogin = OldOwnershipState.TwitchLogin;
+
+    class'XComGameState_TwitchObjectOwnership'.static.DeleteOwnership(OldOwnershipState);
+
+    // Now apply it to the newly-owned unit
+    class'X2EventListener_TwitchNames'.static.AssignOwnership(ViewerLogin, CallbackData.ObjectRef2.ObjectID, , /* OverridePreviousOwnership */ true);
 }
