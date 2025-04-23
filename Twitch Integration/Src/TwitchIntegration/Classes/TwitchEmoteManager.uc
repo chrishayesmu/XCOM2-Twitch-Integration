@@ -72,6 +72,11 @@ static function RegisterEmote(string EmoteCode) {
     local string FileName;
     local int PosterIndex;
 
+    // Check if the emote is already registered, or else the poster database will grow without bound
+    if (default.EmoteCache.Find('EmoteCode', EmoteCode) != INDEX_NONE) {
+        return;
+    }
+
     PixelData.Length = 0;
     ObjectIDs.Length = 0;
 
