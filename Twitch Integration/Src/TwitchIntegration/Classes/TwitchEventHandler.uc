@@ -28,3 +28,13 @@ protected function bool TryGetInvokingUser(TwitchStateManager StateMgr, JsonObje
 
     return StateMgr.TryGetViewer(UserLogin, Chatter);
 }
+
+// A few characters are encoded by the app in certain situations, because UE3's JSON parser will explode if it encounters them
+protected function string DecodeSafeString(string Value) {
+    local string Decoded;
+
+    Decoded = Repl(Value, "%5D", "]");
+    Decoded = Repl(Decoded, "%7D", "}");
+
+    return Decoded;
+}

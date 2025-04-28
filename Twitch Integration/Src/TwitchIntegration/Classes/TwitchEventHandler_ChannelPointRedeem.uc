@@ -28,10 +28,10 @@ function Handle(TwitchStateManager StateMgr, JsonObject Data) {
     local int Index, RedemptionIndex;
 
     RewardId = Data.GetStringValue("reward_id");
-    RewardTitle = Data.GetStringValue("reward_title");
+    RewardTitle = DecodeSafeString(Data.GetStringValue("reward_title"));
     ViewerLogin = Data.GetStringValue("user_login");
     ViewerName = Data.GetStringValue("user_name");
-    ViewerInput = Data.GetStringValue("user_input"); // unused, but potentially an extension point for later
+    ViewerInput = DecodeSafeString(Data.GetStringValue("user_input")); // unused, but potentially an extension point for later
 
     `TILOG("Channel point redemption by " $ ViewerLogin $ ": reward ID = " $ RewardId $ ", reward title = " $ RewardTitle);
 

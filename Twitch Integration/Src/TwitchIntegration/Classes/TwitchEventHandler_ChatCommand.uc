@@ -20,8 +20,8 @@ function Handle(TwitchStateManager StateMgr, JsonObject Data) {
         return;
     }
 
-    Command = Locs(Data.GetStringValue("command"));
-    Body = Data.GetStringValue("body");
+    Command = Locs(DecodeSafeString(Data.GetStringValue("command")));
+    Body = DecodeSafeString(Data.GetStringValue("body"));
     MessageId = Data.GetStringValue("message_id");
     UserLogin = Data.GetStringValue("user_login");
     Emotes = ParseEmoteData(Data);
