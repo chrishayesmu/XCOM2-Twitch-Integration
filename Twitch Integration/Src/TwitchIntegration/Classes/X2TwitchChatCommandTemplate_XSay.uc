@@ -210,12 +210,12 @@ protected function BuildVisualization_TacLayer(XComGameState VisualizeGameState)
 }
 
 protected function float CalcLookAtDuration(string Message) {
-    if (default.LookAtDuration > 0) {
+    if (LookAtDuration > 0) {
         // User-configured value: just use it directly
-        return default.LookAtDuration;
+        return LookAtDuration;
     }
 
-    if (default.LookAtDuration < 0) {
+    if (LookAtDuration < 0) {
         // Negative value: disable look-at
         return 0.0;
     }
