@@ -137,7 +137,7 @@ ResultsTitle="We'll have to step up to the challenge."
 [TwitchPollGroup_Harbinger X2PollGroupTemplate]
 PollTitle="Harbinger"
 PollSubtitle="They're sending reinforcements."
-ResultsTitle="ADVENT reinforcements are en route."
+ResultsTitle="ADVENT reinforcements are coming."
 
 [TwitchPollGroup_Providence X2PollGroupTemplate]
 PollTitle="Providence"
