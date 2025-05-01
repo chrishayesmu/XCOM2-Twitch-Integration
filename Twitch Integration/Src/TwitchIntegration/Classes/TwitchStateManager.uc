@@ -180,7 +180,7 @@ function CreatePoll(string Title, array<string> Choices, int DurationInSeconds, 
 
     `TILOG("Creating a poll: title is '" $ Title $ "', there are " $ Choices.Length $ " choices, duration is " $ DurationInSeconds $ " seconds, ChannelPointsPerVote is " $ ChannelPointsPerVote);
 
-    Url = "localhost:5000/api/poll/create";
+    Url = "localhost:51982/api/poll/create";
     Url $= "?title=" $ class'TextUtilities_Twitch'.static.UrlEncode(Title);
     Url $= "&duration=" $ DurationInSeconds;
     Url $= "&pointsPerVote=" $ ChannelPointsPerVote;
@@ -199,14 +199,14 @@ function EndPoll(string Id) {
 
     `TILOG("EndPoll: Id=" $ Id);
     httpGet = Spawn(class'HttpGetRequest');
-    httpGet.Call("localhost:5000/api/poll/end?id=" $ Id);
+    httpGet.Call("localhost:51982/api/poll/end?id=" $ Id);
 }
 
 function GetCurrentPollState() {
     local HttpGetRequest httpGet;
 
     httpGet = Spawn(class'HttpGetRequest');
-    httpGet.Call("localhost:5000/api/poll/current", OnCurrentPollReceived, OnCurrentPollReceiveError);
+    httpGet.Call("localhost:51982/api/poll/current", OnCurrentPollReceived, OnCurrentPollReceiveError);
 }
 
 // Retrieves the viewer with the given login, if they're in chat. Returns their index in the
@@ -231,7 +231,7 @@ function LoadPendingEvents() {
     local HttpGetRequest httpGet;
 
     httpGet = Spawn(class'HttpGetRequest');
-    httpGet.Call("localhost:5000/api/events/pending", OnPendingEventsReceived, OnPendingEventsReceiveError);
+    httpGet.Call("localhost:51982/api/events/pending", OnPendingEventsReceived, OnPendingEventsReceiveError);
 }
 
 function LoadViewerList() {
@@ -240,7 +240,7 @@ function LoadViewerList() {
     `TILOG("Loading viewer list from app connection");
 
     httpGet = Spawn(class'HttpGetRequest');
-    httpGet.Call("localhost:5000/api/chat/chatters", OnNamesListReceived, OnNamesListReceiveError);
+    httpGet.Call("localhost:51982/api/chat/chatters", OnNamesListReceived, OnNamesListReceiveError);
 }
 
 /// <summary>
@@ -430,7 +430,7 @@ function TimeoutViewer(string ViewerLogin, int DurationInSeconds) {
 
     `TILOG("TimeoutViewer called with ViewerLogin = " $ ViewerLogin $ ", DurationInSeconds = " $ DurationInSeconds);
 
-    Url = "localhost:5000/api/moderation/timeout?viewerLogin=" $ ViewerLogin $ "&durationInSeconds=" $ DurationInSeconds;
+    Url = "localhost:51982/api/moderation/timeout?viewerLogin=" $ ViewerLogin $ "&durationInSeconds=" $ DurationInSeconds;
 
     httpGet = Spawn(class'HttpGetRequest');
     httpGet.Call(Url); // fire and forget
