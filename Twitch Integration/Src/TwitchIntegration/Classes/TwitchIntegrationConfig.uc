@@ -177,6 +177,13 @@ function ClientModCallback(MCM_API_Instance ConfigAPI, int GameMode) {
     Page = ConfigAPI.NewSettingsPage("Twitch Integration");
     Page.SetSaveHandler(SaveButtonClicked);
 
+    Group = Page.AddGroup('TwitchRaffleSettings', strRaffleSettingsGroupTitle);
+    GroupControllingSetting = Group.AddCheckbox(nameof(bAssignUnitNames), strAssignUnitNamesLabel, strAssignUnitNamesTooltip, bAssignUnitNames, AssignUnitNamesSaveHandler, DisableGroupWhenFalseHandler);
+    Group.AddCheckbox(nameof(bAssignChosenNames), strAssignChosenNamesLabel, strAssignChosenNamesTooltip, bAssignChosenNames, AssignChosenNamesSaveHandler);
+    Group.AddCheckbox(nameof(bExcludeBroadcaster), strExcludeBroadcasterLabel, strExcludeBroadcasterTooltip, bExcludeBroadcaster, ExcludeBroadcasterSaveHandler);
+
+    DisableGroupWhenFalseHandler(GroupControllingSetting, bAssignUnitNames);
+
     Group = Page.AddGroup('TwitchXSaySettings', strXSaySettingsGroupTitle);
     GroupControllingSetting = Group.AddCheckbox(nameof(bEnableXSay), strEnableXSayLabel, strEnableXSayTooltip, bEnableXSay, EnableXSaySaveHandler, DisableGroupWhenFalseHandler);
     Group.AddCheckbox(nameof(bShowXSayInCommLink), strShowXSayInCommLinkLabel, strShowXSayInCommLinkTooltip, bShowXSayInCommLink, ShowXSayInCommLinkSaveHandler);
@@ -210,13 +217,6 @@ function ClientModCallback(MCM_API_Instance ConfigAPI, int GameMode) {
     Group.AddSlider(nameof(ChanceToStartPoll), strChanceToStartPollLabel, strChanceToStartPollTooltip, 1, 100, 1, ChanceToStartPoll, ChanceToStartPollSaveHandler);
 
     DisableGroupWhenFalseHandler(GroupControllingSetting, bEnablePolls);
-
-    Group = Page.AddGroup('TwitchRaffleSettings', strRaffleSettingsGroupTitle);
-    GroupControllingSetting = Group.AddCheckbox(nameof(bAssignUnitNames), strAssignUnitNamesLabel, strAssignUnitNamesTooltip, bAssignUnitNames, AssignUnitNamesSaveHandler, DisableGroupWhenFalseHandler);
-    Group.AddCheckbox(nameof(bAssignChosenNames), strAssignChosenNamesLabel, strAssignChosenNamesTooltip, bAssignChosenNames, AssignChosenNamesSaveHandler);
-    Group.AddCheckbox(nameof(bExcludeBroadcaster), strExcludeBroadcasterLabel, strExcludeBroadcasterTooltip, bExcludeBroadcaster, ExcludeBroadcasterSaveHandler);
-
-    DisableGroupWhenFalseHandler(GroupControllingSetting, bAssignUnitNames);
 
     Group = Page.AddGroup('TwitchRollTheDiceSettings', strRtdSettingsGroupTitle);
     Group.AddCheckbox(nameof(bRtdBalanceOptions), strRtdBalanceOptionsLabel, strRtdBalanceOptionsTooltip, bRtdBalanceOptions, RtdBalanceOptionsSaveHandler);
