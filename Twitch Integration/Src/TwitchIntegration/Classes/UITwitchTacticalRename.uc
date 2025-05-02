@@ -123,7 +123,9 @@ function RealizeUI() {
     }
     else {
         `TISTATEMGR.GetViewer(OwnershipState.TwitchLogin, Viewer);
-        ViewerName = `TIVIEWERNAME(Viewer);
+
+        // If the tactical HUD is just loading, the Twitch user list won't be populated yet, so we fall back on the Twitch login
+        ViewerName = Viewer.DisplayName != "" ? Viewer.DisplayName : OwnershipState.TwitchLogin;
     }
 
     Text.SetText(ViewerName);
