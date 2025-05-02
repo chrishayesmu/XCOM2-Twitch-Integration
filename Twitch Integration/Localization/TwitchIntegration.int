@@ -87,6 +87,10 @@ strShowXSayInCommLinkTooltip="If checked, XSay messages will appear in the comm 
 strShowChatLogLabel="Show Chat Log"
 strShowChatLogTooltip="If checked, a chat log is visible on the left side of the screen, containing some system messages and any chat submitted through the !xsay command. Note that every other way of showing !xsay messages only support fairly small messages, so the chat log is the only way you're going to see everything. If you turn off the chat log, consider turning off !xsay as well."
 
+strXEmoteSettingsGroupTitle="XEmote Settings"
+strEnableXEmoteLabel="Enable XEmote Command"
+strEnableXEmoteTooltip="If checked, viewers who own units can use the 'xemote' command to have a Twitch emote appear next to their unit flag."
+
 strChatLogColorSchemeLabel="Chat Name Colors"
 strChatLogColorSchemeTooltip="Choose how chatter names will be colored in the chat log. Note: when using Twitch colors, the viewer must have explicitly set their color in Twitch. For viewers who haven't, their name will show in the default cyan."
 strChatLogColorScheme_Default="Cyan"
@@ -124,6 +128,8 @@ strExcludeBroadcasterLabel="Exclude Broadcaster"
 strExcludeBroadcasterTooltip="If checked, the broadcaster is not eligible to be raffled as a unit. They can still be manually given a unit."
 
 strRtdSettingsGroupTitle="Roll the Dice Settings"
+strRtdEnableChatCommandLabel="Enable RtD Command"
+strRtdEnableChatCommandTooltip="If checked, the !rtd command can be used by viewers. Does not affect other ways to roll the dice, such as channel point rewards."
 strRtdBalanceOptionsLabel="Balance Positive and Negative Options"
 strRtdBalanceOptionsTooltip="If checked, the game will attempt to balance positive and negative outcomes to be roughly equally likely."
 strRtdQuickModeLabel="Quick Mode"

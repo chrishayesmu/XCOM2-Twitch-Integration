@@ -10,6 +10,8 @@ class TwitchIntegrationConfig extends UIScreenListener
 // updates where the default config can be changed, or new variables added, without overwriting any config
 // which has already been seen and/or set by the player.
 
+const FirstVersion_bRtdEnableChatCommand = 4;
+const FirstVersion_bEnableXEmote = 4;
 const FirstVersion_bEnableXSay = 2;
 const FirstVersion_bShowXSayInCommLink = 2;
 const FirstVersion_bShowChatLog = 1;
@@ -72,6 +74,14 @@ var localized string strChatLogNameFormat_UnitName;
 
 // #endregion
 
+// #region XEmote strings
+
+var localized string strXEmoteSettingsGroupTitle;
+var localized string strEnableXEmoteLabel;
+var localized string strEnableXEmoteTooltip;
+
+// #endregion
+
 // #region Poll strings
 
 var localized string strPollSettingsGroupTitle;
@@ -107,6 +117,8 @@ var localized string strExcludeBroadcasterTooltip;
 // #region Roll the Dice strings
 
 var localized string strRtdSettingsGroupTitle;
+var localized string strRtdEnableChatCommandLabel;
+var localized string strRtdEnableChatCommandTooltip;
 var localized string strRtdBalanceOptionsLabel;
 var localized string strRtdBalanceOptionsTooltip;
 var localized string strRtdQuickModeLabel;
@@ -131,6 +143,12 @@ var config eTwitchConfig_ChatLogNameFormat  ChatLogFriendlyNameFormat;
 
 // #endregion
 
+// #region XEmote settings
+
+var config bool bEnableXEmote;
+
+// #endregion
+
 // #region Poll settings
 
 var config bool bEnablePolls;
@@ -152,6 +170,7 @@ var config bool bExcludeBroadcaster;
 
 // #region Roll the Dice settings
 
+var config bool bRtdEnableChatCommand;
 var config bool bRtdBalanceOptions;
 var config bool bRtdQuickMode;
 
@@ -204,6 +223,9 @@ function ClientModCallback(MCM_API_Instance ConfigAPI, int GameMode) {
     DisableGroupWhenFalseHandler(GroupControllingSetting, bEnableXSay);
     DisableSubsequentSettingsWhenFalseHandler(LocalSetting, bShowChatLog && bEnableXSay); // has to be second
 
+    Page.AddGroup('TwitchXEmoteSettings', strXEmoteSettingsGroupTitle);
+    Group.AddCheckbox(nameof(bEnableXEmote), strEnableXEmoteLabel, strEnableXEmoteTooltip, bEnableXEmote, EnableXEmoteSaveHandler);
+
     Group = Page.AddGroup('TwitchPollSettings', strPollSettingsGroupTitle);
     GroupControllingSetting = Group.AddCheckbox(nameof(bAllowChannelPointVotes), strAllowChannelPointVotesLabel, strAllowChannelPointVotesTooltip, bAllowChannelPointVotes, AllowChannelPointVotesSaveHandler, DisableGroupWhenFalseHandler);
     Group.AddSlider(nameof(ChannelPointsPerVote), strChannelPointsPerVoteLabel, strChannelPointsPerVoteTooltip, 1, 10000, 1, ChannelPointsPerVote, ChannelPointsPerVoteSaveHandler);
@@ -219,10 +241,9 @@ function ClientModCallback(MCM_API_Instance ConfigAPI, int GameMode) {
     DisableGroupWhenFalseHandler(GroupControllingSetting, bEnablePolls);
 
     Group = Page.AddGroup('TwitchRollTheDiceSettings', strRtdSettingsGroupTitle);
+    Group.AddCheckbox(nameof(bRtdEnableChatCommand), strRtdEnableChatCommandLabel, strRtdEnableChatCommandTooltip, bRtdEnableChatCommand, RtdEnableChatCommandSaveHandler);
     Group.AddCheckbox(nameof(bRtdBalanceOptions), strRtdBalanceOptionsLabel, strRtdBalanceOptionsTooltip, bRtdBalanceOptions, RtdBalanceOptionsSaveHandler);
     Group.AddCheckbox(nameof(bRtdQuickMode), strRtdQuickModeLabel, strRtdQuickModeTooltip, bRtdQuickMode, RtdQuickModeSaveHandler);
-
-    DisableGroupWhenFalseHandler(GroupControllingSetting, bAssignUnitNames);
 
     Page.ShowSettings();
 }
@@ -366,9 +387,11 @@ private function SaveChatLogFriendlyNameFormat(MCM_API_Setting _Setting, string 
 `MCM_API_BasicCheckboxSaveHandler(AssignChosenNamesSaveHandler, bAssignChosenNames);
 `MCM_API_BasicCheckboxSaveHandler(AssignUnitNamesSaveHandler, bAssignUnitNames);
 `MCM_API_BasicCheckboxSaveHandler(EnablePollsSaveHandler, bEnablePolls);
+`MCM_API_BasicCheckboxSaveHandler(EnableXEmoteSaveHandler, bEnableXEmote);
 `MCM_API_BasicCheckboxSaveHandler(EnableXSaySaveHandler, bEnableXSay);
 `MCM_API_BasicCheckboxSaveHandler(ExcludeBroadcasterSaveHandler, bExcludeBroadcaster);
 `MCM_API_BasicCheckboxSaveHandler(RtdBalanceOptionsSaveHandler, bRtdBalanceOptions);
+`MCM_API_BasicCheckboxSaveHandler(RtdEnableChatCommandSaveHandler, bRtdEnableChatCommand);
 `MCM_API_BasicCheckboxSaveHandler(RtdQuickModeSaveHandler, bRtdQuickMode);
 `MCM_API_BasicCheckboxSaveHandler(ShowChatLogSaveHandler, bShowChatLog);
 `MCM_API_BasicCheckboxSaveHandler(ShowXSayInCommLinkSaveHandler, bShowXSayInCommLink);

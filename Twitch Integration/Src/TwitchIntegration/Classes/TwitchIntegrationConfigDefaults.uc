@@ -17,6 +17,12 @@ var config eTwitchConfig_ChatLogNameFormat  ChatLogFriendlyNameFormat;
 
 // #endregion
 
+// #region XEmote settings
+
+var config bool bEnableXEmote;
+
+// #endregion
+
 // #region Poll settings
 
 var config bool bEnablePolls;
@@ -38,6 +44,7 @@ var config bool bExcludeBroadcaster;
 
 // #region Roll the Dice settings
 
+var config bool bRtdEnableChatCommand;
 var config bool bRtdBalanceOptions;
 var config bool bRtdQuickMode;
 

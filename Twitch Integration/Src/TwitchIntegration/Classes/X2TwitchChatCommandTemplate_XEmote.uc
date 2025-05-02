@@ -4,6 +4,10 @@ function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, 
     local string EmoteImagePath;
     local XComGameState_Unit UnitState;
 
+    if (!`TI_CFG(bEnableXEmote)) {
+        return false;
+    }
+
     if (!super.Invoke(CommandAlias, Body, Emotes, MessageId, Viewer)) {
         return false;
     }
