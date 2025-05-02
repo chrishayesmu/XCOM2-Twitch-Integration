@@ -223,7 +223,7 @@ function ClientModCallback(MCM_API_Instance ConfigAPI, int GameMode) {
     DisableGroupWhenFalseHandler(GroupControllingSetting, bEnableXSay);
     DisableSubsequentSettingsWhenFalseHandler(LocalSetting, bShowChatLog && bEnableXSay); // has to be second
 
-    Page.AddGroup('TwitchXEmoteSettings', strXEmoteSettingsGroupTitle);
+    Group = Page.AddGroup('TwitchXEmoteSettings', strXEmoteSettingsGroupTitle);
     Group.AddCheckbox(nameof(bEnableXEmote), strEnableXEmoteLabel, strEnableXEmoteTooltip, bEnableXEmote, EnableXEmoteSaveHandler);
 
     Group = Page.AddGroup('TwitchPollSettings', strPollSettingsGroupTitle);
