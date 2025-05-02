@@ -25,7 +25,10 @@ function Handle(TwitchStateManager StateMgr, JsonObject Data) {
     local X2TwitchEventActionTemplate Action;
     local XComGameState_Unit UnitState;
     local string RewardId, RewardTitle, ViewerLogin, ViewerName, ViewerInput;
+    local string BannerValue, Title;
     local int Index, RedemptionIndex;
+    local bool DidPayCost, HadValidActions;
+    local eUIState UIState;
 
     RewardId = Data.GetStringValue("reward_id");
     RewardTitle = DecodeSafeString(Data.GetStringValue("reward_title"));
@@ -63,6 +66,15 @@ function Handle(TwitchStateManager StateMgr, JsonObject Data) {
         }
     }
 
+    // Avoid checking the cost unless the redemption is otherwise valid, as this will also pay the cost!
+    HadValidActions = Redemptions[RedemptionIndex].Actions.Length == 0 || ValidActions.Length > 0; // don't mark empty actions as failed, they may be used just for UI
+    if (HadValidActions) {
+        DidPayCost = class'X2TwitchUtils'.static.TryPayStrategyCost(Redemptions[RedemptionIndex].CostToUse);
+    }
+    else {
+        DidPayCost = false;
+    }
+
     NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Twitch Channel Point Redeem");
     RedeemState = XComGameState_ChannelPointRedemption(NewGameState.CreateNewStateObject(class'XComGameState_ChannelPointRedemption'));
 
@@ -72,15 +84,8 @@ function Handle(TwitchStateManager StateMgr, JsonObject Data) {
     RedeemState.RedeemerUnitObjectID = UnitState != none ? UnitState.GetReference().ObjectID : 0;
     RedeemState.RewardId = RewardId;
     RedeemState.RewardTitle = RewardTitle;
-    RedeemState.HadValidActions = Redemptions[RedemptionIndex].Actions.Length == 0 || ValidActions.Length > 0; // don't mark empty actions as failed, they may be used just for UI
-
-    // Avoid checking the cost unless the redemption is otherwise valid, as this will also pay the cost!
-    if (RedeemState.HadValidActions) {
-        RedeemState.DidPayCost = class'X2TwitchUtils'.static.TryPayStrategyCost(Redemptions[RedemptionIndex].CostToUse);
-    }
-    else {
-        RedeemState.DidPayCost = false;
-    }
+    RedeemState.DidPayCost = DidPayCost;
+    RedeemState.HadValidActions = HadValidActions;
 
     NewContext = XComGameStateContext_ChangeContainer(NewGameState.GetContext());
     NewContext.BuildVisualizationFn = BuildVisualization;
@@ -92,14 +97,24 @@ function Handle(TwitchStateManager StateMgr, JsonObject Data) {
             Action.Apply(UnitState);
         }
     }
+
+    // Strat viz has to happen here, because for some reason BuildVisualization is called multiple times when loading save games
+    if (`TI_IS_STRAT_GAME) {
+        PopulateBannerAttributes(RedeemState, Title, BannerValue, UIState);
+        `HQPRES.NotifyBanner(Title, /* ImagePath */, RedeemState.RewardTitle, BannerValue, UIState);
+    }
 }
 
-protected function BuildVisualization(XComGameState VisualizeGameState) {
+protected static function BuildVisualization(XComGameState VisualizeGameState) {
     local VisualizationActionMetadata ActionMetadata;
     local X2Action_PlayMessageBanner MessageAction;
     local XComGameState_ChannelPointRedemption RedeemState;
-    local eUIState UIState;
     local string BannerValue, Title;
+    local eUIState UIState;
+
+    if (!`TI_IS_TAC_GAME) {
+        return;
+    }
 
     foreach VisualizeGameState.IterateByClassType(class'XComGameState_ChannelPointRedemption', RedeemState) {
         break;
@@ -108,30 +123,29 @@ protected function BuildVisualization(XComGameState VisualizeGameState) {
     ActionMetadata.StateObject_OldState = RedeemState;
     ActionMetadata.StateObject_NewState = RedeemState;
 
+    PopulateBannerAttributes(RedeemState, Title, BannerValue, UIState);
+
+    MessageAction = X2Action_PlayMessageBanner(class'X2Action_PlayMessageBanner'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext()));
+    MessageAction.AddMessageBanner(Title, /* IconPath */ "", RedeemState.RewardTitle, BannerValue, UIState);
+}
+
+protected static function PopulateBannerAttributes(XComGameState_ChannelPointRedemption RedeemState, out string Title, out string BannerValue, out eUIState UIState) {
     // Check if redemption failed and signal appropriately. Check for valid actions must come first, as it implies
     // !DidPayCost and therefore that case would not be hit if the order was reversed.
     if (!RedeemState.HadValidActions) {
-        Title = BannerTitleFailedNoActions;
-        BannerValue = BannerTextFailedNoActions;
+        Title = default.BannerTitleFailedNoActions;
+        BannerValue = default.BannerTextFailedNoActions;
         UIState = eUIState_Bad;
     }
     else if (!RedeemState.DidPayCost) {
-        Title = BannerTitleFailedDueToCost;
-        BannerValue = BannerTextFailedDueToCost;
+        Title = default.BannerTitleFailedDueToCost;
+        BannerValue = default.BannerTextFailedDueToCost;
         UIState = eUIState_Bad;
     }
     else {
-        Title = BannerTitle;
-        BannerValue = Repl(BannerText, "<ViewerName/>", RedeemState.RedeemerName);
+        Title = default.BannerTitle;
+        BannerValue = Repl(default.BannerText, "<ViewerName/>", RedeemState.RedeemerName);
         UIState = eUIState_Normal;
-    }
-
-    if (`TI_IS_TAC_GAME) {
-        MessageAction = X2Action_PlayMessageBanner(class'X2Action_PlayMessageBanner'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext()));
-        MessageAction.AddMessageBanner(Title, /* IconPath */ "", RedeemState.RewardTitle, BannerValue, UIState);
-    }
-    else {
-        `HQPRES.NotifyBanner(Title, /* ImagePath */, RedeemState.RewardTitle, BannerValue, UIState);
     }
 }
 
