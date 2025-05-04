@@ -21,10 +21,10 @@ simulated function OnInit() {
     AnchorBottomLeft();
     SetPosition(34, -180);
 
-    ChangeButton = Spawn(class'UIButton', self).InitButton('', "Change Owner", OnChangeButtonClicked);
+    ChangeButton = Spawn(class'UIButton', self).InitButton('tiTacRenameChangeOwnerButton', "Change Owner", OnChangeButtonClicked);
     ChangeButton.SetPosition(0, -30);
 
-    TwitchIcon = Spawn(class'UIImage', self).InitImage(, "img:///TwitchIntegration_UI.Icon_Twitch_3D");
+    TwitchIcon = Spawn(class'UIImage', self).InitImage('tiTacRenameTwitchIcon', "img:///TwitchIntegration_UI.Icon_Twitch_3D");
     TwitchIcon.SetPosition(0, 0);
     TwitchIcon.SetSize(28, 28);
 

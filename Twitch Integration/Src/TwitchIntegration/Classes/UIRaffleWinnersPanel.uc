@@ -18,18 +18,18 @@ function UIRaffleWinnersPanel InitRafflePanel() {
     SetSize(Size.X, Size.Y);
 
     m_TextContainer = Spawn(class'UITextContainer_Twitch', self);
-    m_TextContainer.InitTextContainer('', "", 0, 42, Size.X, Size.Y, /* addBG */ true, class'UIUtilities_Controls'.const.MC_X2BackgroundSimple, /* initAutoScroll */ true);
+    m_TextContainer.InitTextContainer('tiRaffleWinnersTextContainer', "", 0, 42, Size.X, Size.Y, /* addBG */ true, class'UIUtilities_Controls'.const.MC_X2BackgroundSimple, /* initAutoScroll */ true);
     m_TextContainer.SetAlpha(Opacity);
 
 	m_TitleHeader = Spawn(class'UITextContainer_Twitch', self);
-	m_TitleHeader.InitTextContainer('', "", 0, 0, Size.X, 45.0f, /* addBG */ true, class'UIUtilities_Controls'.const.MC_X2BackgroundSimple);
+	m_TitleHeader.InitTextContainer('tiRaffleWinnersTitleHeader', "", 0, 0, Size.X, 45.0f, /* addBG */ true, class'UIUtilities_Controls'.const.MC_X2BackgroundSimple);
     m_TitleHeader.SetAlpha(Opacity);
     m_TitleHeader.SetHtmlText(class'UIUtilities_Text'.static.GetColoredText("RAFFLE WINNERS", eUIState_Highlight, /* fontSize */ 24, /* align */ "CENTER"));
 
     // TODO: get an actual icon on this button somehow
     m_ExpandCollapseButton = Spawn(class'UIButton', self);
     m_ExpandCollapseButton.ResizeToText = false;
-    m_ExpandCollapseButton.InitButton(/* InitName */, "&lt;", OnExpandCollapseButtonClicked);
+    m_ExpandCollapseButton.InitButton('tiRaffleWinnersExpandCollapseButton', "&lt;", OnExpandCollapseButtonClicked);
     m_ExpandCollapseButton.SetAlpha(Opacity);
     m_ExpandCollapseButton.SetPosition(m_TitleHeader.Width + 3, m_TitleHeader.Y);
     m_ExpandCollapseButton.SetSize(28, 28);

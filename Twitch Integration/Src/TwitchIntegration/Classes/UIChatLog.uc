@@ -37,18 +37,18 @@ function UIChatLog InitChatLog() {
     SetSize(Size.X, Size.Y);
 
     m_TextContainer = Spawn(class'UITextContainer', self);
-    m_TextContainer.InitTextContainer('', "", 0, 0, Size.X, Size.Y, /* addBG */ true, class'UIUtilities_Controls'.const.MC_X2BackgroundSimple);
+    m_TextContainer.InitTextContainer('tiChatLogTextContainer', "", 0, 0, Size.X, Size.Y, /* addBG */ true, class'UIUtilities_Controls'.const.MC_X2BackgroundSimple);
     m_TextContainer.SetAlpha(Opacity);
 
     m_ClearButton = Spawn(class'UIButton', self);
-    m_ClearButton.InitButton(/* InitName */, ClearButtonLabel, OnClearButtonClicked);
+    m_ClearButton.InitButton('tiChatLogClearButton', ClearButtonLabel, OnClearButtonClicked);
     m_ClearButton.SetAlpha(Opacity);
     m_ClearButton.SetPosition(0, m_TextContainer.Height + 8);
 
     // TODO: get an actual icon on this button somehow
     m_ExpandCollapseButton = Spawn(class'UIButton', self);
     m_ExpandCollapseButton.ResizeToText = false;
-    m_ExpandCollapseButton.InitButton(/* InitName */, "&lt;", OnExpandCollapseButtonClicked);
+    m_ExpandCollapseButton.InitButton('tiChatLogExpandCollapseButton', "&lt;", OnExpandCollapseButtonClicked);
     m_ExpandCollapseButton.SetAlpha(Opacity);
     m_ExpandCollapseButton.SetPosition(m_TextContainer.Width + 3, m_TextContainer.Y);
     m_ExpandCollapseButton.SetSize(28, 28);
