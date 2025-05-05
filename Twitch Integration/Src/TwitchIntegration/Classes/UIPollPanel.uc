@@ -27,6 +27,7 @@ var private UIX2PanelHeader	m_TitleHeader;
 var private UIText m_TimeRemaining;
 var private UIText m_TotalVotes;
 var private array<UIPollChoice> m_PollChoices;
+var private bool m_bIsUsingTurnDuration;
 
 // ------------------------------------
 // Poll data
@@ -72,9 +73,11 @@ simulated function UIPollPanel InitPollPanel(name PollGroupTemplateName, TwitchP
 
     // Show time remaining rather than turns, when needed
     if (DurationInTurns > 0) {
+        m_bIsUsingTurnDuration = true;
         DurationString = DurationInTurns @ (DurationInTurns == 1 ? strTurnsRemainingSingular : strTurnsRemainingPlural);
     }
     else {
+        m_bIsUsingTurnDuration = false;
         DurationString = class'X2TwitchUtils'.static.SecondsToTimeString(Poll.SecondsRemaining) @ strTimeRemaining;
     }
 
@@ -97,6 +100,10 @@ simulated function UIPollPanel InitPollPanel(name PollGroupTemplateName, TwitchP
 
 event Tick(float DeltaTime) {
     local float SecondsRemaining;
+
+    if (m_bIsUsingTurnDuration) {
+        return;
+    }
 
     SecondsRemaining = Max(0, m_PollEndTime - WorldInfo.RealTimeSeconds);
 
