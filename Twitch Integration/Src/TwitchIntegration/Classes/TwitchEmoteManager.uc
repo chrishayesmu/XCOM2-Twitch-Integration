@@ -99,6 +99,16 @@ private static function string ConvertFileNameToEmoteCode(string FileName) {
     EmoteCode = Repl(FileName, IMAGE_PATH $ "\\TwitchEmote_", "");
     EmoteCode = Repl(EmoteCode, ".png", "");
 
+    EmoteCode = Repl(EmoteCode, "TIENCLT", "<");
+    EmoteCode = Repl(EmoteCode, "TIENCGT", ">");
+    EmoteCode = Repl(EmoteCode, "TIENCBS", "\\");
+    EmoteCode = Repl(EmoteCode, "TIENCFS", "/");
+    EmoteCode = Repl(EmoteCode, "TIENCC", ":");
+    EmoteCode = Repl(EmoteCode, "TIENCA", "*");
+    EmoteCode = Repl(EmoteCode, "TIENCQST", "?");
+    EmoteCode = Repl(EmoteCode, "TIENCQT", "\"");
+    EmoteCode = Repl(EmoteCode, "TIENCP", "|");
+
     return EmoteCode;
 }
 
@@ -125,7 +135,21 @@ private static function int FindPosterIndexFromFileName(string FileName) {
 }
 
 private static function string GetEmoteFileName(string EmoteCode) {
-    return IMAGE_PATH $ "\\TwitchEmote_" $ EmoteCode $ ".png";
+    local string EncodedEmoteCode;
+
+    EncodedEmoteCode = EmoteCode;
+
+    EncodedEmoteCode = Repl(EncodedEmoteCode, "<", "TIENCLT");
+    EncodedEmoteCode = Repl(EncodedEmoteCode, ">", "TIENCGT");
+    EncodedEmoteCode = Repl(EncodedEmoteCode, "\\", "TIENCBS");
+    EncodedEmoteCode = Repl(EncodedEmoteCode, "/", "TIENCFS");
+    EncodedEmoteCode = Repl(EncodedEmoteCode, ":", "TIENCC");
+    EncodedEmoteCode = Repl(EncodedEmoteCode, "*", "TIENCA");
+    EncodedEmoteCode = Repl(EncodedEmoteCode, "?", "TIENCQST");
+    EncodedEmoteCode = Repl(EncodedEmoteCode, "\"", "TIENCQT");
+    EncodedEmoteCode = Repl(EncodedEmoteCode, "|", "TIENCP");
+
+    return IMAGE_PATH $ "\\TwitchEmote_" $ EncodedEmoteCode $ ".png";
 }
 
 private static function string GetPosterObjectPath(int PosterIndex) {
