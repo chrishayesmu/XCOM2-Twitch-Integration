@@ -112,8 +112,10 @@ function Initialize() {
     // Initially raffle any unraffled units. We have to be careful to always do this from the main thread and
     // not in response to web requests, or we can end up submitting a game state from an illegal thread and
     // crash the game.
-    bUnraffledUnitsExist = true;
-    fTimeSinceLastRaffle = 100.0f;
+    if (`TI_IS_TAC_GAME) {
+        bUnraffledUnitsExist = true;
+        fTimeSinceLastRaffle = 100.0f;
+    }
 }
 
 event Tick(float DeltaTime) {
