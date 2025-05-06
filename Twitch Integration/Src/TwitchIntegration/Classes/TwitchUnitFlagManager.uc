@@ -252,7 +252,11 @@ private function SetUnitName(XComGameState_Unit Unit, XComGameState_TwitchObject
     local TwitchChatter Viewer;
 	local string FirstName, LastName;
 
-    if (Unit.GetTeam() == eTeam_XCom && ( Unit.IsSoldier() || Unit.GetMyTemplate().bIsCosmetic )) {
+    if (Unit.GetMyTemplate().bIsCosmetic) {
+        return;
+    }
+
+    if (Unit.GetTeam() != eTeam_Resistance && Unit.IsSoldier()) {
         // Don't do anything in this case; we don't modify soldiers because the player has full agency to do that
         return;
     }

@@ -131,7 +131,6 @@ static function XComGameState_TwitchObjectOwnership AssignOwnership(string Viewe
     `TILOG("Updating unit flag");
     class'X2TwitchUtils'.static.SyncUnitFlag(Unit, OwnershipState);
     `TILOG("Updated unit flag");
-    `XWORLDINFO.ConsoleCommand("flushlogs"); // TODO remove these flush calls
 
     // For Chosen, we need a little extra info and have to modify a more global game state
     if (Unit.IsChosen()) {
@@ -142,13 +141,7 @@ static function XComGameState_TwitchObjectOwnership AssignOwnership(string Viewe
     }
 
     if (bCreatedGameState) {
-        `TILOG("Submitting new game state " $ NewGameState);
-        `XWORLDINFO.ConsoleCommand("flushlogs");
-
         `GAMERULES.SubmitGameState(NewGameState);
-
-        `TILOG("Game state submitted");
-        `XWORLDINFO.ConsoleCommand("flushlogs");
     }
 
     `XEVENTMGR.TriggerEvent('TwitchUnitOwnerAssigned', /* EventData */ OwnershipState, /* EventSource */, NewGameState);
@@ -219,15 +212,19 @@ static protected function EventListenerReturn ChooseViewerName(Object EventData,
 
     if (default.UnitTypesToNotRaffle.Find(Unit.GetMyTemplateName()) != INDEX_NONE)
     {
-        `TILOG("Unit character template " $ Unit.GetMyTemplateName() $ " is configured not to be raffled. Skipping.");
+        `TILOG("Aborting ChooseViewerName: unit character template " $ Unit.GetMyTemplateName() $ " is configured not to be raffled.", DetailedLogs);
         return ELR_NoInterrupt;
     }
 
-    // Don't give Twitch names to XCOM soldiers or Gremlins, they should have persistent names assigned by the streamer
-    // (Non-XCOM soldiers are Resistance members, who should receive names)
-    // TODO: when you rescue a Resistance member, do they join your roster?
-    if (Unit.GetTeam() == eTeam_XCom && ( Unit.IsSoldier() || Unit.GetMyTemplate().bIsCosmetic )) {
-        `TILOG("Aborting ChooseViewerName: unit is non-raffleable XCOM unit", DetailedLogs);
+    if (Unit.GetMyTemplate().bIsCosmetic) {
+        `TILOG("Aborting ChooseViewerName: unit is cosmetic", DetailedLogs);
+        return ELR_NoInterrupt;
+    }
+
+    // Don't give Twitch names to XCOM soldiers, they should have persistent names assigned by the streamer
+    // (Soldiers on the Resistance team should receive names, as they generally aren't coming back to the barracks)
+    if (Unit.GetTeam() != eTeam_Resistance && Unit.IsSoldier()) {
+        `TILOG("Aborting ChooseViewerName: unit is non-raffleable soldier unit", DetailedLogs);
         return ELR_NoInterrupt;
     }
 
