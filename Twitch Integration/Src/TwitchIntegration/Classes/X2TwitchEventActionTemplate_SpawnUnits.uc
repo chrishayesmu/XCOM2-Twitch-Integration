@@ -27,5 +27,5 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
 }
 
 function bool IsValid(optional XComGameState_Unit InvokingUnit) {
-    return true; // always fine to spawn more stuff
+    return `TI_IS_TAC_GAME; // always fine to spawn more stuff if we're in tac
 }
