@@ -115,9 +115,8 @@ protected function array<XComGameState_Unit> FindTargets(XComGameState_Unit Invo
     else if (SelectBasedOn == eTwitchUSC_HighestHP || SelectBasedOn == eTwitchUSC_LowestHP) {
         ValidTargets.Sort(SortUnitsByCurrentHp);
 
-        I = (SelectBasedOn == eTwitchUSC_LowestHP) ? 0 : ValidTargets.Length - 1;
-
         while (Targets.Length < NumTargets && ValidTargets.Length > 0) {
+            I = (SelectBasedOn == eTwitchUSC_LowestHP) ? 0 : ValidTargets.Length - 1;
             Targets.AddItem(ValidTargets[I]);
             ValidTargets.Remove(I, 1);
         }
@@ -125,9 +124,8 @@ protected function array<XComGameState_Unit> FindTargets(XComGameState_Unit Invo
     else if (SelectBasedOn == eTwitchUSC_LeastHPMissing || SelectBasedOn == eTwitchUSC_MostHPMissing) {
         ValidTargets.Sort(SortUnitsByMissingHp);
 
-        I = (SelectBasedOn == eTwitchUSC_LeastHPMissing) ? 0 : ValidTargets.Length - 1;
-
         while (Targets.Length < NumTargets && ValidTargets.Length > 0) {
+            I = (SelectBasedOn == eTwitchUSC_LeastHPMissing) ? 0 : ValidTargets.Length - 1;
             Targets.AddItem(ValidTargets[I]);
             ValidTargets.Remove(I, 1);
         }
