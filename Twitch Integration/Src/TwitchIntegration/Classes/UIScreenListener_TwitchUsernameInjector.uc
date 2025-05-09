@@ -47,6 +47,8 @@ var private UIArmory_MainMenu ArmoryMainMenu;
 var private delegate<OnItemSelectedCallback> Armory_OriginalOnItemClicked;
 var private delegate<OnItemSelectedCallback> Armory_OriginalOnSelectionChanged;
 
+var private TUnitLabel m_kNmdDebriefingScreen_CurrentSoldierLabel;
+
 var private TUnitLabel m_kPersonnel_HighlightedUnitLabel;
 var private delegate<OnItemSelectedCallback> Personnel_OriginalOnSelectionChanged;
 
@@ -467,6 +469,21 @@ private simulated function int GetMyItemIndex() {
     return ArmoryMainMenu.List.GetItemIndex(TwitchListItem);
 }
 
+private function HandleNiceMissionDebriefingScreen(UIScreen Screen) {
+    local NMD_UIMissionDebriefingScreen NmdScreen;
+
+    NmdScreen = NMD_UIMissionDebriefingScreen(Screen);
+
+    `XWORLDINFO.MyWatchVariableMgr.RegisterWatchVariable(NmdScreen, 'CurrentSoldierIndex', self, OnNmdCurrentSoldierIndexChanged);
+
+    // Set up Twitch name label, then populate the name immediately after
+    m_kNmdDebriefingScreen_CurrentSoldierLabel.bAddBackground = true;
+    m_kNmdDebriefingScreen_CurrentSoldierLabel.PosX = 5;
+    m_kNmdDebriefingScreen_CurrentSoldierLabel.PosY = -36;
+    CreateTwitchUI(NmdScreen.Container, m_kNmdDebriefingScreen_CurrentSoldierLabel, OnTextSizeRealized_Nmd, /* UseOwnershipInfo */ false);
+    OnNmdCurrentSoldierIndexChanged();
+}
+
 private simulated function OpenTwitchNameInputBox() {
     local XComGameState_TwitchObjectOwnership OwnershipState;
 	local TInputDialogData kData;
@@ -530,6 +547,25 @@ private function OnNameInputBoxClosed(string NewViewerLogin) {
 
     if (TwitchListItem != none) {
         TwitchListItem.NeedsAttention(NewViewerLogin == "");
+    }
+}
+
+private function OnNmdCurrentSoldierIndexChanged() {
+    local NMD_UIMissionDebriefingScreen NmdScreen;
+    local XComGameState_Unit Unit;
+    local XComGameState_TwitchObjectOwnership Ownership;
+
+    NmdScreen = NMD_UIMissionDebriefingScreen(`SCREENSTACK.GetCurrentScreen());
+
+    Unit = NmdScreen.MissionInfo.GetUnit(NmdScreen.CurrentSoldierIndex);
+    Ownership = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Unit.GetReference().ObjectID);
+
+    if (Ownership == none) {
+        HideLabel(m_kNmdDebriefingScreen_CurrentSoldierLabel);
+    }
+    else {
+        m_kNmdDebriefingScreen_CurrentSoldierLabel.Text.SetText(Ownership.TwitchLogin);
+        ShowLabel(m_kNmdDebriefingScreen_CurrentSoldierLabel);
     }
 }
 
@@ -615,6 +651,10 @@ private function OnTextSizeRealized() {
     }
 }
 
+private function OnTextSizeRealized_Nmd() {
+    ScaleBGBoxToText(m_kNmdDebriefingScreen_CurrentSoldierLabel);
+}
+
 private function OnTextSizeRealized_SquadSelect() {
     local TUnitLabel Label;
     local float PosX;
@@ -633,7 +673,10 @@ private function RealizeUI(UIScreen Screen, optional bool bInjectToMainMenu = tr
 
     CheckForSoldierList(Screen);
 
-    if (CheckForUISoldierHeader(Screen, NewLabels)) {
+    if (class'X2DownloadableContentInfo_TwitchIntegration'.default.IsNiceMissionDebriefingActive && Screen.IsA('NMD_UIMissionDebriefingScreen')) {
+        HandleNiceMissionDebriefingScreen(Screen);
+    }
+    else if (CheckForUISoldierHeader(Screen, NewLabels)) {
         // TODO: is cleanup necessary, or will these be deleted automatically because they're parented to a screen? (assuming we don't keep refs)
         CleanUpUsernameElements(/* bCleanUpMainMenuList */ bInjectToMainMenu);
 

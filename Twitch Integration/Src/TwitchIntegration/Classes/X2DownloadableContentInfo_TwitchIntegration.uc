@@ -14,6 +14,7 @@ class X2DownloadableContentInfo_TwitchIntegration extends X2DownloadableContentI
 
 var config bool IsExtendedPersonnelInfoActive;
 var config bool IsExtendedPersonnelInfoReduxActive;
+var config bool IsNiceMissionDebriefingActive;
 var config bool IsRobojumperSquadSelectActive;
 var config bool IsUnitFlagExtendedActive;
 
@@ -411,6 +412,9 @@ private static function CacheActiveModsOfInterest() {
                 break;
             case 'WOTCLootIndicator_Extended':
                 default.IsUnitFlagExtendedActive = true;
+                break;
+            case 'WOTCNiceMissionDebriefing':
+                default.IsNiceMissionDebriefingActive = true;
                 break;
         }
     }
