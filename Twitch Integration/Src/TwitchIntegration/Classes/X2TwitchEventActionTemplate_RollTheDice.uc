@@ -15,7 +15,6 @@ struct RtdOption {
     }
 };
 
-var config bool BalanceOptions;
 var config array<RtdOption> PositiveOptions;
 var config array<RtdOption> NegativeOptions;
 
@@ -39,6 +38,7 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
         // Make sure the target is still valid; a previous RTD outcome may have invalidated them
         // (e.g. collateral damage from someone else's explosion)
         if (!IsValidTarget(Unit)) {
+            `TILOG("Target " $ Unit.GetFullName() $ " is not valid, skipping");
             continue;
         }
 
@@ -48,11 +48,12 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
         `TILOG("There are " $ ValidPositiveOptions.Length $ " positive and " $ ValidNegativeOptions.Length $ " negative options in the pool for unit " $ Unit.GetFullName() $ " (before potential balancing)");
         `TILOG("Total positive weight is " $ TotalPositiveWeight $ " and total negative weight is " $ TotalNegativeWeight);
 
-        if (BalanceOptions) {
+        if (`TI_CFG(bRtdBalanceOptions)) {
             DidBalance = BalanceOptionArrays(ValidPositiveOptions, ValidNegativeOptions, TotalPositiveWeight, TotalNegativeWeight);
 
             // If for some reason we can't balance, skip this unit
             if (!DidBalance) {
+                `TILOG("Failed to balance options, skipping unit");
                 continue;
             }
         }
