@@ -103,7 +103,7 @@ static function XComGameState_TwitchObjectOwnership AssignOwnership(string Viewe
         bCreatedGameState = true;
     }
 
-    `TILOG("Assigning viewer " $ ViewerLogin $ " at index " $ ViewerIndex $ " to unit " $ Unit.GetFullName() $ " with object ID " $ ObjID);
+    `TILOG("Assigning viewer " $ ViewerLogin $ " at index " $ ViewerIndex $ " to unit " $ Unit.GetFullName() $ "(template: " $ Unit.GetMyTemplate().DataName $ ") with object ID " $ ObjID);
 
 // #region Create or update ownership state
     if (OwnershipState == none) {
