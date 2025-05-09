@@ -3,6 +3,12 @@ class X2TwitchEventActionTemplate_TargetsUnits extends X2TwitchEventActionTempla
 
 const DetailedLogs = false;
 
+enum ETwitchOwnerTargetingMode {
+    eTOTM_PreferOwnedUnitIfValid,
+    eTOTM_RequireOwnedUnit,
+    eTOTM_IgnoreOwnedUnit
+};
+
 enum ETwitchUnitSelectionCriteria {
     eTwitchUSC_Random,
 
@@ -31,6 +37,7 @@ struct TwitchActionFlyoverParams {
 };
 
 var config array<eTeam> UnitTeams;
+var config ETwitchOwnerTargetingMode OwnerTargetingMode;
 var config ETwitchUnitSelectionCriteria SelectBasedOn;
 var config bool IncludeCivilians;
 var config bool IncludeConcealed;
@@ -88,12 +95,19 @@ protected function array<XComGameState_Unit> FindTargets(XComGameState_Unit Invo
 
     // If an invoking unit is provided (e.g. through a chat command),
     // it is always the only target
-    if (InvokingUnit != none) {
+    if (InvokingUnit == none && OwnerTargetingMode == eTOTM_RequireOwnedUnit) {
+        Targets.Length = 0;
+        return Targets;
+    }
+    else if (InvokingUnit != none && OwnerTargetingMode != eTOTM_IgnoreOwnedUnit) {
         if (IsValidTarget(InvokingUnit)) {
             Targets.AddItem(InvokingUnit);
         }
 
-        return Targets;
+        // The invoking unit is the only one considered a valid target, so move on
+        if (OwnerTargetingMode == eTOTM_RequireOwnedUnit) {
+            return Targets;
+        }
     }
 
     // Find every unit which is possible as a target
