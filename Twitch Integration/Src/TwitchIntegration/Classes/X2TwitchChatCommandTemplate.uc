@@ -66,7 +66,7 @@ function Initialize() {
 function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, string MessageId, TwitchChatter Viewer) {
     local XComGameState_Unit UnitState;
 
-    `TILOG("Received chat command '" $ CommandAliases $ "' from viewer " $ Viewer.Login);
+    `TILOG("Received chat command '" $ CommandAlias $ "' from viewer " $ Viewer.Login);
 
     if (bRequireOwnedUnit) {
         if (Viewer.OwnedObjectID == 0) {
