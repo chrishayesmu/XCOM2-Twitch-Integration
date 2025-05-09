@@ -21,11 +21,13 @@ function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, 
         }
 
         if (ActionTemplate.IsValid(InvokingUnit)) {
+            `TILOG("Found a valid template " $ ActionTemplate);
             ValidTemplates.AddItem(ActionTemplate);
         }
     }
 
     if (ValidTemplates.Length == 0) {
+        `TILOG("No valid templates found");
         return false;
     }
 

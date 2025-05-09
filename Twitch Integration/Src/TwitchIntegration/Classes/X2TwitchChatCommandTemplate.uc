@@ -66,8 +66,11 @@ function Initialize() {
 function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, string MessageId, TwitchChatter Viewer) {
     local XComGameState_Unit UnitState;
 
+    `TILOG("Received chat command '" $ CommandAliases $ "' from viewer " $ Viewer.Login);
+
     if (bRequireOwnedUnit) {
         if (Viewer.OwnedObjectID == 0) {
+            `TILOG("Viewer doesn't own a unit and bRequireOwnedUnit is true");
             return false;
         }
 
@@ -76,6 +79,7 @@ function bool Invoke(string CommandAlias, string Body, array<EmoteData> Emotes, 
             UnitState = class'X2TwitchUtils'.static.GetViewerUnitOnMission(Viewer.Login);
 
             if (UnitState == none) {
+                `TILOG("Viewer's unit is not on the current mission");
                 return false;
             }
         }
