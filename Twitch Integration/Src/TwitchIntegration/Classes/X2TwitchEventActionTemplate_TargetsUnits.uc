@@ -1,6 +1,8 @@
 class X2TwitchEventActionTemplate_TargetsUnits extends X2TwitchEventActionTemplate
     abstract;
 
+const DetailedLogs = false;
+
 enum ETwitchUnitSelectionCriteria {
     eTwitchUSC_Random,
 
@@ -149,44 +151,44 @@ protected function bool IsValidTarget(XComGameState_Unit Unit) {
     local int I;
 
     if (Unit.GetMyTemplate().bIsCosmetic) {
-        `TILOG("Unit is cosmetic");
+        `TILOG("Unit is cosmetic", DetailedLogs);
         return false;
     }
 
     if (!MatchesTeams(Unit)) {
-        `TILOG("Unit team does not match: " $ `SHOWVAR(Unit.GetTeam()));
+        `TILOG("Unit team does not match: " $ `SHOWVAR(Unit.GetTeam()), DetailedLogs);
         return false;
     }
 
     if (!IncludeCivilians && Unit.IsCivilian()) {
-        `TILOG("Unit civilian status does not match: " $ `SHOWVAR(Unit.IsCivilian()));
+        `TILOG("Unit civilian status does not match: " $ `SHOWVAR(Unit.IsCivilian()), DetailedLogs);
         return false;
     }
 
     if (!IncludeDead && Unit.IsDead()) {
-        `TILOG("Unit IsDead does not match: " $ `SHOWVAR(Unit.IsDead()) $ ", " $ `SHOWVAR(IncludeDead));
+        `TILOG("Unit IsDead does not match: " $ `SHOWVAR(Unit.IsDead()) $ ", " $ `SHOWVAR(IncludeDead), DetailedLogs);
         return false;
     }
 
     if (!IncludeLiving && !Unit.IsDead()) {
-        `TILOG("Unit IsDead does not match: " $ `SHOWVAR(Unit.IsDead()) $ ", " $ `SHOWVAR(IncludeLiving));
+        `TILOG("Unit IsDead does not match: " $ `SHOWVAR(Unit.IsDead()) $ ", " $ `SHOWVAR(IncludeLiving), DetailedLogs);
         return false;
     }
 
     if (Unit.IsConcealed() && !IncludeConcealed) {
-        `TILOG("Unit IsConcealed does not match: " $ `SHOWVAR(Unit.IsConcealed()) $ ", " $ `SHOWVAR(IncludeConcealed));
+        `TILOG("Unit IsConcealed does not match: " $ `SHOWVAR(Unit.IsConcealed()) $ ", " $ `SHOWVAR(IncludeConcealed), DetailedLogs);
         return false;
     }
 
     for (I = 0; I < RequireNotImmuneToDamageTypes.Length; I++) {
         if (Unit.IsImmuneToDamage(RequireNotImmuneToDamageTypes[I])) {
-            `TILOG("Unit is immune to " $ RequireNotImmuneToDamageTypes[I] $ " damage");
+            `TILOG("Unit is immune to " $ RequireNotImmuneToDamageTypes[I] $ " damage", DetailedLogs);
             return false;
         }
     }
 
     if (RequireInjured && !Unit.IsInjured()) {
-        `TILOG("Unit IsInjured does not match: " $ `SHOWVAR(Unit.IsInjured()) $ ", " $ `SHOWVAR(RequireInjured));
+        `TILOG("Unit IsInjured does not match: " $ `SHOWVAR(Unit.IsInjured()) $ ", " $ `SHOWVAR(RequireInjured), DetailedLogs);
         return false;
     }
 
@@ -194,7 +196,7 @@ protected function bool IsValidTarget(XComGameState_Unit Unit) {
         Ownership = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Unit.ObjectID);
 
         if (Ownership == none) {
-            `TILOG("Unit does not have a Twitch owner");
+            `TILOG("Unit does not have a Twitch owner", DetailedLogs);
             return false;
         }
     }
