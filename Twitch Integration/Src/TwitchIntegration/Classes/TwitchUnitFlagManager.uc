@@ -87,6 +87,11 @@ function bool AddOrUpdateFlag(XComGameState_Unit Unit, optional XComGameState_Tw
         return false;
     }
 
+    if (Unit.bRemovedFromPlay) {
+        `TILOG("Unit is removed from play; skipping");
+        return false;
+    }
+
     Pres = `PRES;
     UnitObjID = Unit.GetReference().ObjectID;
     UnitFlag = Pres.m_kUnitFlagManager.GetFlagForObjectID(UnitObjID);
@@ -96,7 +101,7 @@ function bool AddOrUpdateFlag(XComGameState_Unit Unit, optional XComGameState_Tw
         Ownership = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(Unit.ObjectID);
     }
 
-    if (Unit.GetMyTemplate().bIsCosmetic || Unit.IsCivilian() || Unit.bRemovedFromPlay) {
+    if (Unit.GetMyTemplate().bIsCosmetic || Unit.IsCivilian()) {
         `TILOG("This unit will never have a flag; skipping it", VERBOSE_LOGS);
         SetUnitName(Unit, Ownership);
         return true; // act like we added a flag, because retrying is a waste
@@ -284,7 +289,6 @@ private function SetUnitName(XComGameState_Unit Unit, XComGameState_TwitchObject
     }
 
     `TILOG("Setting unit name", VERBOSE_LOGS);
-    `XWORLDINFO.ConsoleCommand("flushlogs");
     Unit.SetUnitName(FirstName, LastName, "");
 
     if (NewGameState != none) {
