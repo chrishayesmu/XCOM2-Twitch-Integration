@@ -133,10 +133,11 @@ protected function bool BalanceOptionArrays(out array<RtdOption> ValidPositiveOp
 protected function BuildVisualization(XComGameState VisualizeGameState) {
     local EUIState BannerState;
     local VisualizationActionMetadata ActionMetadata;
+    local XComGameState_Unit TargetUnit;
     local XComGameState_TwitchObjectOwnership OwnershipState;
-	local XComGameState_TwitchRollTheDice RtdState;
+    local XComGameState_TwitchRollTheDice RtdState;
     local X2Action_PlayMessageBanner MessageAction;
-    local string BannerText;
+    local string BannerText, DisplayName;
 
 	foreach VisualizeGameState.IterateByClassType(class'XComGameState_TwitchRollTheDice', RtdState) {
 		break;
@@ -148,8 +149,17 @@ protected function BuildVisualization(XComGameState VisualizeGameState) {
 
     if (`TI_CFG(bRtdQuickMode)) {
         OwnershipState = class'XComGameState_TwitchObjectOwnership'.static.FindForObject(RtdState.TargetUnitObjectID);
+
+        if (OwnershipState != none) {
+            DisplayName = OwnershipState.TwitchLogin;
+        }
+        else {
+            TargetUnit = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(RtdState.TargetUnitObjectID));
+            DisplayName = TargetUnit.GetFullName();
+        }
+
         BannerState = RtdState.OutcomeType == eRTDO_Positive ? eUIState_Good : eUIState_Bad;
-        BannerText = Repl(class'XComGameState_TwitchRollTheDice'.default.strBannerText, "<ViewerName/>", OwnershipState.TwitchLogin);
+        BannerText = Repl(class'XComGameState_TwitchRollTheDice'.default.strBannerText, "<ViewerName/>", DisplayName);
 
         MessageAction = X2Action_PlayMessageBanner(class'X2Action_PlayMessageBanner'.static.AddToVisualizationTree(ActionMetadata, VisualizeGameState.GetContext()));
         MessageAction.AddMessageBanner(class'XComGameState_TwitchRollTheDice'.default.strBannerTitle, /* IconPath */ "", RtdState.PossibleActions[RtdState.SelectedActionIndex], BannerText, BannerState);
