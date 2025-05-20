@@ -119,6 +119,15 @@ event OnRemoved(UIScreen Screen) {
         // Zero out length so these labels become eligible for garbage collection
         m_kPersonnelListLabels.Length = 0;
     }
+
+    // The NMD debrief screen doesn't get removed if the player continues directly from there into the loading screen,
+    // so we check for UIMissionSummary as well (which does). We need to clear these UI elements because their parent is the
+    // NMD screen, and holding onto them will cause a garbage collection crash.
+    if (Screen.IsA('NMD_UIMissionDebriefingScreen') || Screen.IsA('UIMissionSummary')) {
+        m_kNmdDebriefingScreen_CurrentSoldierLabel.BGBox = none;
+        m_kNmdDebriefingScreen_CurrentSoldierLabel.Text = none;
+        m_kNmdDebriefingScreen_CurrentSoldierLabel.TwitchIcon = none;
+    }
 }
 
 private function EventListenerReturn OnScreenSorted(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData) {
