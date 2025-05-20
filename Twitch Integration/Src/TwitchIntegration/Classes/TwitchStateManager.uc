@@ -140,26 +140,32 @@ event Tick(float DeltaTime) {
 
     `TILOG("EventQueue contains " $ EventQueue.Length $ " items", EventQueue.Length > 0);
 
-    // Processing events might take a while; operate on a copy of the queue to reduce concurrency issues
-    Events = EventQueue;
-    EventQueue.Length = 0;
+    if (`GAMERULES.BuildingLatentGameState || `GAMERULES.IsDoingLatentSubmission()) {
+        // Don't handle events while a latent game state is processing, or a conflicting
+        // game state submission could lead to a crash
+    }
+    else {
+        // Processing events might take a while; operate on a copy of the queue to reduce concurrency issues
+        Events = EventQueue;
+        EventQueue.Length = 0;
 
-    for (I = 0; I < Events.Length; I++) {
-        bEventHandled = false;
-        EventType = Events[i].GetStringValue("$type");
+        for (I = 0; I < Events.Length; I++) {
+            bEventHandled = false;
+            EventType = Events[i].GetStringValue("$type");
 
-        `TILOG("Processing event of type " $ EventType);
+            `TILOG("Processing event of type " $ EventType);
 
-        foreach EventHandlers(EventHandler) {
-            if (EventHandler.EventType == EventType) {
-                EventHandler.Handle(self, Events[i]);
+            foreach EventHandlers(EventHandler) {
+                if (EventHandler.EventType == EventType) {
+                    EventHandler.Handle(self, Events[i]);
 
-                bEventHandled = true;
+                    bEventHandled = true;
+                }
             }
-        }
 
-        if (!bEventHandled) {
-            `TILOG("WARNING: received an event with type " $ EventType $ " but no handler is registered for this type");
+            if (!bEventHandled) {
+                `TILOG("WARNING: received an event with type " $ EventType $ " but no handler is registered for this type");
+            }
         }
     }
 

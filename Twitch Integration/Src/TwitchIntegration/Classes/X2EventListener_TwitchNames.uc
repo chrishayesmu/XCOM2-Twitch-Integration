@@ -59,6 +59,11 @@ static function XComGameState_TwitchObjectOwnership AssignOwnership(string Viewe
     ViewerIndex = StateMgr.GetViewer(ViewerLogin, Viewer);
     Unit = XComGameState_Unit(`XCOMHISTORY.GetGameStateForObjectID(ObjID));
 
+    if (`GAMERULES.BuildingLatentGameState || `GAMERULES.IsDoingLatentSubmission()) {
+        `TILOG("Not assigning ownership because a latent game state is in progress");
+        return none;
+    }
+
 // #region Check if either unit or viewer already has associated ownership
 
     // Start by handling the Chosen units specially, because their ownership needs to persist between missions
@@ -103,7 +108,7 @@ static function XComGameState_TwitchObjectOwnership AssignOwnership(string Viewe
         bCreatedGameState = true;
     }
 
-    `TILOG("Assigning viewer " $ ViewerLogin $ " at index " $ ViewerIndex $ " to unit " $ Unit.GetFullName() $ "(template: " $ Unit.GetMyTemplate().DataName $ ") with object ID " $ ObjID);
+    `TILOG("Assigning viewer " $ ViewerLogin $ " at index " $ ViewerIndex $ " to unit " $ Unit.GetFullName() $ " (template: " $ Unit.GetMyTemplate().DataName $ ") with object ID " $ ObjID);
 
 // #region Create or update ownership state
     if (OwnershipState == none) {
