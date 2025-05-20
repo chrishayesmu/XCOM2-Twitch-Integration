@@ -351,7 +351,7 @@ state Stopped {
 
 defaultproperties
 {
-    SecondsUntilCarouselStart=0.3
+    SecondsUntilCarouselStart=0.4
     SecondsToRampUp=0.5
     SecondsAtMaxSpeed=2.0
     TextSpeed=500
