@@ -43,9 +43,11 @@ var config bool IncludeCivilians;
 var config bool IncludeConcealed;
 var config bool IncludeDead;
 var config bool IncludeLiving;
+var config bool RequireActive;
 var config array<name> RequireNotImmuneToDamageTypes;
 var config bool RequireInjured;
 var config bool RequireTwitchOwner;
+var config bool RequireVisibleToXCom;
 var config int NumTargets;
 
 var protectedwrite bool bHasPerUnitFlyover; // Set to true in subclasses to have flyovers automatically created
@@ -203,6 +205,16 @@ protected function bool IsValidTarget(XComGameState_Unit Unit) {
 
     if (RequireInjured && !Unit.IsInjured()) {
         `TILOG("Unit IsInjured does not match: " $ `SHOWVAR(Unit.IsInjured()) $ ", " $ `SHOWVAR(RequireInjured), DetailedLogs);
+        return false;
+    }
+
+    if (RequireVisibleToXCom && !class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(Unit.ObjectID)) {
+        `TILOG("Unit is not visible to XCOM", DetailedLogs);
+        return false;
+    }
+
+    if (RequireActive && Unit.GetTeam() != eTeam_Neutral && Unit.GetTeam() != eTeam_Resistance && Unit.GetTeam() != eTeam_XCom && Unit.IsUnrevealedAI()) {
+        `TILOG("Unit is not active", DetailedLogs);
         return false;
     }
 
