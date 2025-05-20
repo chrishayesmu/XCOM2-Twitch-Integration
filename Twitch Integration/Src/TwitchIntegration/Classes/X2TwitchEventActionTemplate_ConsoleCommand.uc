@@ -2,7 +2,7 @@ class X2TwitchEventActionTemplate_ConsoleCommand extends X2TwitchEventActionTemp
 
 var config string ConsoleCommand;
 
-function Apply(optional XComGameState_Unit InvokingUnit) {
+function Apply(optional XComGameState_Unit InvokingUnit, optional bool ForceUseProvidedUnit = false) {
     local string Command;
 
     Command = ConsoleCommand;
@@ -14,6 +14,6 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
     `XCOMGAME.GetALocalPlayerController().ConsoleCommand(Command);
 }
 
-function bool IsValid(optional XComGameState_Unit InvokingUnit) {
+function bool IsValid(optional XComGameState_Unit InvokingUnit, optional bool ForceUseProvidedUnit = false) {
     return true;
 }

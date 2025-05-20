@@ -2,12 +2,12 @@ class X2TwitchEventActionTemplate_TimeoutUser extends X2TwitchEventActionTemplat
 
 var config int TimeoutDurationInSeconds;
 
-function Apply(optional XComGameState_Unit InvokingUnit) {
+function Apply(optional XComGameState_Unit InvokingUnit, optional bool ForceUseProvidedUnit = false) {
     local XComGameState_Unit Unit;
     local array<XComGameState_Unit> Targets;
     local XComGameState_TwitchObjectOwnership Ownership;
 
-    Targets = FindTargets(InvokingUnit);
+    Targets = FindTargets(InvokingUnit, ForceUseProvidedUnit);
 
     if (Targets.Length == 0) {
         return;
@@ -25,6 +25,6 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
     }
 }
 
-function bool IsValid(optional XComGameState_Unit InvokingUnit) {
+function bool IsValid(optional XComGameState_Unit InvokingUnit, optional bool ForceUseProvidedUnit = false) {
     return InvokingUnit != none;
 }

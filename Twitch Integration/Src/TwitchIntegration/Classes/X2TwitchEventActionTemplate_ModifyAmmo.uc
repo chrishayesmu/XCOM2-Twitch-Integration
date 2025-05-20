@@ -7,7 +7,7 @@ var localized string strAmmoRemovedPlural;
 
 var config int AmmoToGive;
 
-function Apply(optional XComGameState_Unit InvokingUnit) {
+function Apply(optional XComGameState_Unit InvokingUnit, optional bool ForceUseProvidedUnit = false) {
     local int TargetAmmoAmount;
 	local XComGameStateContext_ChangeContainer NewContext;
     local XComGameState_Item Weapon;
@@ -15,7 +15,7 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
     local XComGameState NewGameState;
     local XComGameState_Unit Unit;
 
-    Targets = FindTargets(InvokingUnit);
+    Targets = FindTargets(InvokingUnit, ForceUseProvidedUnit);
     if (Targets.Length == 0) {
         return;
     }

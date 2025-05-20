@@ -7,14 +7,14 @@ var localized string strPointsRemovedPlural;
 
 var config int PointsToGive;
 
-function Apply(optional XComGameState_Unit InvokingUnit) {
+function Apply(optional XComGameState_Unit InvokingUnit, optional bool ForceUseProvidedUnit = false) {
     local int TargetNumActionPoints;
 	local XComGameStateContext_ChangeContainer NewContext;
     local array<XComGameState_Unit> Targets;
     local XComGameState NewGameState;
     local XComGameState_Unit Unit;
 
-    Targets = FindTargets(InvokingUnit);
+    Targets = FindTargets(InvokingUnit, ForceUseProvidedUnit);
 
     if (Targets.Length == 0) {
         return;

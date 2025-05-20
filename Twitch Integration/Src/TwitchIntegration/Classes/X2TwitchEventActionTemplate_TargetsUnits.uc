@@ -52,9 +52,9 @@ var config int NumTargets;
 
 var protectedwrite bool bHasPerUnitFlyover; // Set to true in subclasses to have flyovers automatically created
 
-function bool IsValid(optional XComGameState_Unit InvokingUnit) {
+function bool IsValid(optional XComGameState_Unit InvokingUnit, optional bool ForceUseProvidedUnit = false) {
     local array<XComGameState_Unit> Targets;
-    Targets = FindTargets(InvokingUnit);
+    Targets = FindTargets(InvokingUnit, ForceUseProvidedUnit);
     return Targets.Length > 0;
 }
 
@@ -89,11 +89,19 @@ protected function BuildDefaultVisualization(XComGameState VisualizeGameState) {
     }
 }
 
-protected function array<XComGameState_Unit> FindTargets(XComGameState_Unit InvokingUnit) {
+protected function array<XComGameState_Unit> FindTargets(XComGameState_Unit InvokingUnit, bool ForceUseProvidedUnit) {
     local array<XComGameState_Unit> ValidTargets;
     local array<XComGameState_Unit> Targets;
     local XComGameState_Unit Unit;
     local int I;
+
+    if (ForceUseProvidedUnit) {
+        if (IsValidTarget(InvokingUnit)) {
+            Targets.AddItem(InvokingUnit);
+        }
+
+        return Targets;
+    }
 
     // If an invoking unit is provided (e.g. through a chat command),
     // it is always the only target
@@ -165,6 +173,8 @@ protected function bool GiveAndActivateAbility(Name AbilityName, XComGameState_U
 protected function bool IsValidTarget(XComGameState_Unit Unit) {
     local XComGameState_TwitchObjectOwnership Ownership;
     local int I;
+
+    `TILOG(self $ ": Checking if unit is valid: " $ Unit $ " (" $ Unit.GetFullName() $ ")", DetailedLogs);
 
     if (Unit.GetMyTemplate().bIsCosmetic) {
         `TILOG("Unit is cosmetic", DetailedLogs);

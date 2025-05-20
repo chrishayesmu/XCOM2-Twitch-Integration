@@ -5,13 +5,13 @@ var config array<Name> ActionNames;
 var privatewrite array<X2TwitchEventActionTemplate> ActionTemplates;
 
 // This action is valid as long as any of its subactions are valid
-function bool IsValid(optional XComGameState_Unit InvokingUnit) {
+function bool IsValid(optional XComGameState_Unit InvokingUnit, optional bool ForceUseProvidedUnit = false) {
     local X2TwitchEventActionTemplate Template;
 
     CacheTemplates();
 
     foreach ActionTemplates(Template) {
-        if (Template.IsValid(InvokingUnit)) {
+        if (Template.IsValid(InvokingUnit, ForceUseProvidedUnit)) {
             return true;
         }
     }
@@ -19,7 +19,7 @@ function bool IsValid(optional XComGameState_Unit InvokingUnit) {
     return false;
 }
 
-function Apply(optional XComGameState_Unit InvokingUnit) {
+function Apply(optional XComGameState_Unit InvokingUnit, optional bool ForceUseProvidedUnit = false) {
     local X2TwitchEventActionTemplate Template;
     local X2TwitchEventActionTemplate_TargetsUnits TargetsUnitTemplate;
     local array<XComGameState_Unit> TargetUnits;
@@ -28,7 +28,7 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
     CacheTemplates();
 
     // TODO: we should probably rank targets by how many actions they're valid for
-    TargetUnits = FindTargets(InvokingUnit);
+    TargetUnits = FindTargets(InvokingUnit, ForceUseProvidedUnit);
     `TILOG("Applying " $ ActionTemplates.Length $ " action templates to " $ TargetUnits.Length $ " units");
 
     // Iterate twice: once over all units, invoking only the actions that target units;

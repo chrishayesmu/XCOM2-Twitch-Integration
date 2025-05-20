@@ -2,7 +2,7 @@ class X2TwitchEventActionTemplate_StartPoll extends X2TwitchEventActionTemplate;
 
 var config array<name> AllowedPollGroups;
 
-function Apply(optional XComGameState_Unit InvokingUnit) {
+function Apply(optional XComGameState_Unit InvokingUnit, optional bool ForceUseProvidedUnit = false) {
     local TwitchStateManager StateMgr;
 
     StateMgr = `TISTATEMGR;
@@ -10,7 +10,7 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
     StateMgr.StartPoll(StateMgr.SelectPollGroupTemplateByWeight(AllowedPollGroups));
 }
 
-function bool IsValid(optional XComGameState_Unit InvokingUnit) {
+function bool IsValid(optional XComGameState_Unit InvokingUnit, optional bool ForceUseProvidedUnit = false) {
     local XComGameState_TwitchEventPoll PollGameState;
 
     PollGameState = class'X2TwitchUtils'.static.GetActivePoll();

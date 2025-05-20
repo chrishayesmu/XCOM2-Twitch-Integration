@@ -5,7 +5,7 @@ var config int SpawnCountdown; // Number of turns between reinforcement notifica
 var config int SpawnDistanceFromSquad; // Ideal distance from XCOM's squad (in tiles) that reinforcements will spawn
 var config bool SpawnForceScamper; // If true, enemies will scamper instead of having a chance to shoot on spawn
 
-function Apply(optional XComGameState_Unit InvokingUnit) {
+function Apply(optional XComGameState_Unit InvokingUnit, optional bool ForceUseProvidedUnit = false) {
 	if (EncounterID != '') {
 		`TILOG("Spawning encounter with ID " $ EncounterID);
 
@@ -26,6 +26,6 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
 	}
 }
 
-function bool IsValid(optional XComGameState_Unit InvokingUnit) {
+function bool IsValid(optional XComGameState_Unit InvokingUnit, optional bool ForceUseProvidedUnit = false) {
     return `TI_IS_TAC_GAME; // always fine to spawn more stuff if we're in tac
 }

@@ -18,7 +18,7 @@ struct RtdOption {
 var config array<RtdOption> PositiveOptions;
 var config array<RtdOption> NegativeOptions;
 
-function Apply(optional XComGameState_Unit InvokingUnit) {
+function Apply(optional XComGameState_Unit InvokingUnit, optional bool ForceUseProvidedUnit = false) {
     local XComGameState NewGameState;
     local XComGameState_TwitchRollTheDice RtdGameState;
     local XComGameState_Unit Unit;
@@ -32,7 +32,9 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
 
     CacheTemplates();
 
-    Targets = FindTargets(InvokingUnit);
+    Targets = FindTargets(InvokingUnit, ForceUseProvidedUnit);
+
+    `TILOG("Rtd has " $ Targets.Length $ " targets");
 
     foreach Targets(Unit) {
         // Make sure the target is still valid; a previous RTD outcome may have invalidated them
@@ -42,8 +44,12 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
             continue;
         }
 
+        `TILOG("Filtering RTD options for unit " $ Unit $ " (" $ Unit.GetFullName() $ " )");
+
         ValidPositiveOptions = FilterOptions(PositiveOptions, Unit, TotalPositiveWeight);
         ValidNegativeOptions = FilterOptions(NegativeOptions, Unit, TotalNegativeWeight);
+
+        `TILOG("Filtered from " $ (PositiveOptions.Length + NegativeOptions.Length) $ " down to " $ (PositiveOptions.Length + NegativeOptions.Length) $ " options");
 
         `TILOG("There are " $ ValidPositiveOptions.Length $ " positive and " $ ValidNegativeOptions.Length $ " negative options in the pool for unit " $ Unit.GetFullName() $ " (before potential balancing)");
         `TILOG("Total positive weight is " $ TotalPositiveWeight $ " and total negative weight is " $ TotalNegativeWeight);
@@ -96,7 +102,7 @@ function Apply(optional XComGameState_Unit InvokingUnit) {
         `GAMERULES.SubmitGameState(NewGameState);
 
         ActionTemplate = class'X2TwitchUtils'.static.GetTwitchEventActionTemplate(RtdGameState.SelectedActionTemplateName);
-        ActionTemplate.Apply(Unit);
+        ActionTemplate.Apply(Unit, /* ForceUseProvidedUnit */ true);
     }
 }
 
@@ -199,7 +205,7 @@ protected function array<RtdOption> FilterOptions(array<RtdOption> Options, XCom
             continue;
         }
 
-        if (Options[I].ActionTemplate.IsValid(UnitState)) {
+        if (Options[I].ActionTemplate.IsValid(UnitState, /* ForceUseProvidedUnit */ true)) {
             ValidOptions.AddItem(Options[I]);
             TotalWeight += Options[I].Weight;
         }
