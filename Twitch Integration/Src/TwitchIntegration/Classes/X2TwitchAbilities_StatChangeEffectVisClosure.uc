@@ -18,7 +18,7 @@ function StatChangeEffectVisualization(XComGameState VisualizeGameState, out Vis
 
 	UnitState = XComGameState_Unit(ActionMetadata.StateObject_NewState);
 
-	if (UnitState != none)
+	if (UnitState != none && class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(UnitState.ObjectID))
 	{
         Text = Repl(FlyoverText, "<Amount/>", StatChangeAmount);
 		class'X2StatusEffects'.static.AddEffectSoundAndFlyOverToTrack(ActionMetadata, VisualizeGameState.GetContext(), Text, '', FlyoverColor, FlyoverIcon);

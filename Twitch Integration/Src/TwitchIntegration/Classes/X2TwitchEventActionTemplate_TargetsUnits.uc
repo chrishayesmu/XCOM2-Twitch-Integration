@@ -76,7 +76,7 @@ protected function BuildDefaultVisualization(XComGameState VisualizeGameState) {
         ActionMetadata.StateObject_NewState = UnitCurrentState;
         ActionMetadata.VisualizeActor = History.GetVisualizer(UnitCurrentState.ObjectID);
 
-        if (bHasPerUnitFlyover) {
+        if (bHasPerUnitFlyover && class'X2TacticalVisibilityHelpers'.static.CanXComSquadSeeTarget(UnitCurrentState.ObjectID)) {
             GetFlyoverParams(VisualizeGameState, UnitPreviousState, UnitCurrentState, FlyoverParams);
 
             if (FlyoverParams.Text != "") {
