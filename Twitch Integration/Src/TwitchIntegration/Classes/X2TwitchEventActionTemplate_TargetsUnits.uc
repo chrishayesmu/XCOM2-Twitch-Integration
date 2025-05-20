@@ -223,7 +223,7 @@ protected function bool IsValidTarget(XComGameState_Unit Unit) {
         return false;
     }
 
-    if (RequireActive && Unit.GetTeam() != eTeam_Neutral && Unit.GetTeam() != eTeam_Resistance && Unit.GetTeam() != eTeam_XCom && Unit.IsUnrevealedAI()) {
+    if (RequireActive && Unit.GetTeam() != eTeam_Neutral && Unit.GetTeam() != eTeam_Resistance && Unit.GetTeam() != eTeam_XCom && Unit.GetCurrentStat(eStat_AlertLevel) != `ALERT_LEVEL_RED) {
         `TILOG("Unit is not active", DetailedLogs);
         return false;
     }
