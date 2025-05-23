@@ -37,6 +37,7 @@ var config TLabelPosition NamePosition_SoldierBondAlertScreen_2;
 var config TLabelPosition NamePosition_SoldierBondScreen;
 var config TLabelPosition NamePosition_SoldierCapturedScreen;
 var config TLabelPosition NamePosition_SoldierList;
+var config TLabelPosition NamePosition_SoldierList_Memorial;
 var config TLabelPosition NamePosition_SoldierList_WithEpi_HighlightedUnit;
 var config TLabelPosition NamePosition_SquadSelectScreen;
 var config TLabelPosition NamePosition_SquadSelectScreen_WithRjss;
@@ -228,12 +229,12 @@ private function HandleSquadSelectScreen(UISquadSelect Screen, out array<TUnitLa
 
 private function ParseUIPersonnelScreen(UIPersonnel Screen, out UIList List, out array<int> ObjectIDs, out array<UIPanel> ParentPanels) {
     local UIPanel Panel;
-    local UIPersonnel_SoldierListItem ListItem;
+    local UIPersonnel_ListItem ListItem;
 
     List = Screen.m_kList;
 
     foreach List.itemContainer.ChildPanels(Panel) {
-        ListItem = UIPersonnel_SoldierListItem(Panel);
+        ListItem = UIPersonnel_ListItem(Panel);
 
         if (ListItem == none) {
             continue;
@@ -265,13 +266,14 @@ private function ParseUISoldierBondScreen(UISoldierBondScreen Screen, out UIList
 private function CheckForSoldierList(UIScreen Screen) {
     local int Index;
     local array<int> ObjectIDs;
+    local TLabelPosition LabelPosition;
     local TUnitLabel EmptyLabel, Label;
     local UIList List;
     local array<UIPanel> ParentPanels;
+    local bool IsMemorialScreen;
 
-    // TODO: handle type eUIPersonnel_Deceased
-    // TODO: support UISoldierBondScreen with UISoldierBondListItem
-    if (UIPersonnel(Screen) != none && UIPersonnel(Screen).m_eListType == eUIPersonnel_Soldiers) {
+    if (UIPersonnel(Screen) != none && (UIPersonnel(Screen).m_eListType == eUIPersonnel_Soldiers || UIPersonnel(Screen).m_eListType == eUIPersonnel_Deceased)) {
+        IsMemorialScreen = UIPersonnel(Screen).m_eListType == eUIPersonnel_Deceased;
         ParseUIPersonnelScreen(UIPersonnel(Screen), List, ObjectIDs, ParentPanels);
     }
     else if (UISoldierBondScreen(Screen) != none) {
@@ -287,15 +289,21 @@ private function CheckForSoldierList(UIScreen Screen) {
 
     m_kPersonnelListLabels.Length = 0;
 
-    `TILOG("Using position variable NamePosition_SoldierList", bLogPositionVariables);
+    LabelPosition = IsMemorialScreen ? NamePosition_SoldierList_Memorial : NamePosition_SoldierList;
+    `TILOG("Using position variable " $ (IsMemorialScreen ? "NamePosition_SoldierList_Memorial" : "NamePosition_SoldierList"), bLogPositionVariables);
 
     for (Index = 0; Index < ObjectIDs.Length; Index++) {
         Label.bAddBackground = true;
-        Label.PosX = NamePosition_SoldierList.X;
-        Label.PosY = NamePosition_SoldierList.Y;
+        Label.PosX = LabelPosition.X;
+        Label.PosY = LabelPosition.Y;
         Label.UnitObjectID = ObjectIDs[Index];
 
         CreateTwitchUI(ParentPanels[Index], Label, OnPersonnelListTextSizeRealized);
+
+        // The memorial screen items are significantly narrower, so shrink to match
+        if (IsMemorialScreen) {
+            Label.BGBox.SetHeight(36);
+        }
 
         m_kPersonnelListLabels.AddItem(Label);
         Label = EmptyLabel;
