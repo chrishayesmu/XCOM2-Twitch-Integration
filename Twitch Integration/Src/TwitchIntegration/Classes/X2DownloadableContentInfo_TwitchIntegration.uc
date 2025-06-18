@@ -12,6 +12,8 @@ class X2DownloadableContentInfo_TwitchIntegration extends X2DownloadableContentI
     config(Twitch__ShouldNotExist)
 	dependson(XComGameState_TwitchEventPoll);
 
+const SET_UNIT_NAMES = false;
+
 var config bool IsExtendedPersonnelInfoActive;
 var config bool IsExtendedPersonnelInfoReduxActive;
 var config bool IsNiceMissionDebriefingActive;

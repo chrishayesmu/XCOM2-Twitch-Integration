@@ -257,6 +257,10 @@ private function SetUnitName(XComGameState_Unit Unit, XComGameState_TwitchObject
     local TwitchChatter Viewer;
 	local string FirstName, LastName;
 
+    if (!class'X2DownloadableContentInfo_TwitchIntegration'.const.SET_UNIT_NAMES) {
+        return;
+    }
+
     if (Unit.GetMyTemplate().bIsCosmetic) {
         return;
     }

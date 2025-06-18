@@ -50,7 +50,7 @@ static function DeleteOwnership(XComGameState_TwitchObjectOwnership Ownership, o
 
     // After deleting the ownership, we need to rename the unit in case the viewer had a bad name (except for soldiers,
     // since any custom soldier name was done manually by the player)
-    if (!Unit.IsSoldier()) {
+    if (class'X2DownloadableContentInfo_TwitchIntegration'.const.SET_UNIT_NAMES && !Unit.IsSoldier()) {
         `TILOG("Going to update unit name");
         Unit = XComGameState_Unit(GameState.ModifyStateObject(class'XComGameState_Unit', Unit.GetReference().ObjectID));
 
