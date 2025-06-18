@@ -298,7 +298,7 @@ function int RaffleViewer() {
     }
 
     RaffledIndex = Rand(NumAvailableViewers);
-    `TILOG("Out of " $ NumAvailableViewers $ " available viewers, rolled for #" $ RaffledIndex);
+    `TILOG("Out of " $ NumAvailableViewers $ " available viewers, rolled for #" $ RaffledIndex $ ". There are " $ CurrentChatters.Length $ " chatters total.");
 
     for (Index = 0; Index < CurrentChatters.Length; Index++) {
         // We've raffled an index into a virtual array of only available viewers, so now we
@@ -552,6 +552,7 @@ private function OnNamesListReceived(HttpGetRequest Request, HttpResponse Respon
 	}
 
 	ResponseObj = class'JsonObject'.static.DecodeJson(Response.Body);
+    `TILOG("Retrieved " $ ResponseObj.ObjectArray.Length $ " chatters from API. Response length was " $ Len(Response.Body) $ " characters");
 
     for (I = 0; I < ResponseObj.ObjectArray.Length; I++)
     {

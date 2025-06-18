@@ -44,7 +44,7 @@ function Apply(optional XComGameState_Unit InvokingUnit, optional bool ForceUseP
             continue;
         }
 
-        `TILOG("Filtering RTD options for unit " $ Unit $ " (" $ Unit.GetFullName() $ " )");
+        `TILOG("Filtering RTD options for unit " $ Unit $ " (" $ Unit.GetFullName() $ ")");
 
         ValidPositiveOptions = FilterOptions(PositiveOptions, Unit, TotalPositiveWeight);
         ValidNegativeOptions = FilterOptions(NegativeOptions, Unit, TotalNegativeWeight);
