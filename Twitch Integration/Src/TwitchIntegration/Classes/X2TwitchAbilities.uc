@@ -748,8 +748,7 @@ protected static function X2DataTemplate CreateDetonateSelfAbility(name Template
 
 	Template.FrameAbilityCameraType = eCameraFraming_Always;
 
-	Template.SuperConcealmentLoss = 100;
-	Template.LostSpawnIncreasePerUse = 100;
+	Template.LostSpawnIncreasePerUse = class'X2AbilityTemplateManager'.default.GrenadeLostSpawnIncreasePerUse;;
 
 	Template.BuildVisualizationFn = DetonateSelf_BuildVisualization;
 
