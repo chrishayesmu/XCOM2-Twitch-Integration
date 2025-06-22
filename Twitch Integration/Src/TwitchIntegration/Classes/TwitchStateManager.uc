@@ -539,7 +539,7 @@ private function OnNamesListReceiveError(HttpGetRequest Request, HttpResponse Re
 
 private function OnNamesListReceived(HttpGetRequest Request, HttpResponse Response) {
     local int I;
-    local TwitchChatter Chatter;
+    local TwitchChatter Blank, Chatter;
     local array<TwitchChatter> Chatters;
 	local JsonObject ResponseObj, UserObj;
     local XComGameState_TwitchObjectOwnership Ownership;
@@ -558,6 +558,7 @@ private function OnNamesListReceived(HttpGetRequest Request, HttpResponse Respon
     {
         UserObj = ResponseObj.ObjectArray[I];
 
+        Chatter = Blank;
         Chatter.Login = UserObj.GetStringValue("user_login");
         Chatter.DisplayName = UserObj.GetStringValue("user_name");
         Chatter.SubTier = UserObj.GetIntValue("sub_tier");
